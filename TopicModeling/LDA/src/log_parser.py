@@ -1,16 +1,31 @@
 import re
 import matplotlib.pyplot as plt
-p = re.compile("(-*\d+\.\d+) per-word .* (\d+\.\d+) perplexity")
-matches = [p.findall(l) for l in open('../../../../LDAmodeling/src/gensim.log')]
-matches = [m for m in matches if len(m) > 0]
-tuples = [t[0] for t in matches]
-perplexity = [float(t[1]) for t in tuples]
-liklihood = [float(t[0]) for t in tuples]
-iter = list(range(0,len(tuples)*10,10))
-plt.plot(iter,liklihood,c="black")
-plt.ylabel("log liklihood")
-plt.xlabel("iteration")
-plt.title("Topic Model Convergence")
-plt.grid()
-plt.savefig("convergence_liklihood.pdf")
-plt.close()
+import csv
+import math
+iteration=[]
+perplexity=[]
+convergence=[]
+coherence=[]
+for line in open(r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\src\model_callbacks_untill371.log'):
+    if 'Start' in line:
+        short=" ".join(line.split()[:-1])
+        iteration.append(short.split()[-1])
+    if 'Coherence' in line :
+        coherence.append(line.split()[-1])
+
+fields = ['iterations','cv_coherence']
+# rows = zip(iteration,coherence)
+# with open("conv.csv","w") as f :
+#     writer = csv.writer(f)
+#     writer.writerow(fields)
+#     for row in rows:
+#         writer.writerow(row)
+
+iteration = [ int(i) for i in iteration]
+coherence = [round(float(i),3) for i in coherence]
+print(iteration)
+print(coherence)
+plt.plot(iteration,coherence)
+plt.xlabel("iterations")
+plt.ylabel("c_v coherence value")
+plt.show()

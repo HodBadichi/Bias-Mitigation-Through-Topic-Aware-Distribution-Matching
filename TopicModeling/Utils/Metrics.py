@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from my_exceptions import CustomError
+from TopicModeling.Utils.my_exceptions import CustomError
 from gensim.models import CoherenceModel
 import gensim.corpora as corpora
 import pandas as pd
