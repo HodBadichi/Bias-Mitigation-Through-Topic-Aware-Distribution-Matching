@@ -1,4 +1,5 @@
 import numpy as np
+import re
 import pandas as pd
 import string
 import nltk
@@ -12,6 +13,8 @@ from gensim import corpora
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 import pprint
+from sklearn.model_selection import train_test_split
+
 import csv
 from scipy.interpolate import make_interp_spline
 
@@ -124,11 +127,17 @@ def extract_lda_params(data_set):
     corpus = [id2word.doc2bow(text) for text in texts_data]
     return texts_data, corpus, id2word
 
+def get_all_model_topics_words(model):
+    x = model.show_topics(model.num_topics-1)
+    all_words = []
+    for topic, word in x:
+        all_words.append(re.sub('[^A-Za-z ]+', '', word).split())
+
+    flat_list = [word for sub_word in all_words for word in sub_word]
+    return flat_list
 
 if __name__ == '__main__':
     np.random.seed(42)
-    show_evaluation_graphs(r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\results\train_evaluation_v6.csv',poly_deg=13)
-    exit(0)
     # init Gensim logger
     # gensim_logger_path = fr'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\logs\lda_model_60_topics_S.log'
     # logging.basicConfig(filename=gensim_logger_path,
@@ -136,16 +145,22 @@ if __name__ == '__main__':
     #                     level=logging.INFO)
 
     # Clean and save data
-    # saved_cleaned_data_path = r''
-    # full_data_path = r''
+    # saved_cleaned_data_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\data\hod_clean_data.csv'
+    # full_data_path = r'C:\Users\katac\PycharmProjects\NLP_project\data\abstract_2005_2020_full.csv'
     # full_documents_df = pd.read_csv(full_data_path, encoding='utf8')
     # title_and_abstract_df = full_documents_df[["title_and_abstract"]]
     # clean_title_and_abstract_df = clean_text(title_and_abstract_df["title_and_abstract"])
     # clean_title_and_abstract_df.to_csv(saved_cleaned_data_path, index=False)
 
+    #split data
+    # clean_dataframe = pd.read_csv(r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\data\hod_clean_data.csv')
+    # training_dataset, test_dataset = train_test_split(clean_dataframe, train_size=0.9,random_state=42)
+    # training_dataset.to_csv(r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\data\hod_clean_lda_train.csv')
+    # test_dataset.to_csv(r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\data\hod_clean_lda_test.csv')
+
     # Load clean data
-    train_data_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\data\clean_lda_train.csv'
-    validation_data_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\data\clean_lda_test.csv'
+    train_data_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\data\hod_clean_lda_train.csv'
+    validation_data_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\data\hod_clean_lda_train.csv'
     training_set = pd.read_csv(train_data_path, encoding='utf8')
     validation_set = pd.read_csv(validation_data_path, encoding='utf8')
 
@@ -154,8 +169,7 @@ if __name__ == '__main__':
     validation_texts, validation_corpus, validation_id2word = extract_lda_params(validation_set)
 
     # Number of Topics Tuning
-    #topics_range = list(itertools.chain(range(28,30,1)))
-    topics_range =[31]
+    topics_range = list(itertools.chain(range(1,50,5)+itertools.chain(range(50,100,15)+itertools.chain(100,201,50))))
     # Keys are meant to write CSV headers later on ,values are dummy values
     my_dict = {"Topics": 6, "u_mass": 5, "c_uci": 4, "c_npmi": 3, "c_v": 2, "perplexity": 1}
     for num_of_topics in topics_range:
@@ -171,26 +185,21 @@ if __name__ == '__main__':
 
         # saved_model_path = fr'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\results\model_{num_of_topics}'
         # curr_lda_model.save(saved_model_path)
-        coherencemodel = CoherenceModel(model=curr_lda_model, texts=train_texts, corpus=train_corpus,
-                                        coherence='c_v')
-        print(f"@@@Number of topics model {num_of_topics}@@@ \n")
-        pprint.pprint(coherencemodel.get_coherence_per_topic())
-        exit(0)
        # Save results of train set
-        train_results_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\results\mini_train_evaluation_v6.csv'
-        # with open(train_results_path, "a") as csv_file:
-        #     # Initialize 'LDAMetrics' class
-        #     my_metrics = LDAMetrics(curr_lda_model, train_corpus, train_texts)
-        #     writer = csv.DictWriter(csv_file, my_dict.keys())
-        #     result_dict = my_metrics.evaluate_all_metrics()
-        #     result_dict['Topics'] = num_of_topics
-        #     writer.writerow(result_dict)
+        train_results_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\results\train_evaluation_v7.csv'
+        with open(train_results_path, "a") as csv_file:
+            # Initialize 'LDAMetrics' class
+            my_metrics = LDAMetrics(curr_lda_model, train_corpus, train_texts)
+            writer = csv.DictWriter(csv_file, my_dict.keys())
+            result_dict = my_metrics.evaluate_all_metrics()
+            result_dict['Topics'] = num_of_topics
+            writer.writerow(result_dict)
 
-        # validation_results_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\results\mini_validation_evaluation_v6.csv'
-        # with open(validation_results_path, "a") as csv_file:
-        #     # Initialize 'LDAMetrics' class
-        #     my_metrics = LDAMetrics(curr_lda_model, validation_corpus, validation_texts)
-        #     writer = csv.DictWriter(csv_file, my_dict.keys())
-        #     result_dict = my_metrics.evaluate_all_metrics()
-        #     result_dict['Topics'] = num_of_topics
-        #     writer.writerow(result_dict)
+        validation_results_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\results\validation_evaluation_v7.csv'
+        with open(validation_results_path, "a") as csv_file:
+            # Initialize 'LDAMetrics' class
+            my_metrics = LDAMetrics(curr_lda_model, validation_corpus, validation_texts)
+            writer = csv.DictWriter(csv_file, my_dict.keys())
+            result_dict = my_metrics.evaluate_all_metrics()
+            result_dict['Topics'] = num_of_topics
+            writer.writerow(result_dict)

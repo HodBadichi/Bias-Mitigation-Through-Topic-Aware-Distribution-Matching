@@ -6,7 +6,7 @@ iteration=[]
 perplexity=[]
 convergence=[]
 coherence=[]
-for line in open(r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\src\model_callbacks_untill371.log'):
+for line in open(r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\src\model_callbacks.log'):
     if 'Start' in line:
         short=" ".join(line.split()[:-1])
         iteration.append(short.split()[-1])
