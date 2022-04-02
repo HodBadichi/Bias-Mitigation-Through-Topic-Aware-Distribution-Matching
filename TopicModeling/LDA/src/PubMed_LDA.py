@@ -2,36 +2,32 @@ import numpy as np
 import pandas as pd
 import string
 import nltk
-import gensim
 import logging
-import re
-import csv
-import tqdm
-import os
+import itertools
+import gensim
 import matplotlib.pyplot as plt
 from TopicModeling.Utils.Metrics import LDAMetrics
 from gensim.models import CoherenceModel
-from sklearn.model_selection import train_test_split
-from gensim import corpora, models
+from gensim import corpora
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
-from gensim.models.callbacks import PerplexityMetric, ConvergenceMetric, CoherenceMetric
+import pprint
+import csv
+from scipy.interpolate import make_interp_spline
 
-import time
 # Used for pre-processing  requires internet connection
 nltk.download('wordnet', quiet=True)
 nltk.download('omw-1.4', quiet=True)
 nltk.download('stopwords', quiet=True)
 
 
-
-def is_ascii(str) -> bool:
+def is_ascii(word_str) -> bool:
     """
     Checks whether the string contains non-ascii character
-    :param str:string
+    :param word_str:string
     :return: True if the string is ONLY ascii , false otherwise
     """
-    return all(ord(c) < 128 for c in str)
+    return all(ord(c) < 128 for c in word_str)
 
 
 def clean_document(dirty_document):
@@ -66,11 +62,7 @@ def clean_text(documents_df):
     return documents_df.apply(clean_document)
 
 
-
-
-
-
-def show_evaluation_graphs(file_path):
+def show_evaluation_graphs(file_path,smooth=False,poly_deg=None):
     """
     Print on the screen metrics results against number of topics
     :param file_path:CSV file which holds in a single column 'Number of topics' and different measures
@@ -85,7 +77,21 @@ def show_evaluation_graphs(file_path):
         if measure == 'Topics':
             continue
         train_scores = train_df[measure].tolist()
-        ax.plot(train_df.Topics.tolist(), train_scores, label="Train")
+
+        X_Y_Spline = make_interp_spline(train_df.Topics.tolist(), train_scores)
+        # Returns evenly spaced numbers
+        #over a specified interval.
+        X_ = np.linspace(train_df.Topics.min(), train_df.Topics.max(), 500)
+        Y_ = X_Y_Spline(X_)
+        if poly_deg is not None:
+            coefs = np.polyfit(train_df.Topics.tolist(), train_scores, poly_deg)
+            y_poly = np.polyval(coefs, train_df.Topics.tolist())
+            ax.plot(train_df.Topics.tolist(), train_scores, "o", label="data points")
+            ax.plot(train_df.Topics, y_poly, label="Train")
+        elif smooth is False:
+            ax.plot(train_df.Topics,train_scores, label="Train")
+        else:
+            ax.plot(X_, Y_, label="Train")
         ax.set_title(measure + " Measure ")
         ax.set_xlabel("number of topics")
         ax.set_ylabel("measure values")
@@ -119,17 +125,15 @@ def extract_lda_params(data_set):
     return texts_data, corpus, id2word
 
 
-4
 if __name__ == '__main__':
     np.random.seed(42)
-    # filepath = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\logs\lda_model_60_topics.log'
-    # gensim_log_convergence_parser(filepath)
-    # exit(0)
+    show_evaluation_graphs(r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\results\train_evaluation_v6.csv',poly_deg=13)
+    exit(0)
     # init Gensim logger
-    gensim_logger_path = fr'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\logs\lda_model_60_topics_S.log'
-    logging.basicConfig(filename=gensim_logger_path,
-                        format="%(asctime)s:%(levelname)s:%(message)s",
-                        level=logging.INFO)
+    # gensim_logger_path = fr'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\logs\lda_model_60_topics_S.log'
+    # logging.basicConfig(filename=gensim_logger_path,
+    #                     format="%(asctime)s:%(levelname)s:%(message)s",
+    #                     level=logging.INFO)
 
     # Clean and save data
     # saved_cleaned_data_path = r''
@@ -141,110 +145,51 @@ if __name__ == '__main__':
 
     # Load clean data
     train_data_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\data\clean_lda_train.csv'
+    validation_data_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\data\clean_lda_test.csv'
     training_set = pd.read_csv(train_data_path, encoding='utf8')
+    validation_set = pd.read_csv(validation_data_path, encoding='utf8')
 
     # Gensim LDA preparation - create corpus and id2word
     train_texts, train_corpus, train_id2word = extract_lda_params(training_set)
-
-
-    coherence_cv_logger = CoherenceMetric(corpus=train_corpus, logger='shell', coherence='c_v', texts=train_texts)
-    perplexity_logger = PerplexityMetric(corpus=train_corpus, logger='shell')
+    validation_texts, validation_corpus, validation_id2word = extract_lda_params(validation_set)
 
     # Number of Topics Tuning
-    topics_range = [61]
+    #topics_range = list(itertools.chain(range(28,30,1)))
+    topics_range =[31]
     # Keys are meant to write CSV headers later on ,values are dummy values
     my_dict = {"Topics": 6, "u_mass": 5, "c_uci": 4, "c_npmi": 3, "c_v": 2, "perplexity": 1}
-
-
-    # List of the different iterations to try
-    iterations = [50, 100, 400]
-
-    # The number of passes to use - could change depending on requirements
-    passes = 1
-
-    # for iteration in iterations:
-    #
-    #     # Add text to logger to indicate new model
-    #     logging.debug(f'Start of model: {iteration} iterations')
-    #
-    #     # Create model - note callbacks argument uses list of created callback loggers
-    #     model = models.ldamodel.LdaModel(corpus=train_corpus,
-    #                                      id2word=train_id2word,
-    #                                      num_topics=61,
-    #                                      eval_every=20,
-    #                                      passes=passes,
-    #                                      iterations=iteration,
-    #                                      random_state=42,
-    #                                      callbacks=[perplexity_logger, coherence_cv_logger])
-    #
-    #     # Add text to logger to indicate end of this model
-    #     logging.debug(f'End of model: {iteration} iterations')
-    #
-    #     # Save models so they aren't lost
-    #     if not os.path.exists(f"lda_{iteration}i50p/"):
-    #         os.makedirs(f"lda_{iteration}i50p/")
-    #
-    #     model.save(f"lda_{iteration}i50p/lda_{iteration}i50p.model")
-
-    all_metrics = pd.DataFrame()
-
-    for iteration in tqdm.tqdm(iterations):
-        model = models.ldamodel.LdaModel.load(f"lda_{iteration}i50p/lda_{iteration}i50p.model")
-        df = pd.DataFrame.from_dict(model.metrics)
-
-        df['docs_converged'] = find_doc_convergence(5, iteration, r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\logs\lda_model_60_topics_S.log')
-        df['iterations'] = iteration
-        df['topics'] = 5
-
-        df = df.reset_index().rename(columns={'index': 'pass_num'})
-
-        all_metrics = pd.concat([all_metrics, df])
-
-    for metric in ['Coherence', 'Perplexity','docs_converged']:
-
-        fig, axs = plt.subplots(1, 1, figsize=(20, 7))
-
-        # Each plot to show results for all models with the same topic number
-        for i, topic_number in enumerate([5]):
-            filtered_topics = all_metrics[all_metrics['topics'] == topic_number]
-            for label, df in filtered_topics.groupby(['iterations']):
-                print(label)
-                df.plot(x='pass_num', y=metric, ax=axs, label=label)
-
-            axs.set_xlabel(f"Pass number")
-            axs.legend()
-            axs.set_ylim([all_metrics[metric].min() * 0.9, all_metrics[metric].max() * 1.1])
-
-        if metric == 'docs_converged':
-            fig.suptitle('Documents converged', fontsize=20)
-        else:
-            fig.suptitle(metric, fontsize=20)
-    exit(0)
-
     for num_of_topics in topics_range:
-        print("topic run")
-        print(train_id2word)
-        print(num_of_topics)
-        passes=1
+        print(f"Runing number of topics model :{num_of_topics}")
         curr_lda_model = gensim.models.ldamodel.LdaModel(corpus=train_corpus,
                                                          id2word=train_id2word,
                                                          num_topics=num_of_topics,
                                                          random_state=42,
                                                          update_every=1,
                                                          chunksize=300,
-                                                         passes=passes,
-                                                         iterations=iterations,
-                                                         callbacks=[perplexity_logger,coherence_cv_logger])
-        logging.debug(f'End of model: {iterations} iterations')
+                                                         passes=1,
+                                                         iterations=250)
 
-        # saved_model_path = r''
+        # saved_model_path = fr'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\results\model_{num_of_topics}'
         # curr_lda_model.save(saved_model_path)
-
-        # Save results of train set
-        # train_results_path = r''
+        coherencemodel = CoherenceModel(model=curr_lda_model, texts=train_texts, corpus=train_corpus,
+                                        coherence='c_v')
+        print(f"@@@Number of topics model {num_of_topics}@@@ \n")
+        pprint.pprint(coherencemodel.get_coherence_per_topic())
+        exit(0)
+       # Save results of train set
+        train_results_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\results\mini_train_evaluation_v6.csv'
         # with open(train_results_path, "a") as csv_file:
         #     # Initialize 'LDAMetrics' class
         #     my_metrics = LDAMetrics(curr_lda_model, train_corpus, train_texts)
+        #     writer = csv.DictWriter(csv_file, my_dict.keys())
+        #     result_dict = my_metrics.evaluate_all_metrics()
+        #     result_dict['Topics'] = num_of_topics
+        #     writer.writerow(result_dict)
+
+        # validation_results_path = r'C:\Users\katac\PycharmProjects\NLP_project\TopicModeling\LDA\results\mini_validation_evaluation_v6.csv'
+        # with open(validation_results_path, "a") as csv_file:
+        #     # Initialize 'LDAMetrics' class
+        #     my_metrics = LDAMetrics(curr_lda_model, validation_corpus, validation_texts)
         #     writer = csv.DictWriter(csv_file, my_dict.keys())
         #     result_dict = my_metrics.evaluate_all_metrics()
         #     result_dict['Topics'] = num_of_topics
