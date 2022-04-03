@@ -4,6 +4,7 @@ from nltk.stem import WordNetLemmatizer
 from bertopic import BERTopic
 from Metrics import BertTopicMetrics
 import csv
+import matplotlib.pyplot as plt
 
 
 def is_ascii(s) -> bool:
@@ -49,7 +50,7 @@ def bert_train(train_data_path, model_path, min_topic_size_range=[10], n_gram_ra
 
 def bert_coherence_evaluate(train_data_path, models_dir, models_list, result_path):
     # calculate coherence
-    my_dict = {"Model": 5, "u_mass": 4, "c_uci": 3, "c_npmi": 2, "c_v": 1}
+    my_dict = {"Model": 6, "Topics": 5, "u_mass": 4, "c_uci": 3, "c_npmi": 2, "c_v": 1}
     documents_df = pd.read_csv(train_data_path, encoding='utf8')
     docs = documents_df.title_and_abstract.to_list()
     for model in models_list:
@@ -60,7 +61,29 @@ def bert_coherence_evaluate(train_data_path, models_dir, models_list, result_pat
             result_dict = my_metrics.evaluate_all_metrics()
             writer = csv.DictWriter(csv_file, my_dict.keys())
             result_dict['Model'] = model
+            result_dict['Topics'] = len(loaded_model.get_topics())
             writer.writerow(result_dict)
+
+
+def bert_coherence_graph(evaluation_path, result_dir):
+    figure, axis = plt.subplots(2, 3)
+    figure.set_size_inches(18.5, 10.5)
+    train_df = pd.read_csv(evaluation_path)
+    column_names = train_df.columns
+
+    for measure, ax in zip(column_names, axis.ravel()):
+        if measure == 'Topics':
+            continue
+        train_scores = train_df[measure].tolist()
+        # validation_scores=validation_df[measure].tolist()
+        ax.plot(train_df.Topics.tolist(), train_scores, label="Train")
+        # ax.plot(validation_df.Topics.tolist(),validation_scores, label="Validation")
+        ax.set_title(measure + " Measure ")
+        ax.set_xlabel("number of topics")
+        ax.set_ylabel("measure values")
+        ax.legend()
+    plt.savefig(rf'{result_dir}\coherence_graphs.pdf')
+    plt.close()
 
 
 def bert_visualize(model_path, result_dir, model_name, top_n_topics, n_words_per_topic):
@@ -73,26 +96,69 @@ def bert_visualize(model_path, result_dir, model_name, top_n_topics, n_words_per
         f.write(fig2.to_html(full_html=False, include_plotlyjs='cdn'))
 
 
+def bert_topic_over_time(model_path, result_dir, model_name, documents_path, timestamps_path):
+    loaded_model = BERTopic.load(model_path)
+    loaded_topics = loaded_model._map_predictions(loaded_model.hdbscan_model.labels_)
+    documents_df = pd.read_csv(documents_path,encoding='utf8')
+    docs = documents_df.title_and_abstract.to_list()
+    timestamps_df = pd.read_csv(timestamps_path,encoding='utf8')
+    timestamps = timestamps_df.year.to_list()
+    topics_over_time = loaded_model.topics_over_time(docs, loaded_topics, timestamps)
+    fig = loaded_model.visualize_topics_over_time(topics_over_time, topics=[0,1,2,3,4,5,6,7,8,9])
+    fig.write_html(rf'{result_dir}\{model_name}_topics_over_time.html')
+
+def bert_show_topic_frequency(model_path, model_name):
+    loaded_model = BERTopic.load(model_path)
+    frequency = loaded_model.get_topic_freq()
+    topic_freq = {}
+    for index, row in frequency.iterrows():
+        if (row[0] != -1):
+            topic_freq[row[0]]=row[1]
+        else:
+            count_general_topic = row[1]
+    plt.bar(list(topic_freq.keys()), topic_freq.values(), color='g')
+    plt.title(f"{model_name}\nTopic -1 with {count_general_topic} documents")
+    plt.xlabel("Topic Number")
+    plt.ylabel("Frequency among documents")
+    plt.show()
+
 if (__name__ == '__main__'):
-    bert_train(train_data_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\Data\clean_bert_train.csv',
-               model_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\bertTopic_train(81876)',
-               min_topic_size_range=[25, 50, 100, 300, 800, 1600], n_gram_range=(1, 1)
-               )
 
-    bert_coherence_evaluate(
-        train_data_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\Data\clean_bert_train.csv',
-        models_dir=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert',
-        models_list=["bertTopic_train(81876)_n_gram_1_1_min_topic_size_25",
-                     "bertTopic_train(81876)_n_gram_1_1_min_topic_size_50",
-                     "bertTopic_train(81876)_n_gram_1_1_min_topic_size_100",
-                     "bertTopic_train(81876)_n_gram_1_1_min_topic_size_300"],
-        result_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\train_evaluation.csv'
-        )
+    # bert_train(train_data_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\Data\clean_bert_train.csv',
+    #            model_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\bertTopic_train(81876)',
+    #            min_topic_size_range=[25, 50, 100, 300, 800, 1600], n_gram_range=(1, 1)
+    #            )
+    #
 
-    bert_visualize(
-        model_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\bertTopic_train(81876)_n_gram_1_1_min_topic_size_25',
-        result_dir=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert',
-        model_name='bertTopic_6000_n_gram_1_3',
-        top_n_topics=30,
-        n_words_per_topic=10
-        )
+
+    # bert_coherence_evaluate(
+    #     train_data_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\Data\clean_bert_train.csv',
+    #     models_dir=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert',
+    #     models_list = ["bertTopic_train(81876)_n_gram_1_2_min_topic_size_10"],
+    #     result_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\train_evaluation_n_gram_1_2.csv'
+    #     )
+
+    # bert_topic_over_time(model_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\bertTopic_train(81876)_n_gram_1_1_min_topic_size_50',
+    #                     result_dir=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert',
+    #                     model_name="bertTopic_train(81876)_n_gram_1_1_min_topic_size_50",
+    #                     documents_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\Data\clean_bert_train.csv',
+    #                     timestamps_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\Data\train_years.csv'
+    #                     )
+
+    models = ["bertTopic_train(81876)_n_gram_1_2_min_topic_size_50"]
+    for model in models:
+        bert_visualize(
+            model_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\{model}',
+            result_dir=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert',
+            model_name=model,
+            top_n_topics=20,
+            n_words_per_topic=15
+            )
+
+    # bert_coherence_graph(evaluation_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\train_evaluation_n_gram_1_2_old.csv',
+    #                      result_dir=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert',
+    #                      )
+
+    # bert_show_topic_frequency(model_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\bertTopic_train(81876)_n_gram_1_2_min_topic_size_300',
+    #                           model_name='bertTopic_train(81876)_n_gram_1_2_min_topic_size_300'
+    #                           )
