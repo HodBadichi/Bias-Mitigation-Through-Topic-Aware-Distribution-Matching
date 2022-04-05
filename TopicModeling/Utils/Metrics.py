@@ -3,6 +3,7 @@ from TopicModeling.Utils.my_exceptions import CustomError
 from gensim.models import CoherenceModel
 import gensim.corpora as corpora
 import pandas as pd
+import gensim.models
 
 
 class Metrics(object, metaclass=ABCMeta):
@@ -32,17 +33,19 @@ class Metrics(object, metaclass=ABCMeta):
 class LDAMetrics(Metrics):
     metrics_list = ["perplexity", "c_v", "u_mass", "c_npmi", "c_uci"]
 
-    def __init__(self, model, curr_corpus, curr_texts):
+    def __init__(self, model, curr_corpus, curr_texts,curr_dictionary):
         super().__init__(model, self.metrics_list)
         self.corpus = curr_corpus
         self.texts = curr_texts
+        self.dictionary=curr_dictionary
 
     def _measure(self, metric):
         if (metric == "perplexity"):
             return self.model.log_perplexity(self.corpus)
         else:
-            coherencemodel = CoherenceModel(model=self.model, texts=self.texts, corpus=self.corpus,
-                                            coherence=metric)
+            coherencemodel = gensim.models.CoherenceModel(
+                model=self.model, texts=self.texts, corpus=self.corpus,
+                dictionary=self.dictionary,coherence=metric)
             return coherencemodel.get_coherence()
 
 
