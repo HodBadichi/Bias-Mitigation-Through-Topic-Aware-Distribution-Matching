@@ -2,7 +2,7 @@ import pandas as pd
 import os
 from nltk.stem import WordNetLemmatizer
 from bertopic import BERTopic
-from Metrics import BertTopicMetrics
+from TopicModeling.Utils.Metrics import BertTopicMetrics
 import csv
 import matplotlib.pyplot as plt
 
@@ -43,7 +43,7 @@ def bert_train(train_data_path, model_path, min_topic_size_range=[10], n_gram_ra
     # convert to list
     docs = documents_df.title_and_abstract.to_list()
     for topic_size in min_topic_size_range:
-        model = BERTopic(verbose=True, n_gram_range=n_gram_range, min_topic_size=topic_size)
+        model = BERTopic(verbose=True, n_gram_range=n_gram_range, min_topic_size=topic_size, calculate_probabilities=True)
         topics, probabilities = model.fit_transform(docs)
         model.save(rf'{model_path}_n_gram_{n_gram_range[0]}_{n_gram_range[1]}_min_topic_size_{topic_size}')
 
@@ -124,11 +124,19 @@ def bert_show_topic_frequency(model_path, model_name):
 
 if (__name__ == '__main__'):
 
-    # bert_train(train_data_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\Data\clean_bert_train.csv',
-    #            model_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\bertTopic_train(81876)',
-    #            min_topic_size_range=[25, 50, 100, 300, 800, 1600], n_gram_range=(1, 1)
-    #            )
-    #
+    # documents_path = rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project\data\abstract_2005_2020_gender.csv'
+    # documents_df = pd.read_csv(documents_path, encoding='utf8')
+    # new_series = bert_apply_clean(documents_df["title_and_abstract"])
+    # documents_df['clean_title_and_abstract'] = new_series
+    # documents_df.to_csv(rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project\data\clean_abstract_2005_2020_gender.csv',
+    #                   index=False)
+
+
+    bert_train(train_data_path=rf'clean_bert_train.csv',
+               model_path=rf'bertTopic_train(81876)',
+               min_topic_size_range=[50], n_gram_range=(1, 1)
+               )
+
 
 
     # bert_coherence_evaluate(
@@ -145,15 +153,15 @@ if (__name__ == '__main__'):
     #                     timestamps_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\Data\train_years.csv'
     #                     )
 
-    models = ["bertTopic_train(81876)_n_gram_1_2_min_topic_size_50"]
-    for model in models:
-        bert_visualize(
-            model_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\{model}',
-            result_dir=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert',
-            model_name=model,
-            top_n_topics=20,
-            n_words_per_topic=15
-            )
+    # models = ["bertTopic_train(81876)_n_gram_1_2_min_topic_size_50"]
+    # for model in models:
+    #     bert_visualize(
+    #         model_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\{model}',
+    #         result_dir=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert',
+    #         model_name=model,
+    #         top_n_topics=20,
+    #         n_words_per_topic=15
+    #         )
 
     # bert_coherence_graph(evaluation_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\train_evaluation_n_gram_1_2_old.csv',
     #                      result_dir=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert',
