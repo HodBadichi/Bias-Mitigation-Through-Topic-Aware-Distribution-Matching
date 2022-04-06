@@ -1,11 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+<<<<<<< HEAD
   <component name="PublishConfigData" autoUpload="Always" serverName="mor.filo@132.68.39.159:22" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
       <paths name="mor.filo@132.68.39.159:22">
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />
+=======
+  <component name="PublishConfigData" autoUpload="Always" serverName="hod.badichi@132.68.39.159:22 (2)" remoteFilesAllowedToDisappearOnAutoupload="false">
+    <serverData>
+      <paths name="hod.badichi@132.68.39.159:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/pycharm_project_976" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="hod.badichi@132.68.39.159:22 (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/pycharm_project_221" local="$PROJECT_DIR$" />
+>>>>>>> origin/master
           </mappings>
         </serverdata>
       </paths>
