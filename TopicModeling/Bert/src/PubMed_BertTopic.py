@@ -37,15 +37,15 @@ def bert_preprocess(documents_df):
                           index=False)
 
 
-def bert_train(train_data_path, model_path, nr_topics, n_gram_range=(1, 1)):
+def bert_train(train_data_path, model_path, min_topic_size, n_gram_range=(1, 1)):
     # Load clean Data
     documents_df = pd.read_csv(train_data_path, encoding='utf8')
     # convert to list
     docs = documents_df.title_and_abstract.to_list()
-    for topic_size in nr_topics:
-        model = BERTopic(verbose=True, n_gram_range=n_gram_range, nr_topics=topic_size)
+    for topic_size in min_topic_size:
+        model = BERTopic(verbose=True, n_gram_range=n_gram_range, min_topic_size=topic_size)
         topics, probabilities = model.fit_transform(docs)
-        model.save(rf'{model_path}_n_gram_{n_gram_range[0]}_{n_gram_range[1]}_nr_topics_{topic_size}')
+        model.save(rf'{model_path}_n_gram_{n_gram_range[0]}_{n_gram_range[1]}_nr_topics_{topic_size}_new')
 
 
 def bert_coherence_evaluate(train_data_path, models_dir, models_list, result_path):
@@ -123,31 +123,31 @@ def bert_show_topic_frequency(model_path, model_name):
     plt.show()
 
 if (__name__ == '__main__'):
+    # loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_333_new")
+    # print(f"333 is :{len(loaded_model.get_topics())}")
+    # loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_334_new")
+    # print(f"334 is :{len(loaded_model.get_topics())}")
+    # loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_333")
+    # print(f"333 is :{len(loaded_model.get_topics())}")
+    # loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_334")
+    # print(f"334 is :{len(loaded_model.get_topics())}")
+    # documents_path = rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project\data\abstract_2005_2020_gender.csv'
+    # documents_df = pd.read_csv(documents_path, encoding='utf8')
+    # new_series = bert_apply_clean(documents_df["title_and_abstract"])
+    # documents_df['clean_title_and_abstract'] = new_series
+    # documents_df.to_csv(rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project\data\clean_abstract_2005_2020_gender.csv',
+    #                   index=False)
 
-    documents_path = rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project\data\abstract_2005_2020_gender.csv'
-    documents_df = pd.read_csv(documents_path, encoding='utf8')
-    new_series = bert_apply_clean(documents_df["title_and_abstract"])
-    documents_df['clean_title_and_abstract'] = new_series
-    documents_df.to_csv(rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project\data\clean_abstract_2005_2020_gender.csv',
-                      index=False)
-
-    import hdbscan
-
-    model_path = r"C:\Users\morfi\PycharmProjects\NLP_project\DistributionMatching\bertTopic_train(81876)_n_gram_1_1_min_topic_size_50_with_probs"
-    loaded_model = BERTopic.load(model_path)
-    probs = hdbscan.all_points_membership_vectors(loaded_model.hdbscan_model)
-    probs = loaded_model._map_probabilities(probs, original_topics=True)
-
-    # bert_train(train_data_path=rf'clean_bert_train.csv',
-    #            model_path=rf'bertTopic_train(81876)',
-    #            nr_topics=[16,15], n_gram_range=(1, 1)
-    #            )
+    bert_train(train_data_path=rf'clean_bert_train.csv',
+               model_path=rf'bertTopic_train(81876)',
+               min_topic_size=[335,336], n_gram_range=(1, 1)
+               )
 
 
     # bert_coherence_evaluate(
     #     train_data_path=rf'clean_bert_train.csv',
     #     models_dir=rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project\TopicModeling\Bert\src',
-    #     models_list = ["bertTopic_train(81876)_n_gram_1_1_nr_topics_15","bertTopic_train(81876)_n_gram_1_1_nr_topics_16"],
+    #     models_list = [rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_333"],
     #     result_path=rf'C:\Users\{os.getlogin()}\PycharmProjects\LDAmodeling\results\bert\train_evaluation_n_gram_1_1.csv'
     #     )
 

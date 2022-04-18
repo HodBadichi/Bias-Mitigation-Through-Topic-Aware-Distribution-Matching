@@ -11,10 +11,12 @@ def plot_topic_female_rate_hists(data_path, loaded_model, result_path=""):
     documents_df = pd.read_csv(data_path, encoding='utf8')
     df1 = documents_df.groupby('major_topic')['female_rate'].apply(list).reset_index(name='female_rate')
     info_df = loaded_model.get_topic_info()
+    info_df = info_df.sort_values(by=['Topic'])
+    info_df = info_df.reset_index(drop=True)
     with PdfPages(rf'{result_path}topic_female_rate_hists.pdf') as pdf:
         for index, row in df1.iterrows():
             fig = sns.histplot(data=row, x="female_rate", kde=True).set_title(
-                f'Topic {info_df.iloc[row["major_topic"] + 1]["Name"]}\n{len(row["female_rate"])} docs')
+                f'Topic {info_df.iloc[index + 1]["Name"]}\n{len(row["female_rate"])} docs')
             fig = fig.get_figure()
             mean = np.nanmean(np.array(row.female_rate))
             plt.axvline(x=mean, linewidth=3, color='b', label="mean", alpha=0.5)
@@ -42,6 +44,8 @@ def create_new_df(data_dir, data_name, loaded_model):
     # get probs and save as str
     result_series = []
     for prob in probs:
+        # add topic -1 prob - since probs sum up to the probability of not being outlier
+        prob.append(1 - sum(prob))
         result_series.append(str(prob.tolist()))
     col_probs = pd.Series(result_series)
     documents_df['probs'] = col_probs
@@ -49,7 +53,7 @@ def create_new_df(data_dir, data_name, loaded_model):
 
 
 if (__name__ == '__main__'):
-    loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_min_topic_size_50_with_probs")
+    loaded_model = BERTopic.load(r"C:\Users\morfi\PycharmProjects\LDAmodeling\results\bert\bertTopic_train(81876)_n_gram_1_1_min_topic_size_50_with_probs")
     # data_dir = rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project\data'
     # data_name = 'abstract_2005_2020.csv'
     # create_new_df(data_dir, data_name, loaded_model)
