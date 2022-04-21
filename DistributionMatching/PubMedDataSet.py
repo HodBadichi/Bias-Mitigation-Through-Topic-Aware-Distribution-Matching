@@ -1,19 +1,15 @@
 from torch.utils.data import Dataset, DataLoader
-from DistributionMatching.NoahArc import NoahArc
-from DistributionMatching.SimilartyMatrix import SimilartyMatrix
+from DistributionMatching.NoahArc.NoahArcFactory import NoahArcFactory
+from DistributionMatching.SimilarityMatrix.SimilarityMatrix import SimilarityMatrix
 import utils as project_utils
 import pytorch_lightning as pl
-import os
 import pandas as pd
-import json
-from torch import nn
 import numpy as np
-import torch
 
 
 class PubMedDataSet(Dataset):
-    def __init__(self,documents_dataframe):
-        self.Matcher = PubMedDataSet._buildNoahArc(documents_dataframe, similarty_type=config['similarty_metric'])
+    def __init__(self, documents_dataframe):
+        self.Matcher = PubMedDataSet._buildNoahArc(documents_dataframe, similarity_metric=config['similarty_metric'])
         self.modified_document_df = self.Matcher.documents_dataframe
 
     def __len__(self):
@@ -21,18 +17,18 @@ class PubMedDataSet(Dataset):
         return len(self.modified_document_df)
 
     def __getitem__(self, index):
-        result ={}
+        result = {}
         document_df = self.modified_document_df
 
         similar_doc_index = self.Matcher.GetMatch(index)[0]
-        if project_utils.AreWomenMinority(index,self.Matcher.documents_dataframe):
-            result['biased']=(document_df.iloc[index]["title_and_abstract"],
-                              document_df.iloc[index]["female_rate"],
-                              document_df.iloc[index]["major_topic"])
+        if project_utils.AreWomenMinority(index, self.Matcher.documents_dataframe):
+            result['biased'] = (document_df.iloc[index]["title_and_abstract"],
+                                document_df.iloc[index]["female_rate"],
+                                document_df.iloc[index]["major_topic"])
 
-            result['unbiased']=(document_df.iloc[similar_doc_index]["title_and_abstract"],
-                                document_df.iloc[similar_doc_index]["female_rate"],
-                                document_df.iloc[similar_doc_index]["major_topic"])
+            result['unbiased'] = (document_df.iloc[similar_doc_index]["title_and_abstract"],
+                                  document_df.iloc[similar_doc_index]["female_rate"],
+                                  document_df.iloc[similar_doc_index]["major_topic"])
         else:
             result['biased'] = (document_df.iloc[similar_doc_index]["title_and_abstract"],
                                 document_df.iloc[similar_doc_index]["female_rate"],
@@ -44,17 +40,17 @@ class PubMedDataSet(Dataset):
         return result
 
     @staticmethod
-    def _buildNoahArc(dataframe, similarty_type):
+    def _buildNoahArc(dataframe, similarity_type):
         if NoahArc.IsNoahSaved():
-            return NoahArc(similarty_type)
+            return NoahArcFactory(similarity_type)
         else:
-            SimMatrix = SimilartyMatrix(dataframe, similarty_type)
+            SimMatrix = SimilarityMatrix(dataframe, similarity_type)
             # todo modify the next 3 resets by word embedding needs
             SimMatrix.ResetSameBiasEntries()
             SimMatrix.ResetDiffTopicEntries()
             SimMatrix.DropUnWantedDocsAndReset()
             SimMatrix.SaveMatrix()
-            Arc = NoahArc(similarty_type, SimMatrix)
+            Arc = NoahArc(similarity_type, SimMatrix)
             Arc.Save()
         return Arc
 
@@ -97,7 +93,6 @@ class PubMedModule(pl.LightningDataModule):
             col_probs = pd.Series(result_series)
             documents_df['probs'] = col_probs
             self.documents_df = documents_df
-
 
     def setup(self):
         # runs on all gpus

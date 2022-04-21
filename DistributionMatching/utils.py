@@ -1,5 +1,5 @@
 WOMEN_MINORITY_THRESHOLD = 0.5
-DATAFRAME_PATH= rf'..\data\abstract_2005_2020_gender_and_topic.csv'
+DATAFRAME_PATH= rf'..\..\data\abstract_2005_2020_gender_and_topic.csv'
 
 
 def printTensorNonZeros(my_tensor):
