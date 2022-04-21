@@ -9,6 +9,7 @@ def printTensorNonZeros(my_tensor):
 def getTensorZeros(my_tensor):
     return [i[0].item() for i in(my_tensor == 0).nonzero()]
 
+
 def AreWomenMinority(document_index, dataframe, bias_by_topic=True):
     threshold = WOMEN_MINORITY_THRESHOLD
     female_rate = dataframe.iloc[document_index]["female_rate"]

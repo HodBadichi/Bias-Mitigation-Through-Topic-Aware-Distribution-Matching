@@ -7,17 +7,23 @@ import os
 
 
 class NoahArc:
-    def __init__(self, SimilartyMatrix=None):
+    def __init__(self, similarty_type, SimilartyMatrix=None):
+        """
+        :param similarty_type: "cross_entropy" = topic probs cross entropy, "cosine_similarity" = bert doc embeddings cosine_similarity
+        """
         try:
             self.documents_dataframe=pd.read_csv("NoahArcDf", encoding='utf8')
             self.probability_matrix=torch.load("NoahArcProbMatrixTensor")
             self.similarty_matrix = None
         except FileNotFoundError:
             self.similarty_matrix = SimilartyMatrix.matrix
-            self.documents_dataframe=SimilartyMatrix.documents_df
-            self.probability_matrix = self._CalcProbabilities()
+            self.documents_dataframe=SimilartyMatrix.documents_dataframe
+            if similarty_type == "cross_entropy":
+                self.probability_matrix = self._CalcProbabilitiesByCE()
+            elif similarty_type == "cosine_similarity":
+                self.probability_matrix = self._CalcProbabilitiesByCS()
 
-    def _CalcProbabilities(self):
+    def _CalcProbabilitiesByCE(self):
         """
                 The formula for each similarity entry X:
                 X_TEMP =(1-(X/sum(X_row_entries)) - low cross entropy means more similar so we want to flip the scores:
@@ -32,6 +38,17 @@ class NoahArc:
         # No need to flip (1-x) zero and one values
         prob_matrix = torch.where((prob_matrix != 0) & (prob_matrix != 1), 1-prob_matrix, prob_matrix)
         rows_sum = torch.sum(prob_matrix, 1).reshape(-1,1)
+        prob_matrix = torch.div(prob_matrix, rows_sum)
+        return prob_matrix
+
+
+    def _CalcProbabilitiesByCS(self):
+        """
+            The formula for each similarity entry X:
+            :return new_row_entry
+        """
+        prob_matrix = self.similarty_matrix.double()
+        rows_sum = torch.sum(prob_matrix, 1).reshape((-1,1))
         prob_matrix = torch.div(prob_matrix, rows_sum)
         return prob_matrix
 

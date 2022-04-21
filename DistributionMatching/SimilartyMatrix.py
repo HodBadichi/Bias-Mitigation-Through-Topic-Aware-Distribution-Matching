@@ -3,19 +3,16 @@ import pandas as pd
 import json
 import numpy as np
 import DistributionMatching.utils as project_utils
+from sklearn.metrics.pairwise import cosine_similarity
 import os
 
 class SimilartyMatrix:
-    def __init__(self, documents_dataframe, bias_by_topic=True):
-        '''
-
-        :param documents_dataframe:
-        :param bias_by_topic: True = bias threshold is the topic's woman_rate mean, False = bias threshold is 0.5
-        :param ResetDiffTopics: for each row (doc) in similarity matrix :
-        True = zero the entries of other docs from different topics meaning - take in consideration only docs from same topic
-        False = take all docs in consideration - meaning find similarity in all docs, not just by major topic
-        :param RResetSameBias for each row (doc) in similarity matrix :
-        True = z        False = take all docs in consideration - meaning find similarity in all docs, not just by m        '''
+    def __init__(self, documents_dataframe, similarty_type, bias_by_topic=True):
+        """
+            :param documents_dataframe
+            :param bias_by_Topic True= bias threshold is the topic`s woman_rate mean, False =bias threshold is 0.5
+            :param similarty_type : "cross_entropy" = topic probs cross entropy, "cosine_similarity" = bert doc embeddings cosine_similarity
+        """
         self.bias_by_topic = bias_by_topic
         try:
             self.documents_dataframe = pd.read_csv("SimMatrixDf", encoding='utf8')
@@ -23,7 +20,10 @@ class SimilartyMatrix:
         except FileNotFoundError:
             print("Couldn`t find Similarty matrix on disk , Calculating...")
             self.documents_dataframe = documents_dataframe
-            self.matrix = self._CalcCESimilarties()
+            if similarty_type == "cross_entropy":
+                self.matrix = self._CalcCESimilarties()
+            elif similarty_type == "cosine_similarity":
+                self.matrix = self._CalcCSSimilarties()
             self._ResetDiffTopicEntries_called_flag = False
             self._ResetSameBiasEntries_called_flag = False
 
@@ -31,7 +31,7 @@ class SimilartyMatrix:
         '''
             denote ce(i,j) : the cross entropy score of doc i topic probabilities and doc j topic probabilities
             create the cross entropy similarity matrix where each value
-            similarity_matrix[i][j] = ce(i,j) + ce(j,i)
+            similarity_matrix[i][j] = ce(i,j)
         '''
         probs = self.documents_dataframe['probs'].apply(lambda x: json.loads(x))
         tensor_probs = torch.as_tensor(probs)  # shape num_of_docs X num_of_topics (distribution for every doc)
@@ -40,6 +40,15 @@ class SimilartyMatrix:
         res = self._CrossEntropy(tensor_probs, tensor_probs)  # tensor shape num_of_docs X num_of_docs
         # res = res + res.T  # Make matrix symetric
         return res
+
+
+    def _CalcCSSimilarties(self, embeddings):
+        '''
+            denote ce(i,j) : the cosine similarity of doc i embeddings and doc j embeddings
+            create the cosine similarity similarity matrix where each value
+            similarity_matrix[i][j] = (i embeddings)dot(j embeddings)/max(l2_norm(i embeddings)*l2_norm(j embeddings),eps)
+        '''
+        return cosine_similarity(embeddings, embeddings)
 
     def SaveMatrix(self):
         torch.save(self.matrix, "SimMatrixTensor")
