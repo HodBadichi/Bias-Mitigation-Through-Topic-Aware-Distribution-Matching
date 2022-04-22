@@ -121,9 +121,9 @@ class SimilartyMatrix:
         self.documents_dataframe = self.documents_dataframe.drop(rows_to_drop)
         self.documents_dataframe = self.documents_dataframe.reset_index()
         self.matrix = self._CalcCESimilarties()
-        if self.ResetDiffTopics_called_flag == True:
+        if self._ResetDiffTopicEntries_called_flag == True:
             self.ResetDiffTopicEntries()
-        if self.ResetSameBiasEntries_called_flag == True:
+        if self._ResetSameBiasEntries_called_flag == True:
             self.ResetSameBiasEntries()
 
 if __name__=='__main__':
