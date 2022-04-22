@@ -4,8 +4,9 @@ data:
   gender_and_topic_path: ..\data\abstract_2005_2020_gender_and_topic.csv
 
 test_size : 0.1
-# similarty_type : "cosi ne_similarity" \ "cross_entropy"
-similarty_metric: cross_entropy
+# similarity_type : "cosine_similarity" \ "cross_entropy"
+similarity_metric: cross_entropy
+reset_different_topic_entries_flag: 1
 women_minority_threshold:  0.5
 
 models:
