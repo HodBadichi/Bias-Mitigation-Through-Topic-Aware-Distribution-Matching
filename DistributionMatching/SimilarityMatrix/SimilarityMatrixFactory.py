@@ -7,11 +7,11 @@ import torch
 
 class SimilarityMatrixFactory:
     @staticmethod
-    def create(documents_dataframe, similarity_metric, bias_by_topic=True):
+    def create(documents_dataframe, similarity_metric):
         if similarity_metric == "cross_entropy":
-            return SimilarityMatrixCE(documents_dataframe, bias_by_topic)
+            return SimilarityMatrixCE(documents_dataframe)
         elif similarity_metric == "cosine_similarity":
-            return SimilarityMatrixCS(documents_dataframe, bias_by_topic)
+            return SimilarityMatrixCS(documents_dataframe)
         raise NotImplementedError("`SimilarityMatrixFactory` unsupported metric")
 
 

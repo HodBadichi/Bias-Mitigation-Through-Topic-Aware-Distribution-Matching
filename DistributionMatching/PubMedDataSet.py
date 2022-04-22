@@ -1,15 +1,19 @@
+from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, DataLoader
 from DistributionMatching.NoahArc.NoahArcFactory import NoahArcFactory
-from DistributionMatching.SimilarityMatrix.SimilarityMatrix import SimilarityMatrix
+from DistributionMatching.SimilarityMatrix.SimilarityMatrixFactory import SimilarityMatrixFactory
 import utils as project_utils
+from utils import config
 import pytorch_lightning as pl
 import pandas as pd
 import numpy as np
+import os
 
 
 class PubMedDataSet(Dataset):
     def __init__(self, documents_dataframe):
-        self.Matcher = PubMedDataSet._buildNoahArc(documents_dataframe, similarity_metric=config['similarty_metric'])
+        self.Matcher = PubMedDataSet._build_noah_arc(documents_dataframe,
+                                                     similarity_metric=config['similarity_metric'])
         self.modified_document_df = self.Matcher.documents_dataframe
 
     def __len__(self):
@@ -19,7 +23,6 @@ class PubMedDataSet(Dataset):
     def __getitem__(self, index):
         result = {}
         document_df = self.modified_document_df
-
         similar_doc_index = self.Matcher.GetMatch(index)[0]
         if project_utils.AreWomenMinority(index, self.Matcher.documents_dataframe):
             result['biased'] = (document_df.iloc[index]["title_and_abstract"],
@@ -40,19 +43,17 @@ class PubMedDataSet(Dataset):
         return result
 
     @staticmethod
-    def _buildNoahArc(dataframe, similarity_type):
-        if NoahArc.IsNoahSaved():
-            return NoahArcFactory(similarity_type)
-        else:
-            SimMatrix = SimilarityMatrix(dataframe, similarity_type)
-            # todo modify the next 3 resets by word embedding needs
-            SimMatrix.ResetSameBiasEntries()
-            SimMatrix.ResetDiffTopicEntries()
-            SimMatrix.DropUnWantedDocsAndReset()
-            SimMatrix.SaveMatrix()
-            Arc = NoahArc(similarity_type, SimMatrix)
-            Arc.Save()
-        return Arc
+    def _build_noah_arc(dataframe, similarity_metric):
+        target_file = f"NoahArc_{similarity_metric}"
+        if os.path.exists(target_file):
+            return NoahArcFactory.load(target_file)
+        similarity_matrix = SimilarityMatrixFactory.create(dataframe,
+                                                           similarity_metric)
+        noah_arc = NoahArcFactory.create(similarity_metric,
+                                         config["reset_different_topic_entries_flag"],
+                                         similarity_matrix)
+        NoahArcFactory.save(noah_arc, target_file)
+        return noah_arc
 
 
 class PubMedModule(pl.LightningDataModule):
@@ -71,7 +72,7 @@ class PubMedModule(pl.LightningDataModule):
         try:
             self.documents_df = pd.read_csv(config['data']['gender_and_topic_path'], encoding='utf8')
         except FileNotFoundError:
-            documents_df = project_utils.LoadAbstractPubMedData()
+            documents_df = pd.read_csv(config['data']['full'])
             # keeps docs with participants info only
             documents_df = documents_df[~documents_df['female'].isnull()]
             documents_df = documents_df[~documents_df['male'].isnull()]
@@ -93,6 +94,7 @@ class PubMedModule(pl.LightningDataModule):
             col_probs = pd.Series(result_series)
             documents_df['probs'] = col_probs
             self.documents_df = documents_df
+            documents_df.to_csv(config['data']['full'])
 
     def setup(self):
         # runs on all gpus
