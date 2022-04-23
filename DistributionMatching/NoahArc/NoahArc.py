@@ -47,7 +47,7 @@ class NoahArc:
         unbiased_mask = []  # docs with women majority
 
         for doc_index in range(len(self.documents_dataframe)):
-            if project_utils.AreWomenMinority(doc_index, self.documents_dataframe):
+            if project_utils.are_women_minority(doc_index, self.documents_dataframe):
                 biased_mask.append(True)
                 unbiased_mask.append(False)
             else:
@@ -81,8 +81,7 @@ class NoahArc:
         self.documents_dataframe = self.documents_dataframe.drop(rows_to_drop)
         self.documents_dataframe = self.documents_dataframe.reset_index()
         self._similarity_matrix = SimilarityMatrixFactory.create(self.documents_dataframe,
-                                                                 similarity_metric,
-                                                                 self._reset_different_topic_entries_flag).matrix
+                                                                 similarity_metric).matrix
         self._reset_same_bias_entries()
         if self._reset_different_topics_called_flag:
             self._reset_different_topic_entries()

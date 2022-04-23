@@ -1,5 +1,4 @@
 import pandas as pd
-import os
 from bertopic import BERTopic
 import seaborn as sns
 from matplotlib.backends.backend_pdf import PdfPages
@@ -8,21 +7,17 @@ import numpy as np
 import yaml
 
 
-# folder to load config file
-
-
 # Function to load yaml configuration file
 def load_config(config_name):
     with open(config_name) as file:
         config = yaml.safe_load(file)
     return config
 
+
 config = load_config("my_config.yaml")
 
 
-
-
-def AreWomenMinority(document_index, dataframe, bias_by_topic=True):
+def are_women_minority(document_index, dataframe, bias_by_topic=True):
     threshold = config['women_minority_threshold']
     female_rate = dataframe.iloc[document_index]["female_rate"]
 
@@ -36,11 +31,11 @@ def AreWomenMinority(document_index, dataframe, bias_by_topic=True):
         return False
 
 
-def LoadAbstractPubMedData():
+def load_abstract_PubMedData():
     return pd.read_csv(config['data']['full'], encoding='utf8')
 
 
-def LoadTopicModel():
+def load_topic_model():
     return BERTopic.load(config['models']['topic_model_path'])
 
 

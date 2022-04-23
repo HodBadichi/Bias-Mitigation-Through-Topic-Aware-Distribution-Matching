@@ -3,6 +3,7 @@ from DistributionMatching.SimilarityMatrix.SimilarityMatrixCS import SimilarityM
 import DistributionMatching.utils as project_utils
 import pandas as pd
 import torch
+import os
 
 
 class SimilarityMatrixFactory:
@@ -16,8 +17,6 @@ class SimilarityMatrixFactory:
 
 
 if __name__ == '__main__':
-    df = pd.read_csv(project_utils.DATAFRAME_PATH,
+    df = pd.read_csv(os.path.join(os.pardir, os.pardir, "data", "abstract_2005_2020_gender_and_topic.csv"),
                      encoding='utf8')
     matrix = SimilarityMatrixFactory.create(df, similarity_metric='cross_entropy')
-    print(len(matrix.documents_dataframe))
-    print(torch.count_nonzero(matrix.matrix[282]).item())

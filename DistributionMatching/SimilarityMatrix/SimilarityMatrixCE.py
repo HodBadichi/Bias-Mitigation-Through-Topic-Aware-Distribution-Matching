@@ -6,8 +6,7 @@ import json
 class SimilarityMatrixCE(SimilarityMatrix):
     def __init__(self, documents_dataframe):
         super().__init__(documents_dataframe)
-        if self.matrix is None:
-            self.matrix = self._calc_similarities()
+        self.matrix = self._calc_similarities()
 
     def _calc_similarities(self):
         probs = self.documents_dataframe['probs'].apply(lambda x: json.loads(x))

@@ -5,8 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 class SimilarityMatrixCS(SimilarityMatrix):
     def __init__(self, documents_dataframe):
         super().__init__(documents_dataframe)
-        if self.matrix is None:
-            self.matrix = self._calc_similarities()
+        self.matrix = self._calc_similarities()
 
     def _calc_similarities(self):
         '''

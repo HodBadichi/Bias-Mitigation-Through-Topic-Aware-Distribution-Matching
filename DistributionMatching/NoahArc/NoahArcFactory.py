@@ -3,6 +3,7 @@ from DistributionMatching.NoahArc.NoahArcCS import NoahArcCS
 from DistributionMatching.NoahArc.NoahArcLoaded import NoahArcLoaded
 import DistributionMatching.utils as project_utils
 import pandas as pd
+import os
 from DistributionMatching.SimilarityMatrix.SimilarityMatrixFactory import SimilarityMatrixFactory
 import dill
 import mgzip
@@ -33,8 +34,7 @@ class NoahArcFactory:
 
 
 if __name__ == '__main__':
-    df = pd.read_csv(project_utils.DATAFRAME_PATH,
-                     encoding='utf8')
+    df = pd.read_csv(os.path.join(os.pardir, os.pardir, "data", "abstract_2005_2020_gender_and_topic.csv"))
     print(len(df))
     matrix = SimilarityMatrixFactory.create(df, similarity_metric='cross_entropy')
     Prob = NoahArcFactory.create('cross_entropy', True, matrix)
