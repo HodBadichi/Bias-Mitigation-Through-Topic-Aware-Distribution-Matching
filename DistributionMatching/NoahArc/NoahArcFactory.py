@@ -1,21 +1,22 @@
-from DistributionMatching.NoahArc.NoahArcCE import NoahArcCE
-from DistributionMatching.NoahArc.NoahArcCS import NoahArcCS
-from DistributionMatching.NoahArc.NoahArcLoaded import NoahArcLoaded
-import DistributionMatching.utils as project_utils
 import pandas as pd
 import os
-from DistributionMatching.SimilarityMatrix.SimilarityMatrixFactory import SimilarityMatrixFactory
 import dill
 import mgzip
+
+from DistributionMatching.NoahArc.NoahArcCE import NoahArcCE
+from DistributionMatching.NoahArc.NoahArcCS import NoahArcCS
+from DistributionMatching.NoahArc._NoahArcLoaded import _NoahArcLoaded
+from DistributionMatching.SimilarityMatrix.SimilarityMatrixFactory import SimilarityMatrixFactory
 
 
 class NoahArcFactory:
     @staticmethod
-    def create(similarity_metric, reset_different_topic_entries_flag, similarity_matrix=None):
+    def create(similarity_metric, reset_different_topic_entries_flag, similarity_matrix):
         if similarity_metric == "cross_entropy":
             return NoahArcCE(reset_different_topic_entries_flag, similarity_matrix)
         elif similarity_metric == "cosine_similarity":
             return NoahArcCS(reset_different_topic_entries_flag, similarity_matrix)
+        raise NotImplementedError("`NoahArcFactory` unsupported metric")
 
     @staticmethod
     def save(noah_arc_object, save_path):
@@ -30,7 +31,7 @@ class NoahArcFactory:
             database = dill.load(file)
         probability_matrix = database['matrix']
         documents_dataframe = database['dataframe']
-        return NoahArcLoaded(probability_matrix, documents_dataframe)
+        return _NoahArcLoaded(probability_matrix, documents_dataframe)
 
 
 if __name__ == '__main__':

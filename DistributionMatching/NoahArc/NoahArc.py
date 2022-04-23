@@ -6,6 +6,9 @@ import DistributionMatching.utils as project_utils
 
 
 class NoahArc:
+    """
+    Abstract class , used to supply NoahArc API
+    """
     def __init__(self, reset_diff_topic_entries_flag, similarity_matrix):
         self.documents_dataframe = similarity_matrix.documents_dataframe
         self.probability_matrix = None
@@ -24,6 +27,9 @@ class NoahArc:
 
     @abstractmethod
     def _calc_probabilities(self):
+        """
+        :return:Probability matrix ,differ between each metric
+        """
         pass
 
     def _reset_different_topic_entries(self):

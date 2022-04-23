@@ -11,10 +11,7 @@ class SimilarityMatrixCE(SimilarityMatrix):
     def _calc_similarities(self):
         probs = self.documents_dataframe['probs'].apply(lambda x: json.loads(x))
         tensor_probs = torch.as_tensor(probs)  # shape num_of_docs X num_of_topics (distribution for every doc)
-        # probs_test = tensor_probs[[0,1,2]]
-        # res = self.cross_entropy(probs_test,probs_test)  # tensor shape num_of_docs X num_of_docs
         res = self._cross_entropy(tensor_probs, tensor_probs)  # tensor shape num_of_docs X num_of_docs
-        # res = res + res.T  # Make matrix symmetric
         return res
 
     @staticmethod

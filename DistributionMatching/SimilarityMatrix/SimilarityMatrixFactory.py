@@ -1,8 +1,7 @@
 from DistributionMatching.SimilarityMatrix.SimilarityMatrixCE import SimilarityMatrixCE
 from DistributionMatching.SimilarityMatrix.SimilarityMatrixCS import SimilarityMatrixCS
-import DistributionMatching.utils as project_utils
+
 import pandas as pd
-import torch
 import os
 
 

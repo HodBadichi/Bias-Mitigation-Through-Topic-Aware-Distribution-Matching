@@ -8,7 +8,7 @@ from DistributionMatching.utils import config
 
 class PubMedDataSet(Dataset):
     def __init__(self, documents_dataframe):
-        self.Matcher = PubMedDataSet._build_noah_arc(documents_dataframe, config['similarity_metric'])
+        self.Matcher = PubMedDataSet._build_noah_arc(documents_dataframe,config['similarity_metric'])
         self.modified_document_df = self.Matcher.documents_dataframe
 
     def __len__(self):
