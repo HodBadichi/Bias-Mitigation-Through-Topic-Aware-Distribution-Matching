@@ -1,4 +1,4 @@
-from DistributionMatching.PubMed import PubMedModule
+from DistributionMatching.PubMed.PubMedModule import PubMedModule
 
 if __name__ == '__main__':
     dl = PubMedModule()

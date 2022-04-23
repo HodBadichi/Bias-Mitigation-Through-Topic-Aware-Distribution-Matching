@@ -11,7 +11,9 @@ from DistributionMatching.utils import  config
 
 class PubMedModule(pl.LightningDataModule):
     def __init__(self):
-        pass
+        self.train = None
+        self.test = None
+        self.documents_df = None
 
     def prepare_data(self):
         # run before setup, 1 gpu
@@ -49,10 +51,9 @@ class PubMedModule(pl.LightningDataModule):
             self.documents_df = documents_df
 
     def setup(self):
-        # runs on all gpus
-        # data set instanses (val, train, test)
+        # Runs on all gpus
+        # Data set instances (val, train, test)
         train_df, test_df = train_test_split(self.documents_df, test_size=config['test_size'])
-        # todo split_abstracts_to_sentences_df ? all the text utils
         train_df = train_df.reset_index()
         test_df = test_df.reset_index()
         self.train = PubMedDataSet(train_df)
