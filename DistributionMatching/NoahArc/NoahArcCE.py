@@ -3,12 +3,11 @@ import torch
 
 
 class NoahArcCE(NoahArc):
-    def __init__(self, reset_different_topic_entries_flag, similarity_matrix=None):
+    def __init__(self, reset_different_topic_entries_flag, similarity_matrix):
         super().__init__(reset_different_topic_entries_flag, similarity_matrix)
         self._reset_same_bias_entries()
         if reset_different_topic_entries_flag:
             self._reset_different_topic_entries()
-        self._drop_unwanted_document_rows(similarity_metric="cross_entropy")
         self.probability_matrix = self._calc_probabilities()
 
     def _calc_probabilities(self):

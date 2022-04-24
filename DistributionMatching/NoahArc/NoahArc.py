@@ -35,7 +35,7 @@ class NoahArc:
     def _reset_different_topic_entries(self):
         self._reset_different_topics_called_flag = True
         number_of_topics = range(len(self.documents_dataframe.groupby('major_topic')))
-        for topic_num in number_of_topics:
+        for idx,topic_num in enumerate(number_of_topics):
             topic_indices = list(np.where(self.documents_dataframe['major_topic'] == topic_num)[0])
             mask = np.array([True] * len(self.documents_dataframe))
             mask[topic_indices] = False
@@ -67,27 +67,3 @@ class NoahArc:
             else:
                 # the doc has women majority so the matching doc for training needs to be with women minority
                 self._similarity_matrix[doc_index][unbiased_mask] = 0
-
-    def _drop_unwanted_document_rows(self, similarity_metric):
-        """
-            Drop rows from the similarity matrix for 2 reasons:
-            1. The similarity matrix is later transformed to probability, so we don't want null rows
-            2. We want to define the "NOT_ENOUGH_PAIRS_THRESHOLD" for topics and pairs that are homogeneous
-            :param ResetDiffTopics: reset flag for the new CE matrix after droppping unwanted lines
-            :param ResetSameBias: reset flag for the new CE matrix after droppping unwanted lines
-            :return: Calculate new similarity matrix after dropping the null\sparse rows
-        """
-        NOT_ENOUGH_PAIRS_THRESHOLD = 1
-        rows_to_drop = []
-        frame_size = len(self.documents_dataframe)
-        for document_index in range(frame_size):
-            matching_documents_num = torch.count_nonzero(self._similarity_matrix[document_index]).item()
-            if matching_documents_num < NOT_ENOUGH_PAIRS_THRESHOLD:
-                rows_to_drop.append(document_index)
-        self.documents_dataframe = self.documents_dataframe.drop(rows_to_drop)
-        self.documents_dataframe = self.documents_dataframe.reset_index()
-        self._similarity_matrix = SimilarityMatrixFactory.create(self.documents_dataframe,
-                                                                 similarity_metric).matrix
-        self._reset_same_bias_entries()
-        if self._reset_different_topics_called_flag:
-            self._reset_different_topic_entries()
