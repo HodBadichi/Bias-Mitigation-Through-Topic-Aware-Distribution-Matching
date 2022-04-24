@@ -8,7 +8,6 @@ class NoahArcCS(NoahArc):
         self.reset_same_bias_entries()
         if reset_same_topic_entries:
             self.reset_different_topic_entries()
-        self.drop_unwanted_document_rows()
         self.probability_matrix = self._calc_probabilities()
 
     def _calc_probabilities(self):
