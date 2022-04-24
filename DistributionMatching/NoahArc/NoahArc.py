@@ -35,7 +35,9 @@ class NoahArc:
     def _reset_different_topic_entries(self):
         self._reset_different_topics_called_flag = True
         number_of_topics = range(len(self.documents_dataframe.groupby('major_topic')))
-        for topic_num in number_of_topics:
+        for idx,topic_num in enumerate(number_of_topics):
+            if idx == 84:
+                print("im going in \n")
             topic_indices = list(np.where(self.documents_dataframe['major_topic'] == topic_num)[0])
             mask = np.array([True] * len(self.documents_dataframe))
             mask[topic_indices] = False

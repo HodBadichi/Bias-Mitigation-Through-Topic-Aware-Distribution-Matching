@@ -3,7 +3,7 @@ import torch
 
 
 class NoahArcCE(NoahArc):
-    def __init__(self, reset_different_topic_entries_flag, similarity_matrix=None):
+    def __init__(self, reset_different_topic_entries_flag, similarity_matrix):
         super().__init__(reset_different_topic_entries_flag, similarity_matrix)
         self._reset_same_bias_entries()
         if reset_different_topic_entries_flag:

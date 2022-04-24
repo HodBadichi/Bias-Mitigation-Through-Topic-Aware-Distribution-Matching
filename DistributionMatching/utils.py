@@ -14,7 +14,7 @@ def load_config(config_name):
     return config
 
 
-config = load_config("PubMedConfig.yaml")
+config = load_config("../PubMedConfig.yaml")
 
 
 def are_women_minority(document_index, dataframe, bias_by_topic=True):

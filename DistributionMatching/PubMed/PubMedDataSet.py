@@ -41,11 +41,11 @@ class PubMedDataSet(Dataset):
     def _build_noah_arc(dataframe, similarity_metric):
         target_file = f"noaharc_{similarity_metric}"
         try:
-            NoahArcFactory.load(target_file)
+            return NoahArcFactory.load(target_file)
         except FileNotFoundError:
             similarity_matrix = SimilarityMatrixFactory.create(dataframe, similarity_metric)
             probability_matrix = NoahArcFactory.create(similarity_metric,
                                                        config['reset_different_topic_entries_flag'],
                                                        similarity_matrix)
             NoahArcFactory.save(probability_matrix, target_file)
-        return probability_matrix
+            return probability_matrix
