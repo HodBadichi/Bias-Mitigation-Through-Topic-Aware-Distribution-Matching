@@ -55,3 +55,5 @@ def plot_topic_female_rate_hists(data_path, loaded_model, result_path=""):
             plt.axvline(x=mean, linewidth=3, color='b', label="mean", alpha=0.5)
             pdf.savefig(fig)
             plt.clf()
+
+

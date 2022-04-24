@@ -6,6 +6,8 @@ from torch.utils.data import DataLoader
 
 from DistributionMatching.PubMed.PubMedDataSet import PubMedDataSet
 from DistributionMatching import utils as project_utils
+from DistributionMatching.text_utils import clean_abstracts
+
 from DistributionMatching.utils import config
 from DistributionMatching.text_utils import TextUtils
 

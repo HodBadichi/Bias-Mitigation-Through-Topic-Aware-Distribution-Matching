@@ -1,14 +1,12 @@
-import os
 import pytorch_lightning as pl
 import torch
 from transformers import AutoTokenizer, BertForMaskedLM
 from transformers import DataCollatorForLanguageModeling
-import numpy as np
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-
+from DistributionMatching.text_utils import clean_abstracts
 
 
 def break_sentence_batch(samples):
@@ -35,9 +33,13 @@ class PubMedDataSetForBert(Dataset):
         # defines len of epoch
         return len(self.df)
 
-    def __getitem__(self, index):
-        return self.df.iloc[index]['']
+    def create_text_field(self, sent_list):
+        sent_list_filtered_by_words = [' '.join(self.tu.word_tokenize(sent)) for sent in sent_list]
+        return '<BREAK>'.join(sent_list_filtered_by_words)
 
+    def __getitem__(self, index):
+        text = self.create_text_field(self.df.iloc[index]["sentences"])
+        return {'text': text}
 
 class PubMedModuleForBert(pl.LightningDataModule):
     def __init__(self):
@@ -48,16 +50,16 @@ class PubMedModuleForBert(pl.LightningDataModule):
 
     def prepare_data(self):
         self.documents_df = pd.read_csv('..\data\abstract_2005_2020_gender_and_topic.csv', encoding='utf8')
-
-    def setup(self):
         train_df, testnig_df = train_test_split(self.documents_df, test_size=0.7,random_state=42)
         test_df, val_df = train_test_split(testnig_df, test_size=0.5, random_state=42)
-        train_df = train_df.reset_index()
-        val_df = val_df.reset_index()
-        test_df = test_df.reset_index()
-        self.train = PubMedDataSetForBert(train_df)
-        self.val = PubMedDataSetForBert(val_df)
-        self.test = PubMedDataSetForBert(test_df)
+        self.train_df = clean_abstracts(train_df)
+        self.val_df = clean_abstracts(val_df)
+        self.test_df = clean_abstracts(test_df)
+
+    def setup(self):
+        self.train = PubMedDataSetForBert(self.train_df)
+        self.val = PubMedDataSetForBert(self.val_df)
+        self.test = PubMedDataSetForBert(self.test_df)
 
     def train_dataloader(self):
         # data set, batch size, shuffel, workers
