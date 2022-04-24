@@ -6,8 +6,8 @@ from torch.utils.data import DataLoader
 
 from DistributionMatching.PubMed.PubMedDataSet import PubMedDataSet
 from DistributionMatching import utils as project_utils
-from DistributionMatching.utils import  config
-
+from DistributionMatching.utils import config
+from DistributionMatching.text_utils import TextUtils
 
 class PubMedModule(pl.LightningDataModule):
     def __init__(self):
@@ -48,16 +48,26 @@ class PubMedModule(pl.LightningDataModule):
                 result_series.append(str(prob.tolist()))
             col_probs = pd.Series(result_series)
             documents_df['probs'] = col_probs
+            tu = TextUtils()
+            documents_df['sentences'] = documents_df['title_and_abstract'].apply(tu.split_abstract_to_sentences)
             self.documents_df = documents_df
+        train_df, testing_df = train_test_split(self.documents_df, test_size=config['testing_size'],random_state=42)
+        test_df, val_df = train_test_split(testing_df, test_size=0.5, random_state=42)
+        # todo : why we reset index ?
+        train_df = train_df.reset_index()
+        val_df = val_df.reset_index()
+        test_df = test_df.reset_index()
+        self.train_df = clean_abstracts(train_df)
+        self.val_df = clean_abstracts(val_df)
+        self.test_df = clean_abstracts(test_df)
 
     def setup(self):
         # Runs on all gpus
         # Data set instances (val, train, test)
-        train_df, test_df = train_test_split(self.documents_df, test_size=config['test_size'])
-        train_df = train_df.reset_index()
-        test_df = test_df.reset_index()
-        self.train = PubMedDataSet(train_df)
-        self.test = PubMedDataSet(test_df)
+
+        self.train = PubMedDataSet(self.train_df)
+        self.val = PubMedDataSet(self.val_df)
+        self.test = PubMedDataSet(self.test_df)
 
     def train_dataloader(self):
         # data set, batch size, shuffel, workers
@@ -67,4 +77,5 @@ class PubMedModule(pl.LightningDataModule):
         return DataLoader(self.test, shuffle=True, batch_size=config['test']['batch_size'], num_workers=1)
 
     def val_dataloader(self):
-        pass
+        return DataLoader(self.val, shuffle=True, batch_size=config['val']['batch_size'], num_workers=1)
+
