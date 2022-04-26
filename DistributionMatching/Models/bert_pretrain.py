@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 from DistributionMatching.text_utils import clean_abstracts, TextUtils
 import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 def break_sentence_batch(samples):
     indexes = []
@@ -61,13 +62,13 @@ class PubMedModuleForBert(pl.LightningDataModule):
 
     def train_dataloader(self):
         # data set, batch size, shuffel, workers
-        return DataLoader(self.train, shuffle=True, batch_size=64, num_workers=12)
+        return DataLoader(self.train, shuffle=True, batch_size=10, num_workers=12)
 
     def test_dataloader(self):
-        return DataLoader(self.test, shuffle=True, batch_size=64, num_workers=12)
+        return DataLoader(self.test, shuffle=False, batch_size=10, num_workers=12)
 
     def val_dataloader(self):
-        return DataLoader(self.val, shuffle=True, batch_size=64, num_workers=12)
+        return DataLoader(self.val, shuffle=False, batch_size=10, num_workers=12)
 
 
 
@@ -99,7 +100,7 @@ class BertPretrain(pl.LightningModule):
 
     def step(self, batch: dict, name='train') -> dict:
         bert_loss = self.forward(batch)
-        self.log(f'bert_{name}_loss', bert_loss)
+        self.log(f'bert_{name}_loss', bert_loss, batch_size=10)
         return bert_loss
 
     def training_step(self, batch: dict, batch_idx: int) -> dict:
@@ -107,7 +108,7 @@ class BertPretrain(pl.LightningModule):
         return loss
 
     def validation_step(self, batch: dict, batch_idx: int):
-        path = os.path.join("/home/mor.filo/nlp_project/DistributionMatching/Models", rf"{self.model_desc}_abstract_2005_2020_gender_and_topic_{self.current_epoch}")
+        path = os.path.join("/home/mor.filo/nlp_project/DistributionMatching/Models", rf"{self.model_desc}_abstract_2005_2020_gender_and_topic_{self.current_epoch}_")
         if self.current_epoch > 0 and not os.path.exists(path):
             self.bert_model.save_pretrained(path)
         loss = self.step(batch, name='val')
@@ -127,7 +128,7 @@ if __name__ == '__main__':
     model = BertPretrain()
     trainer = pl.Trainer(gpus=1,
                          auto_select_gpus=True,
-                         max_epochs=40,
+                         max_epochs=2,
                          log_every_n_steps=10,
                          accumulate_grad_batches=1,  # no accumulation
                          precision=16)
