@@ -6,9 +6,9 @@ class NoahArcCE(NoahArc):
     def __init__(self, reset_different_topic_entries_flag, similarity_matrix):
         super().__init__(reset_different_topic_entries_flag, similarity_matrix)
         self._reset_same_bias_entries()
-        if reset_different_topic_entries_flag:
-            self._reset_different_topic_entries()
-        self.probability_matrix = self._calc_probabilities()
+        # if reset_different_topic_entries_flag:
+        #     self._reset_different_topic_entries()
+        # self.probability_matrix = self._calc_probabilities()
 
     def _calc_probabilities(self):
         """
@@ -18,6 +18,7 @@ class NoahArcCE(NoahArc):
                 new_row_entry = X_TEMP/sum(X_temp_row_entries)
                 return: new_row_entry
         """
+        zeroed_rows_indexes = self._get_probability_matrix_zeros_rows()
         # Transform float32 Tensor to float64 Tensor to prevent numeric errors (rounding to 0 in small values)
         probability_matrix = self._similarity_matrix.double()
         rows_sum_vector = torch.sum(probability_matrix, 1).reshape((-1, 1))
@@ -28,4 +29,5 @@ class NoahArcCE(NoahArc):
                                          probability_matrix)
         rows_sum_vector = torch.sum(probability_matrix, 1).reshape(-1, 1)
         probability_matrix = torch.div(probability_matrix, rows_sum_vector)
+        probability_matrix = self._put_zeros_in_rows(zeroed_rows_indexes, probability_matrix)
         return probability_matrix
