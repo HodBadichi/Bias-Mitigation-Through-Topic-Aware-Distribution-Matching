@@ -7,6 +7,7 @@ import re
 
 class TextUtils:
     def __init__(self):
+        nltk.download('punkt')
         self.sent_tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 
     def split_abstract_to_sentences(self, abstract):

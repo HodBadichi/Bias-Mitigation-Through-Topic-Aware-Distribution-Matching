@@ -22,9 +22,14 @@ class NoahArc:
         :param document_index: The document index we need to find a matching document for
         :return: matching document index,matching document PMID to use with other dfs
         """
+        if self.possible_matches(document_index) == 0:
+            return None
         probabilities = self.probability_matrix[document_index]
         similar_doc_index = np.random.choice(range(0, len(self.probability_matrix)), 1, p=probabilities)
-        return similar_doc_index[0], self.documents_dataframe['PMID'][similar_doc_index]
+        return similar_doc_index[0]
+
+    def possible_matches(self, document_index):
+        return torch.count_nonzero(self.probability_matrix[document_index]).item()
 
     @abstractmethod
     def _calc_probabilities(self):

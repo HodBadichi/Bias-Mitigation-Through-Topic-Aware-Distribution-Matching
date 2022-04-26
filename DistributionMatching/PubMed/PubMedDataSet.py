@@ -8,42 +8,37 @@ from DistributionMatching.text_utils import TextUtils
 
 class PubMedDataSet(Dataset):
     def __init__(self, documents_dataframe):
-        self.Matcher = PubMedDataSet._build_noah_arc(documents_dataframe,config['similarity_metric'])
-        self.modified_document_df = self.Matcher.documents_dataframe
+        self.Matcher = PubMedDataSet._build_noah_arc(documents_dataframe, config['similarity_metric'])
+        self.documents_dataframe = documents_dataframe
         self.tu = TextUtils()
 
     def __len__(self):
-        # defines len of epoch
-        return len(self.modified_document_df)
+        # defines length of a single epoch
+        return len(self.documents_dataframe)
 
-    def create_text_field(self, sent_list):
-        sent_list_filtered_by_words = [' '.join(self.tu.word_tokenize(sent)) for sent in sent_list]
-        return '<BREAK>'.join(sent_list_filtered_by_words)
-
+    def create_text_field(self, document_index):
+        return self.documents_dataframe.iloc[document_index]["title_and_abstract"]
+        # document_as_sentences = self.documents_dataframe.iloc[document_index]["sentences"]
+        # document_filtered_by_words = [' '.join(self.tu.word_tokenize(sentence)) for sentence in document_as_sentences]
+        # return '<BREAK>'.join(document_filtered_by_words)
 
     def __getitem__(self, index):
-        result = {}
-        document_df = self.modified_document_df
-        similar_doc_index = self.Matcher.get_match(index)[0]
-        index_text = self.create_text_field(document_df.iloc[index]["sentences"])
-        similar_doc_index_text = self.create_text_field(document_df.iloc[similar_doc_index]["sentences"])
-        if project_utils.are_women_minority(index, self.Matcher.documents_dataframe):
-            result['biased'] = (index_text,
-                                document_df.iloc[index]["female_rate"],
-                                document_df.iloc[index]["major_topic"])
+        batch_entry = {'origin_document': index}
+        similar_document_index = self.Matcher.get_match(index)
 
-            result['unbiased'] = (similar_doc_index_text,
-                                  document_df.iloc[similar_doc_index]["female_rate"],
-                                  document_df.iloc[similar_doc_index]["major_topic"])
+        if similar_document_index is not None:
+            similar_document_modified_text = self.create_text_field(similar_document_index)
         else:
-            result['biased'] = (similar_doc_index_text,
-                                document_df.iloc[similar_doc_index]["female_rate"],
-                                document_df.iloc[similar_doc_index]["major_topic"])
+            similar_document_modified_text = None
+        origin_document_modified_text = self.create_text_field(index)
 
-            result['unbiased'] = (index_text,
-                                  document_df.iloc[index]["female_rate"],
-                                  document_df.iloc[index]["major_topic"])
-        return result
+        if project_utils.are_women_minority(index, self.Matcher.documents_dataframe):
+            batch_entry['biased'] = origin_document_modified_text
+            batch_entry['unbiased'] = similar_document_modified_text
+        else:
+            batch_entry['biased'] = similar_document_modified_text
+            batch_entry['unbiased'] = origin_document_modified_text
+        return batch_entry
 
     @staticmethod
     def _build_noah_arc(dataframe, similarity_metric):

@@ -1,7 +1,7 @@
 #INITIAL SETTINGS
 data:
-  full_path : ..\data\abstract_2005_2020_full.csv
-  gender_and_topic_path: ..\data\abstract_2005_2020_gender_and_topic.csv
+  full_path : ..\..\data\abstract_2005_2020_full.csv
+  gender_and_topic_path: ..\..\data\abstract_2005_2020_gender_and_topic.csv
 testing_size : 0.3
 # similarity_type : "cosine_similarity" \ "cross_entropy"
 similarity_metric: cross_entropy

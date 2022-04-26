@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from DistributionMatching.NoahArc.NoahArcFactory import NoahArcFactory
 import pandas as pd
 from DistributionMatching.SimilarityMatrix.SimilarityMatrixFactory import SimilarityMatrixFactory
-from DistributionMatching.utils import config
 
 
 def plot_document_matches_distribution():
