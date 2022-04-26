@@ -74,7 +74,7 @@ class PubMedModuleForBert(pl.LightningDataModule):
 
 
 class BertPretrain(pl.LightningModule):
-    def __init__(self, hparams):
+    def __init__(self):
         super(BertPretrain, self).__init__()
         # bert_tokenizer : 'google/bert_uncased_L-2_H-128_A-2'
         self.tokenizer = AutoTokenizer.from_pretrained('google/bert_uncased_L-2_H-128_A-2')

@@ -2,7 +2,7 @@ import pandas as pd
 import os
 from nltk.stem import WordNetLemmatizer
 from bertopic import BERTopic
-from TopicModeling.Utils.Metrics import BertTopicMetrics
+# from TopicModeling.Utils.Metrics import BertTopicMetrics
 import csv
 import matplotlib.pyplot as plt
 
@@ -123,8 +123,8 @@ def bert_show_topic_frequency(model_path, model_name):
     plt.show()
 
 if (__name__ == '__main__'):
-    # loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_333_new")
-    # print(f"333 is :{len(loaded_model.get_topics())}")
+    # loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_342_new")
+    # print(f"342 is :{len(loaded_model.get_topics())}")
     # loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_334_new")
     # print(f"334 is :{len(loaded_model.get_topics())}")
     # loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_333")
@@ -140,7 +140,7 @@ if (__name__ == '__main__'):
 
     bert_train(train_data_path=rf'clean_bert_train.csv',
                model_path=rf'bertTopic_train(81876)',
-               min_topic_size=[335,336], n_gram_range=(1, 1)
+               min_topic_size=[342,345,350], n_gram_range=(1, 1)
                )
 
 
