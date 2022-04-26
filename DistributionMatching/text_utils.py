@@ -80,9 +80,6 @@ def clean_abstracts(df, abstract_field='title_and_abstract', output_sentences_fi
         sent_list_filtered_by_words = [' '.join(text_utils.word_tokenize(sent)) for sent in new_sentences]
         return '<BREAK>'.join(sent_list_filtered_by_words)
 
-    def filter_words(sentences):
-        return ' '.join(sentences)
-
     df[output_sentences_field] = df[abstract_field].apply(filter_sentences_and_words)
     print(f"kept {d['remaining']}/{d['total']} sentences")
     return df
