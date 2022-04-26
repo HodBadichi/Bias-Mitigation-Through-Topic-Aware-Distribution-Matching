@@ -10,8 +10,8 @@ import yaml
 # Function to load yaml configuration file
 def load_config(config_name):
     with open(config_name) as file:
-        config = yaml.safe_load(file)
-    return config
+        loaded_config = yaml.safe_load(file)
+    return loaded_config
 
 
 config = load_config("../PubMedConfig.yaml")
@@ -25,7 +25,7 @@ def are_women_minority(document_index, dataframe, bias_by_topic=True):
         topic = dataframe.iloc[document_index]["major_topic"]
         threshold = dataframe.loc[dataframe['major_topic'] == topic]['female_rate'].mean()
 
-    if (female_rate <= threshold):
+    if female_rate <= threshold:
         return True
     else:
         return False
