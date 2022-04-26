@@ -36,13 +36,8 @@ class PubMedDataSetForBert(Dataset):
         # defines len of epoch
         return len(self.df)
 
-    def create_text_field(self, sent_list):
-        sent_list_filtered_by_words = [' '.join(self.tu.word_tokenize(sent)) for sent in sent_list]
-        return '<BREAK>'.join(sent_list_filtered_by_words)
-
     def __getitem__(self, index):
-        text = self.create_text_field(self.df.iloc[index]["sentences"])
-        return {'text': text}
+        return {'text': self.df.iloc[index]["broken_abstracts"]}
 
 class PubMedModuleForBert(pl.LightningDataModule):
     def __init__(self):
@@ -53,8 +48,8 @@ class PubMedModuleForBert(pl.LightningDataModule):
 
     def prepare_data(self):
         self.documents_df = pd.read_csv(rf'../../data/abstract_2005_2020_gender_and_topic.csv', encoding='utf8')
-        train_df, testnig_df = train_test_split(self.documents_df, test_size=0.7,random_state=42)
-        test_df, val_df = train_test_split(testnig_df, test_size=0.5, random_state=42)
+        train_df, testing_df = train_test_split(self.documents_df, test_size=0.7,random_state=42)
+        test_df, val_df = train_test_split(testing_df, test_size=0.5, random_state=42)
         self.train_df = clean_abstracts(train_df)
         self.val_df = clean_abstracts(val_df)
         self.test_df = clean_abstracts(test_df)
@@ -66,13 +61,13 @@ class PubMedModuleForBert(pl.LightningDataModule):
 
     def train_dataloader(self):
         # data set, batch size, shuffel, workers
-        return DataLoader(self.train, shuffle=True, batch_size=64, num_workers=1)
+        return DataLoader(self.train, shuffle=True, batch_size=64, num_workers=12)
 
     def test_dataloader(self):
-        return DataLoader(self.test, shuffle=True, batch_size=64, num_workers=1)
+        return DataLoader(self.test, shuffle=True, batch_size=64, num_workers=12)
 
     def val_dataloader(self):
-        return DataLoader(self.val, shuffle=True, batch_size=64, num_workers=1)
+        return DataLoader(self.val, shuffle=True, batch_size=64, num_workers=12)
 
 
 
@@ -112,8 +107,7 @@ class BertPretrain(pl.LightningModule):
         return loss
 
     def validation_step(self, batch: dict, batch_idx: int):
-        path = os.path.join("/home/mor.filo/nlp_project/DistributionMatching/Models", '{}_{}_{}_v{}_epoch{}'.format(
-            self.model_desc, 'abstract_2005_2020_gender_and_topic', self.current_epoch))
+        path = os.path.join("/home/mor.filo/nlp_project/DistributionMatching/Models", rf"{self.model_desc}_abstract_2005_2020_gender_and_topic_{self.current_epoch}")
         if self.current_epoch > 0 and not os.path.exists(path):
             self.bert_model.save_pretrained(path)
         loss = self.step(batch, name='val')
