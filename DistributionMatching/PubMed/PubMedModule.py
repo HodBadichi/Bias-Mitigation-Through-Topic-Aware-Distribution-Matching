@@ -55,10 +55,6 @@ class PubMedModule(pl.LightningDataModule):
             self.documents_df = documents_df
         train_df, testing_df = train_test_split(self.documents_df, test_size=config['testing_size'],random_state=42)
         test_df, val_df = train_test_split(testing_df, test_size=0.5, random_state=42)
-        # todo : why we reset index ?
-        train_df = train_df.reset_index()
-        val_df = val_df.reset_index()
-        test_df = test_df.reset_index()
         self.train_df = clean_abstracts(train_df)
         self.val_df = clean_abstracts(val_df)
         self.test_df = clean_abstracts(test_df)

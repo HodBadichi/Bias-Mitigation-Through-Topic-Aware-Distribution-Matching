@@ -16,31 +16,25 @@ class PubMedDataSet(Dataset):
         # defines len of epoch
         return len(self.modified_document_df)
 
-    def create_text_field(self, sent_list):
-        sent_list_filtered_by_words = [' '.join(self.tu.word_tokenize(sent)) for sent in sent_list]
-        return '<BREAK>'.join(sent_list_filtered_by_words)
-
 
     def __getitem__(self, index):
         result = {}
         document_df = self.modified_document_df
         similar_doc_index = self.Matcher.get_match(index)[0]
-        index_text = self.create_text_field(document_df.iloc[index]["sentences"])
-        similar_doc_index_text = self.create_text_field(document_df.iloc[similar_doc_index]["sentences"])
         if project_utils.are_women_minority(index, self.Matcher.documents_dataframe):
-            result['biased'] = (index_text,
+            result['biased'] = (document_df.iloc[index]["broken_abstracts"],
                                 document_df.iloc[index]["female_rate"],
                                 document_df.iloc[index]["major_topic"])
 
-            result['unbiased'] = (similar_doc_index_text,
+            result['unbiased'] = (document_df.iloc[similar_doc_index]["broken_abstracts"],
                                   document_df.iloc[similar_doc_index]["female_rate"],
                                   document_df.iloc[similar_doc_index]["major_topic"])
         else:
-            result['biased'] = (similar_doc_index_text,
+            result['biased'] = (document_df.iloc[similar_doc_index]["broken_abstracts"],
                                 document_df.iloc[similar_doc_index]["female_rate"],
                                 document_df.iloc[similar_doc_index]["major_topic"])
 
-            result['unbiased'] = (index_text,
+            result['unbiased'] = (document_df.iloc[index]["clean_sentences"],
                                   document_df.iloc[index]["female_rate"],
                                   document_df.iloc[index]["major_topic"])
         return result
