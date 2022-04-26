@@ -63,7 +63,7 @@ class PubMedModule(pl.LightningDataModule):
         self.val_df = clean_abstracts(val_df)
         self.test_df = clean_abstracts(test_df)
 
-    def setup(self):
+    def setup(self, stage=None):
         # Runs on all gpus
         # Data set instances (val, train, test)
 

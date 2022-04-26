@@ -3,6 +3,7 @@ from nltk.tokenize import word_tokenize
 import string
 from nltk.corpus import wordnet
 import re
+import json
 
 
 class TextUtils:
@@ -19,7 +20,7 @@ class TextUtils:
     @staticmethod
     def flatten_list_of_lists(lst):
         return [item for sublist in lst for item in sublist]
-        
+
     def word_tokenize_abstract(self, abstract):
         sentences = self.split_abstract_to_sentences(abstract)
         words = []
@@ -39,7 +40,7 @@ class TextUtils:
         possible_numbers = re.findall(r'[\d\.]+', word_to_check)
         if len(possible_numbers) > 0 and len(possible_numbers[0]) == len(word_to_check):
             return True
-        # syns = wordnet.synsets(word_to_check)
+        # syns = wordnet.synsets(word_to_cheword_tokenizeck)
         # for s in syns:
         #     if s.definition().startswith("the cardinal number"):
         #         return True
@@ -59,8 +60,10 @@ class TextUtils:
     def word_tokenize(self, text):
         return TextUtils.filter_word_list(self.word_tokenize_abstract(text))
 
+
 def should_keep_sentence(sentence):
-    blacklist = ['http', 'https', 'url', 'www', 'clinicaltrials.gov', 'copyright', 'funded by', 'published by', 'subsidiary', '©', 'all rights reserved']
+    blacklist = ['http', 'https', 'url', 'www', 'clinicaltrials.gov', 'copyright', 'funded by', 'published by',
+                 'subsidiary', '©', 'all rights reserved']
     s = sentence.lower()
     for w in blacklist:
         if w in s:
@@ -73,23 +76,44 @@ def should_keep_sentence(sentence):
     return True
 
 
-def clean_abstracts(df, abstract_field='title_and_abstract', output_sentences_field='sentences'):
+# def clean_abstracts(df, abstract_field='title_and_abstract', output_sentences_field='sentences'):
+#     text_utils = TextUtils()
+#     # filter sentences
+#     if output_sentences_field not in df.columns:
+#         df[output_sentences_field] = df[abstract_field].apply(text_utils.split_abstract_to_sentences)
+#     d = {'total': 0, 'remaining': 0}
+#
+#     def pick_sentences(sentences):
+#         new_sents = [sent for sent in sentences if should_keep_sentence(sent)]
+#         d['total'] += len(sentences)
+#         d['remaining'] += len(new_sents)
+#         return new_sents
+#
+#     def join_to_abstract(sentences):
+#         return ' '.join(sentences)
+#
+#     df[output_sentences_field] = df[output_sentences_field].apply(pick_sentences)
+#     df[abstract_field] = df[output_sentences_field].apply(join_to_abstract)
+#     print(f"kept {d['remaining']}/{d['total']} sentences")
+#     return df
+
+
+def clean_abstracts_new(df, abstract_field='title_and_abstract', output_sentences_field='clean_sentences'):
     text_utils = TextUtils()
     # filter sentences
-    if output_sentences_field not in df.columns:
-        df[output_sentences_field] = df[abstract_field].apply(text_utils.split_abstract_to_sentences)
     d = {'total': 0, 'remaining': 0}
 
-    def pick_sentences(sentences):
-        new_sents = [sent for sent in sentences if should_keep_sentence(sent)]
+    def filter_sentences_and_words(abstract):
+        sentences = text_utils.split_abstract_to_sentences(abstract)
+        new_sentences = [sent for sent in sentences if should_keep_sentence(sent)]
         d['total'] += len(sentences)
-        d['remaining'] += len(new_sents)
-        return new_sents
+        d['remaining'] += len(new_sentences)
+        sent_list_filtered_by_words = [' '.join(text_utils.word_tokenize(sent)) for sent in new_sentences]
+        return '<BREAK>'.join(sent_list_filtered_by_words)
 
-    def join_to_abstract(sentences):
+    def filter_words(sentences):
         return ' '.join(sentences)
 
-    df[output_sentences_field] = df[output_sentences_field].apply(pick_sentences)
-    df[abstract_field] = df[output_sentences_field].apply(join_to_abstract)
+    df[output_sentences_field] = df[abstract_field].apply(filter_sentences_and_words)
     print(f"kept {d['remaining']}/{d['total']} sentences")
     return df

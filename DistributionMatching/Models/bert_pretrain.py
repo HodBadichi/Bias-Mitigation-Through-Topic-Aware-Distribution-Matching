@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/mor.filo/nlp_project/')
 import pytorch_lightning as pl
 import torch
 from transformers import AutoTokenizer, BertForMaskedLM
@@ -6,8 +8,8 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-from DistributionMatching.text_utils import clean_abstracts
-
+from DistributionMatching.text_utils import clean_abstracts, TextUtils
+import os
 
 def break_sentence_batch(samples):
     indexes = []
@@ -28,6 +30,7 @@ def break_sentence_batch(samples):
 class PubMedDataSetForBert(Dataset):
     def __init__(self, documents_dataframe):
         self.df = documents_dataframe
+        self.tu = TextUtils()
 
     def __len__(self):
         # defines len of epoch
@@ -49,14 +52,14 @@ class PubMedModuleForBert(pl.LightningDataModule):
         self.documents_df = None
 
     def prepare_data(self):
-        self.documents_df = pd.read_csv('..\data\abstract_2005_2020_gender_and_topic.csv', encoding='utf8')
+        self.documents_df = pd.read_csv(rf'../../data/abstract_2005_2020_gender_and_topic.csv', encoding='utf8')
         train_df, testnig_df = train_test_split(self.documents_df, test_size=0.7,random_state=42)
         test_df, val_df = train_test_split(testnig_df, test_size=0.5, random_state=42)
         self.train_df = clean_abstracts(train_df)
         self.val_df = clean_abstracts(val_df)
         self.test_df = clean_abstracts(test_df)
 
-    def setup(self):
+    def setup(self, stage=None):
         self.train = PubMedDataSetForBert(self.train_df)
         self.val = PubMedDataSetForBert(self.val_df)
         self.test = PubMedDataSetForBert(self.test_df)
@@ -82,6 +85,8 @@ class BertPretrain(pl.LightningModule):
         self.bert_model = BertForMaskedLM.from_pretrained('google/bert_uncased_L-2_H-128_A-2')
         self.data_collator = DataCollatorForLanguageModeling(self.tokenizer)
         self.max_len = 70
+        self.model_desc = 'bert_tiny_uncased'
+
 
     def forward(self, batch):
         # break the text into sentences
@@ -107,6 +112,10 @@ class BertPretrain(pl.LightningModule):
         return loss
 
     def validation_step(self, batch: dict, batch_idx: int):
+        path = os.path.join("/home/mor.filo/nlp_project/DistributionMatching/Models", '{}_{}_{}_v{}_epoch{}'.format(
+            self.model_desc, 'abstract_2005_2020_gender_and_topic', self.current_epoch))
+        if self.current_epoch > 0 and not os.path.exists(path):
+            self.bert_model.save_pretrained(path)
         loss = self.step(batch, name='val')
         return loss
 
@@ -127,7 +136,6 @@ if __name__ == '__main__':
                          max_epochs=40,
                          log_every_n_steps=10,
                          accumulate_grad_batches=1,  # no accumulation
-                         precision=16,
-                         distributed_backend='ddp')
-
+                         precision=16)
     trainer.fit(model, datamodule=dm)
+
