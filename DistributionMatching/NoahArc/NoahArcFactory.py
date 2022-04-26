@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import dill
 import mgzip
+import torch
 
 from DistributionMatching.NoahArc.NoahArcCE import NoahArcCE
 from DistributionMatching.NoahArc.NoahArcCS import NoahArcCS
@@ -40,11 +41,5 @@ if __name__ == '__main__':
     matrix = SimilarityMatrixFactory.create(df, similarity_metric='cross_entropy')
     Prob = NoahArcFactory.create('cross_entropy', True, matrix)
     print("loaded to memory")
-    print(Prob.get_match(42))
-    print(f"42 PMID is {Prob.documents_dataframe['PMID'][42]}")
-    print(len(Prob.documents_dataframe))
-    NoahArcFactory.save(Prob, "my_out")
-    # Prob = NoahArcFactory.load("my_out")
-    # print(Prob.get_match(42))
-    # print(f"42 PMID is {Prob.documents_dataframe['PMID'][42]}")
-    # print(len(Prob.documents_dataframe))
+    assert not torch.isnan(Prob.probability_matrix).any()
+

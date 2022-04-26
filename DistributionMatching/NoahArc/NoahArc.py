@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from DistributionMatching.SimilarityMatrix.SimilarityMatrixFactory import SimilarityMatrixFactory
+from DistributionMatching.utils import config
 import torch
 import numpy as np
 import DistributionMatching.utils as project_utils
@@ -9,6 +9,7 @@ class NoahArc:
     """
     Abstract class , used to supply NoahArc API
     """
+
     def __init__(self, reset_diff_topic_entries_flag, similarity_matrix):
         self.documents_dataframe = similarity_matrix.documents_dataframe
         self.probability_matrix = None
@@ -35,7 +36,7 @@ class NoahArc:
     def _reset_different_topic_entries(self):
         self._reset_different_topics_called_flag = True
         number_of_topics = range(len(self.documents_dataframe.groupby('major_topic')))
-        for idx,topic_num in enumerate(number_of_topics):
+        for idx, topic_num in enumerate(number_of_topics):
             topic_indices = list(np.where(self.documents_dataframe['major_topic'] == topic_num)[0])
             mask = np.array([True] * len(self.documents_dataframe))
             mask[topic_indices] = False
@@ -67,3 +68,12 @@ class NoahArc:
             else:
                 # the doc has women majority so the matching doc for training needs to be with women minority
                 self._similarity_matrix[doc_index][unbiased_mask] = 0
+
+    def _get_probability_matrix_zeros_rows(self):
+        zeroed_rows_indexes = [idx for idx, row in enumerate(self._similarity_matrix) if
+                               torch.count_nonzero(row).item() <= config['minimum_documents_matches']]
+        return zeroed_rows_indexes
+
+    def _put_zeros_in_rows(self, indices, probability_matrix):
+        probability_matrix[indices] = torch.zeros(len(self._similarity_matrix)).double()
+        return probability_matrix
