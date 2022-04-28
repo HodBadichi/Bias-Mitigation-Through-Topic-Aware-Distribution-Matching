@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/mor.filo/nlp_project/')
 import torch
 from DistributionMatching.SimilarityMatrix.SimilarityMatrix import SimilarityMatrix
 import json

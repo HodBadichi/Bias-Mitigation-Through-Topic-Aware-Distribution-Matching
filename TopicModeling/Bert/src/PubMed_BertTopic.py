@@ -6,7 +6,6 @@ from bertopic import BERTopic
 import csv
 import matplotlib.pyplot as plt
 
-
 def is_ascii(s) -> bool:
     return all(ord(c) < 128 for c in s)
 

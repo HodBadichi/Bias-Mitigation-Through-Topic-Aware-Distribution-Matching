@@ -83,3 +83,19 @@ def clean_abstracts(df, abstract_field='title_and_abstract', output_sentences_fi
     df[output_sentences_field] = df[abstract_field].apply(filter_sentences_and_words)
     print(f"kept {d['remaining']}/{d['total']} sentences")
     return df
+
+
+def break_sentence_batch(samples):
+    indexes = []
+    all_sentences = []
+    index = 0
+    max_len = 0
+    for sample in samples:
+        sample_as_list = sample.split('<BREAK>')
+        # sample is a list of sentences
+        indexes.append((index, index + len(sample_as_list)))
+        index += len(sample_as_list)
+        all_sentences.extend(sample_as_list)
+        if max_len < len(sample_as_list):
+            max_len = len(sample_as_list)
+    return indexes, all_sentences, max_len

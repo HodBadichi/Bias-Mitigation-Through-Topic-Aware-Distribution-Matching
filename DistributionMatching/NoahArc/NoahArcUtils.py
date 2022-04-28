@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 from DistributionMatching.NoahArc.NoahArcFactory import NoahArcFactory
 import pandas as pd
 from DistributionMatching.SimilarityMatrix.SimilarityMatrixFactory import SimilarityMatrixFactory
-
+import os
 
 def plot_document_matches_distribution():
     dataframe = pd.read_csv(
-        r'C:\Users\katac\PycharmProjects\NLP_project_v2\data\abstract_2005_2020_gender_and_topic.csv')
+        rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project_v2\data\abstract_2005_2020_gender_and_topic.csv')
     sim_matrix = SimilarityMatrixFactory.create(dataframe,
                                                 "cross_entropy")
     noah_arc = NoahArcFactory.create("cross_entropy", True, sim_matrix)

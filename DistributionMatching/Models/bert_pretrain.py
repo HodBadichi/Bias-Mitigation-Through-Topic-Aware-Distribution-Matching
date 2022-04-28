@@ -8,24 +8,11 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-from DistributionMatching.text_utils import clean_abstracts, TextUtils
+from DistributionMatching.text_utils import clean_abstracts, TextUtils, break_sentence_batch
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-def break_sentence_batch(samples):
-    indexes = []
-    all_sentences = []
-    index = 0
-    max_len = 0
-    for sample in samples:
-        sample_as_list = sample.split('<BREAK>')
-        # sample is a list of sentences
-        indexes.append((index, index + len(sample_as_list)))
-        index += len(sample_as_list)
-        all_sentences.extend(sample_as_list)
-        if max_len < len(sample_as_list):
-            max_len = len(sample_as_list)
-    return indexes, all_sentences, max_len
+
 
 
 class PubMedDataSetForBert(Dataset):
@@ -62,13 +49,13 @@ class PubMedModuleForBert(pl.LightningDataModule):
 
     def train_dataloader(self):
         # data set, batch size, shuffel, workers
-        return DataLoader(self.train, shuffle=True, batch_size=10, num_workers=12)
+        return DataLoader(self.train, shuffle=True, batch_size=10, num_workers=8)
 
     def test_dataloader(self):
-        return DataLoader(self.test, shuffle=False, batch_size=10, num_workers=12)
+        return DataLoader(self.test, shuffle=False, batch_size=10, num_workers=8)
 
     def val_dataloader(self):
-        return DataLoader(self.val, shuffle=False, batch_size=10, num_workers=12)
+        return DataLoader(self.val, shuffle=False, batch_size=10, num_workers=8)
 
 
 
@@ -82,6 +69,7 @@ class BertPretrain(pl.LightningModule):
         self.data_collator = DataCollatorForLanguageModeling(self.tokenizer)
         self.max_len = 70
         self.model_desc = 'bert_tiny_uncased'
+        self.count = 0
 
 
     def forward(self, batch):
@@ -104,6 +92,7 @@ class BertPretrain(pl.LightningModule):
         return bert_loss
 
     def training_step(self, batch: dict, batch_idx: int) -> dict:
+        self.count = self.count + 1
         loss = self.step(batch, name='train')
         return loss
 
@@ -133,4 +122,5 @@ if __name__ == '__main__':
                          accumulate_grad_batches=1,  # no accumulation
                          precision=16)
     trainer.fit(model, datamodule=dm)
+    print(model.count)
 

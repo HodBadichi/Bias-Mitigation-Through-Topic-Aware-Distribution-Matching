@@ -1,8 +1,8 @@
+import sys
+sys.path.append('/home/mor.filo/nlp_project/')
 from DistributionMatching.SimilarityMatrix.SimilarityMatrixCE import SimilarityMatrixCE
 from DistributionMatching.SimilarityMatrix.SimilarityMatrixCS import SimilarityMatrixCS
-
 import pandas as pd
-import os
 
 
 class SimilarityMatrixFactory:
@@ -16,6 +16,6 @@ class SimilarityMatrixFactory:
 
 
 if __name__ == '__main__':
-    df = pd.read_csv(os.path.join(os.pardir, os.pardir, "data", "abstract_2005_2020_gender_and_topic.csv"),
+    df = pd.read_csv(rf'../../data/abstract_2005_2020_gender_and_topic.csv',
                      encoding='utf8')
-    matrix = SimilarityMatrixFactory.create(df, similarity_metric='cross_entropy')
+    matrix = SimilarityMatrixFactory.create(df, similarity_metric='cosine_similarity')
