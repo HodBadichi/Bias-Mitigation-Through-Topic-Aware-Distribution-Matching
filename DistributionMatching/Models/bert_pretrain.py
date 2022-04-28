@@ -49,13 +49,13 @@ class PubMedModuleForBert(pl.LightningDataModule):
 
     def train_dataloader(self):
         # data set, batch size, shuffel, workers
-        return DataLoader(self.train, shuffle=True, batch_size=10, num_workers=8)
+        return DataLoader(self.train, shuffle=True, batch_size=16, num_workers=8)
 
     def test_dataloader(self):
-        return DataLoader(self.test, shuffle=False, batch_size=10, num_workers=8)
+        return DataLoader(self.test, shuffle=False, batch_size=16, num_workers=8)
 
     def val_dataloader(self):
-        return DataLoader(self.val, shuffle=False, batch_size=10, num_workers=8)
+        return DataLoader(self.val, shuffle=False, batch_size=16, num_workers=8)
 
 
 
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     model = BertPretrain()
     trainer = pl.Trainer(gpus=1,
                          auto_select_gpus=True,
-                         max_epochs=2,
+                         max_epochs=40,
                          log_every_n_steps=10,
                          accumulate_grad_batches=1,  # no accumulation
                          precision=16)

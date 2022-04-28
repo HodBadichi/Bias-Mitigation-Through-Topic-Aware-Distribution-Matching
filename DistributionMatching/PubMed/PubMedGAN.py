@@ -21,7 +21,9 @@ class GAN(pl.LightningModule):
         # Forward is unneeded , GaN model will not infer in the future
         pass
 
-    def step(self, batch, optimizer_idx, name):
+    def step(self, batch: dict, optimizer_idx: int = None, name='train'):
+        # batch is a dict of : bias doc, unbiased doc and the origin doc (the doc that was sampled by "get item"
+        # and the matcher found its match)
         y_true = []
         texts = []
         for idx, data in enumerate(batch):
