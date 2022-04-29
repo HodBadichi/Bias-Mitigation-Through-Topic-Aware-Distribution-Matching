@@ -25,7 +25,12 @@ def are_women_minority(document_index, dataframe, bias_by_topic=True):
         topic = dataframe.iloc[document_index]["major_topic"]
         threshold = dataframe.loc[dataframe['major_topic'] == topic]['female_rate'].mean()
 
-    if female_rate <= threshold:
+    #edge cases
+    if female_rate == 0:
+        return True
+    elif female_rate == 1:
+        return False
+    elif female_rate < threshold:
         return True
     else:
         return False
