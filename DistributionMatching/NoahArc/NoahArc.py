@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/mor.filo/nlp_project/')
 from abc import abstractmethod
 from DistributionMatching.utils import config
 import torch

@@ -1,6 +1,5 @@
 import sys
 sys.path.append('/home/mor.filo/nlp_project/')
-import pytorch_lightning as pl
 import torch
 from transformers import AutoTokenizer, BertForMaskedLM
 from transformers import DataCollatorForLanguageModeling
@@ -11,8 +10,10 @@ from torch.utils.data import Dataset
 from DistributionMatching.text_utils import clean_abstracts, TextUtils, break_sentence_batch
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
-
+from pytorch_lightning.loggers import WandbLogger
+from datetime import datetime
+import pytorch_lightning as pl
+import pytz
 
 
 class PubMedDataSetForBert(Dataset):
@@ -115,6 +116,10 @@ class BertPretrain(pl.LightningModule):
 if __name__ == '__main__':
     dm = PubMedModuleForBert()
     model = BertPretrain()
+    logger = WandbLogger(name=f'bert_over_topic_and_gender_70_15_15', save_dir=LOG_PATH,
+                         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
+                         project='FairEmbedding_test',
+                         config={'lr': 5e-5, 'batch_size': 16}
     trainer = pl.Trainer(gpus=1,
                          auto_select_gpus=True,
                          max_epochs=40,

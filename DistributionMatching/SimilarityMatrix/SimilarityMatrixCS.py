@@ -25,10 +25,10 @@ class SimilarityMatrixCS(SimilarityMatrix):
         # if 'clean_title_and_abstract' not in self.documents_dataframe.columns:
         #     clean_abstracts = bert_apply_clean(self.documents_dataframe["title_and_abstract"])
         # else:
-        clean_abstracts = self.documents_dataframe['clean_title_and_abstract']
+        clean_abstracts = self.documents_dataframe['broken_abstracts']
         SentenceTransformerModel = SentenceTransformer('all-MiniLM-L6-v2')
         sentence_embeddings = SentenceTransformerModel.encode(clean_abstracts,convert_to_tensor=True)
         self.matrix = torch.as_tensor(cosine_similarity(sentence_embeddings, sentence_embeddings))
-        torch.save(self.matrix, "matrix")
+        torch.save(self.matrix, "sim_matrix_with_bert_clean")
 
 

@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/mor.filo/nlp_project/')
 import torch
 import matplotlib.pyplot as plt
 from DistributionMatching.NoahArc.NoahArcFactory import NoahArcFactory

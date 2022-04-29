@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/mor.filo/nlp_project/')
 from DistributionMatching.NoahArc.NoahArc import NoahArc
 import torch
 
