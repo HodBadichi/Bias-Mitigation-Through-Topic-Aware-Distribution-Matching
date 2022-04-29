@@ -34,9 +34,6 @@ class GAN(pl.LightningModule):
 
         # `discriminator_loss` is used in both Discriminator and Generator losses
         discriminator_predictions, y_true = self._get_discriminator_predictions(batch)
-        # we`ll use y_true for loss and also in order to shuffle 'biased','unbiased' tuple
-        # 0 : [biased,unbiased]
-        # 1 : [unbiased,biased]
         all_samples_losses = self.loss_func(discriminator_predictions, y_true)
         discriminator_loss = all_samples_losses.mean(all_samples_losses)
 
@@ -160,8 +157,10 @@ class GAN(pl.LightningModule):
         :param batch: a batch of PubMedGan in the shape of {'origin':int,'biased':string,'unbiased':string}
         might include `None` values in the `biased` and `unbiased` entry in case the origin document has no match.
 
-        :return:This function wil return the classifier predictions over bertmodel output embeddings and the shuffle_vector: list in the shape of [0,...,1,0...]. we use each entry to tell how to concat
-        the fields `biased` and `unbiased` where 0 : [biased,unbiased], 1 : [unbiased,biased]
+        :return: This function wil return the classifier predictions over bertmodel output embeddings and the
+        "ground truth" a shuffle_vector: list in the shape of [0,...,1,0...] which can be interpreted like that:
+        1 - the couple of matching docs was [biased,unbiased]
+        0 - the couple of matching docs was [unbiased,biased]
         """
 
         discriminator_batch, shuffle_vector = self._get_discriminator_batch_and_shuffle_vector(batch)
