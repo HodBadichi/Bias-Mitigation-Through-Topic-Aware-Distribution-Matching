@@ -12,14 +12,16 @@ from datetime import datetime
 import pytz
 
 class GAN(pl.LightningModule):
-    def __init__(self):
+    def __init__(self, hparams):
         super(GAN, self).__init__()
-        self.bert_tokenizer = AutoTokenizer.from_pretrained(config['models']['bert_tokenizer'])
+        self.hparams = hparams
+        self.bert_tokenizer = AutoTokenizer.from_pretrained(self.hparams.bert_tokenizer)
         # TODO get bert_pretrained_path
-        self.bert_model = BertForMaskedLM.from_pretrained(config['models']['bert_pretrained_path'])
+        self.bert_model = BertForMaskedLM.from_pretrained(self.hparams.bert_pretrained_over_pubMed_path)
         self.sentence_embedding_size = self.bert_model.get_input_embeddings().embedding_dim
         self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences, 1)
         self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
+
 
     def forward(self):
         # Forward is unneeded , GaN model will not infer in the future
@@ -202,7 +204,9 @@ hparams = {'learning_rate': 5e5,
            'max_epochs': 40,
            'gender_and_topic_path': '../../data/abstract_2005_2020_gender_and_topic.csv',
            'batch_size': 64,
-           'test_size': 0.7
+           'test_size': 0.7,
+           'bert_pretrained_over_pubMed_path': '',
+           'bert_tokenizer': 'google/bert_uncased_L-2_H-128_A-2'
            }
 
 if __name__ == '__main__':
