@@ -51,8 +51,6 @@ class GAN(pl.LightningModule):
             mlm_loss = self._get_mlm_loss(bert_inputs)
 
 
-
-
     def training_step(self):
         pass
 
@@ -173,5 +171,14 @@ class GAN(pl.LightningModule):
             if max_len < len(sample_as_list):
                 max_len = len(sample_as_list)
         return indexes, all_sentences, max_len
+
     def _get_mlm_loss(self,inputs):
-        pass
+        """returns MLM loss"""
+        collated_inputs = self.data_collator(inputs['input_ids'].tolist())
+        collated_inputs = {k: v.to(self.device) for k, v in collated_inputs.items()}
+
+        inputs['input_ids'] = collated_inputs['input_ids']
+        inputs['labels'] = collated_inputs['labels']
+        loss = self.bert_model(**inputs).loss
+
+        return loss
