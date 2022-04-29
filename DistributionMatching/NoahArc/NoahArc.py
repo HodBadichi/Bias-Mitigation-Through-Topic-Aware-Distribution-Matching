@@ -12,8 +12,8 @@ class NoahArc:
     Abstract class , used to supply NoahArc API
     """
 
-    def __init__(self, reset_diff_topic_entries_flag, similarity_matrix):
-        self.documents_dataframe = similarity_matrix.documents_dataframe
+    def __init__(self,dataframe, reset_diff_topic_entries_flag, similarity_matrix):
+        self.documents_dataframe = dataframe
         self.probability_matrix = None
         self._similarity_matrix = similarity_matrix.matrix
         self._reset_different_topic_entries_flag = reset_diff_topic_entries_flag

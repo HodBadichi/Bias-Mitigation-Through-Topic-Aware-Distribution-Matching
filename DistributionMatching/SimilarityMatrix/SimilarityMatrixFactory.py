@@ -4,7 +4,6 @@ from DistributionMatching.SimilarityMatrix.SimilarityMatrixCE import SimilarityM
 from DistributionMatching.SimilarityMatrix.SimilarityMatrixCS import SimilarityMatrixCS
 import pandas as pd
 
-
 class SimilarityMatrixFactory:
     @staticmethod
     def create(documents_dataframe, similarity_metric):
@@ -13,6 +12,7 @@ class SimilarityMatrixFactory:
         elif similarity_metric == "cosine_similarity":
             return SimilarityMatrixCS(documents_dataframe)
         raise NotImplementedError("`SimilarityMatrixFactory` unsupported metric")
+
 
 
 if __name__ == '__main__':

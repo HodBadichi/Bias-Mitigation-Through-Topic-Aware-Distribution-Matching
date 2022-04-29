@@ -14,11 +14,11 @@ from DistributionMatching.SimilarityMatrix.SimilarityMatrixFactory import Simila
 
 class NoahArcFactory:
     @staticmethod
-    def create(similarity_metric, reset_different_topic_entries_flag, similarity_matrix):
+    def create(dataframe, similarity_metric, reset_different_topic_entries_flag, similarity_matrix):
         if similarity_metric == "cross_entropy":
-            return NoahArcCE(reset_different_topic_entries_flag, similarity_matrix)
+            return NoahArcCE(dataframe, reset_different_topic_entries_flag, similarity_matrix)
         elif similarity_metric == "cosine_similarity":
-            return NoahArcCS(reset_different_topic_entries_flag, similarity_matrix)
+            return NoahArcCS(dataframe, reset_different_topic_entries_flag, similarity_matrix)
         raise NotImplementedError("`NoahArcFactory` unsupported metric")
 
     # @staticmethod
@@ -39,9 +39,9 @@ class NoahArcFactory:
 
 if __name__ == '__main__':
     df = pd.read_csv(rf'../../data/abstract_2005_2020_gender_and_topic.csv', encoding='utf8')
-    print(len(df))
-    matrix = SimilarityMatrixFactory.create(df, similarity_metric='cosine_similarity')
-    Prob = NoahArcFactory.create('cosine_similarity', True, matrix)
+    # matrix = SimilarityMatrixFactory.create(df, similarity_metric='cosine_similarity')
+    matrix = torch.load("sim_matrix_with_BERTopic_clean")
+    Prob = NoahArcFactory.create(df, 'cosine_similarity', True, matrix)
     print("loaded to memory")
     assert not torch.isnan(Prob.probability_matrix).any()
 

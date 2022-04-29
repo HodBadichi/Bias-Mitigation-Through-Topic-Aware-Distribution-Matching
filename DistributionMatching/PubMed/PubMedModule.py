@@ -12,10 +12,11 @@ from DistributionMatching.utils import config
 from DistributionMatching.text_utils import TextUtils
 
 class PubMedModule(pl.LightningDataModule):
-    def __init__(self):
+    def __init__(self, hprams):
         self.train = None
         self.test = None
         self.documents_df = None
+        self.hparams = hprams
 
     def prepare_data(self):
         # run before setup, 1 gpu
@@ -27,7 +28,7 @@ class PubMedModule(pl.LightningDataModule):
         '''
         # Note - transform (bert topic inference) will take ~30 minutes, check if the df already exists
         try:
-            self.documents_df = pd.read_csv(config['data']['gender_and_topic_path'], encoding='utf8')
+            self.documents_df = pd.read_csv(self.hparams.gender_and_topic_path, encoding='utf8')
         except FileNotFoundError:
             documents_df = project_utils.load_abstract_PubMedData()
             # keeps docs with participants info only
@@ -53,7 +54,7 @@ class PubMedModule(pl.LightningDataModule):
             tu = TextUtils()
             documents_df['sentences'] = documents_df['title_and_abstract'].apply(tu.split_abstract_to_sentences)
             self.documents_df = documents_df
-        train_df, testing_df = train_test_split(self.documents_df, test_size=config['testing_size'],random_state=42)
+        train_df, testing_df = train_test_split(self.documents_df, test_size=self.hparams.test_size,random_state=42)
         test_df, val_df = train_test_split(testing_df, test_size=0.5, random_state=42)
         self.train_df = clean_abstracts(train_df)
         self.val_df = clean_abstracts(val_df)
@@ -69,11 +70,11 @@ class PubMedModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         # data set, batch size, shuffel, workers
-        return DataLoader(self.train, shuffle=True, batch_size=config['train']['batch_size'], num_workers=1)
+        return DataLoader(self.train, shuffle=True, batch_size=self.hparams.batch_size, num_workers=1)
 
     def test_dataloader(self):
-        return DataLoader(self.test, shuffle=True, batch_size=config['test']['batch_size'], num_workers=1)
+        return DataLoader(self.test, shuffle=True, batch_size=self.hparams.batch_size, num_workers=1)
 
     def val_dataloader(self):
-        return DataLoader(self.val, shuffle=True, batch_size=config['val']['batch_size'], num_workers=1)
+        return DataLoader(self.val, shuffle=True, batch_size=self.hparams.batch_size, num_workers=1)
 

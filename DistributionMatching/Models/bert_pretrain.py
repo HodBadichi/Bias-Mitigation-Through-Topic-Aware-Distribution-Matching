@@ -116,16 +116,15 @@ class BertPretrain(pl.LightningModule):
 if __name__ == '__main__':
     dm = PubMedModuleForBert()
     model = BertPretrain()
-    logger = WandbLogger(name=f'bert_over_topic_and_gender_70_15_15', save_dir=LOG_PATH,
+    logger = WandbLogger(name=f'bert_over_topic_and_gender_70_15_15',
                          version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
-                         project='FairEmbedding_test',
-                         config={'lr': 5e-5, 'batch_size': 16}
+                         project='Document_embeddings_test',
+                         config={'lr': 5e-5, 'batch_size': 16})
     trainer = pl.Trainer(gpus=1,
                          auto_select_gpus=True,
                          max_epochs=40,
+                         logger=logger,
                          log_every_n_steps=10,
                          accumulate_grad_batches=1,  # no accumulation
                          precision=16)
     trainer.fit(model, datamodule=dm)
-    print(model.count)
-

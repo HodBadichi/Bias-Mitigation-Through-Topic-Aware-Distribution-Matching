@@ -6,7 +6,10 @@ from pytorch_lightning import Trainer
 from DistributionMatching.utils import config
 import numpy as np
 import random
-
+from PubMedModule import PubMedModule
+from pytorch_lightning.loggers import WandbLogger
+from datetime import datetime
+import pytz
 
 class GAN(pl.LightningModule):
     def __init__(self):
@@ -38,32 +41,46 @@ class GAN(pl.LightningModule):
 
         #   Discriminator Step
         if optimizer_idx == 0:
-
+            loss = discriminator_loss
+            self.log(f'discriminator/{name}_loss', discriminator_loss)
 
         #   Generator Step
         if optimizer_idx == 1:
             generator_batch = self._get_generator_batch(batch)
-
             begin_end_indexes, documents_sentences, max_len = self._break_sentence_batch(generator_batch)
-
             bert_inputs = self._get_bert_inputs(documents_sentences)
-
             mlm_loss = self._get_mlm_loss(bert_inputs)
+            loss =  self.hparams.mlm_factor * mlm_loss + self.hparams.discriminator_factor * discriminator_loss
+            self.log(f'generator/{name}_loss', loss)
+            self.log(f'generator/{name}_mlm_loss', mlm_loss)
+            self.log(f'generator/{name}_discriminator_loss', discriminator_loss)
+
+        return {'loss': loss,
+                'mlm_loss': mlm_loss,
+                'optimizer_idx': optimizer_idx}
 
 
+    def training_step(self, batch: dict, batch_idx: int, optimizer_idx: int = None) -> dict:
+        return self.step(batch, optimizer_idx, 'train')
 
+    def validation_step(self, batch: dict, batch_idx: int, optimizer_idx: int = None) -> dict:
+        # todo Shunit: why do you preform both optimizers but only returns the loss of generator?
+        outs = []
+        for i in range(len(self.optimizers())):
+            outs.append(self.step(batch, i, 'val'))
+        return outs[1]  # generator
 
-    def training_step(self):
-        pass
-
-    def validation_step(self):
-        pass
-
-    def test_step(self):
-        pass
+    def test_step(self, batch: dict, batch_idx: int, optimizer_idx: int = None):
+        return self.validation_step(batch, batch_idx, optimizer_idx)
 
     def configure_optimizers(self):
-        pass
+        # Discriminator step paramteres -  classifier.
+        grouped_parameters0 = [{'params': self.classifier.parameters()}]
+        optimizer0 = torch.optim.Adam(grouped_parameters0, lr=self.hparams.learning_rate)
+        # Generator step parameters - only the bert model.
+        grouped_parameters1 = [{'params': self.bert_model.parameters()}]
+        optimizer1 = torch.optim.Adam(grouped_parameters1, lr=self.hparams.learning_rate)
+        return [optimizer0, optimizer1]
 
     def _get_discriminator_batch(self, batch, shuffle_vector):
         clean_batch = []  # batch where each document has a pair , no unmatched documents allowed
@@ -173,5 +190,34 @@ class GAN(pl.LightningModule):
             if max_len < len(sample_as_list):
                 max_len = len(sample_as_list)
         return indexes, all_sentences, max_len
-    def _get_mlm_loss(self,inputs):
+
+    def _get_mlm_loss(self, inputs):
         pass
+
+
+hparams = {'learning_rate': 5e5,
+           'discriminator_factor': 0.5,
+           'mlm_factor': 0.5,
+           'gpus': 1,
+           'max_epochs': 40,
+           'gender_and_topic_path': '../../data/abstract_2005_2020_gender_and_topic.csv',
+           'batch_size': 64,
+           'test_size': 0.7
+           }
+
+if __name__ == '__main__':
+    dm = PubMedModule(hparams)
+    model = GAN(hparams)
+    logger = WandbLogger(name=f'GAN_over_topic_and_gender_70_15_15',
+                         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
+                         project='GAN_test',
+                         config={'lr': 5e-5, 'batch_size': 16})
+    trainer = pl.Trainer(gpus=hparams.gpus,
+                         max_epochs=hparams.max_epochs,
+                         logger=logger,
+                         log_every_n_steps=20,
+                         accumulate_grad_batches=1,
+                         num_sanity_val_steps=0,
+                         # gradient_clip_val=0.3
+                         )
+    trainer.fit(model, datamodule=dm)

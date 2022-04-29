@@ -44,7 +44,7 @@ class PubMedDataSet(Dataset):
             return NoahArcFactory.load(target_file)
         except FileNotFoundError:
             similarity_matrix = SimilarityMatrixFactory.create(dataframe, similarity_metric)
-            probability_matrix = NoahArcFactory.create(similarity_metric,
+            probability_matrix = NoahArcFactory.create(dataframe, similarity_metric,
                                                        config['reset_different_topic_entries_flag'],
                                                        similarity_matrix)
             NoahArcFactory.save(probability_matrix, target_file)
