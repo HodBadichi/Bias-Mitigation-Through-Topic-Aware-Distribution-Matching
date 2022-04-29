@@ -6,6 +6,8 @@ from pytorch_lightning import Trainer
 from DistributionMatching.utils import config
 import numpy as np
 import random
+from sklearn.metrics import roc_auc_score, accuracy_score
+
 
 
 class GAN(pl.LightningModule):
@@ -38,19 +40,43 @@ class GAN(pl.LightningModule):
 
         #   Discriminator Step
         if optimizer_idx == 0:
+            mlm_loss = 0
+            self.log(f'discriminator/{name}_loss', discriminator_loss)
+            y_proba = self.y_pred_to_probabilities(discriminator_predictions).cpu().detach()
 
+            if not all(y_true) and any(y_true):
+                # Calc auc only if batch has more than one class.
+                self.log(f'discriminator/{name}_auc', roc_auc_score(y_true.cpu().detach(), y_proba))
+            self.log(f'discriminator/{name}_accuracy', accuracy_score(y_true.cpu().detach(), y_proba.round()))
 
         #   Generator Step
         if optimizer_idx == 1:
             generator_batch = self._get_generator_batch(batch)
-
             begin_end_indexes, documents_sentences, max_len = self._break_sentence_batch(generator_batch)
-
             bert_inputs = self._get_bert_inputs(documents_sentences)
 
             mlm_loss = self._get_mlm_loss(bert_inputs)
+            diff_frozen_lost = self._get_diff_frozen(bert_inputs)
+
+            y_proba = self.y_pred_to_probabilities(discriminator_predictions).cpu().detach()
+            losses = self.loss_func(discriminator_predictions, 1 - y_true)
+            d_loss = losses.mean()
 
 
+
+            self.log(f'generator/{name}_loss', loss)
+            self.log(f'generator/{name}_mlm_loss', mlm_loss)
+            self.log(f'generator/{name}_frozen_diff_loss', diff_from_frozen)
+            self.log(f'generator/{name}_discriminator_loss', d_loss)
+
+        return {'loss': loss,
+                'losses': losses.detach().cpu(),
+                'mlm_loss': mlm_loss,
+                'text': batch['text'],
+                'y_true': y_true.cpu(),
+                'y_proba': y_proba,
+                'y_score': y_true.cpu().detach() * y_proba + (1-y_true.cpu().detach()) * (1-y_proba),
+                'optimizer_idx': optimizer_idx}
     def training_step(self):
         pass
 
@@ -182,3 +208,8 @@ class GAN(pl.LightningModule):
         loss = self.bert_model(**inputs).loss
 
         return loss
+
+    def _get_diff_frozen(self,bert_inputs):
+        outputs = self.bert_model(**bert_inputs, output_hidden_states=True).hidden_states[-1]
+        reference_outputs = self.frozen_bert_model(**bert_inputs, output_hidden_states=True).hidden_states[-1]
+        return torch.norm(outputs - reference_outputs, 2)
