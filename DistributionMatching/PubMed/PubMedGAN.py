@@ -10,6 +10,7 @@ from PubMedModule import PubMedModule
 from pytorch_lightning.loggers import WandbLogger
 from datetime import datetime
 import pytz
+from DistributionMatching.text_utils import break_sentence_batch
 
 class GAN(pl.LightningModule):
     def __init__(self, hparams):
@@ -31,13 +32,11 @@ class GAN(pl.LightningModule):
         # batch is a dict of : bias doc, unbiased doc and the origin doc (the doc that was sampled by "get item"
         # and the matcher found its match)
 
+        # `discriminator_loss` is used in both Discriminator and Generator losses
+        discriminator_predictions, y_true = self._get_discriminator_predictions(batch)
+        # we`ll use y_true for loss and also in order to shuffle 'biased','unbiased' tuple
         # 0 : [biased,unbiased]
         # 1 : [unbiased,biased]
-        # we`ll use y_true for loss and also in order to shuffle 'biased','unbiased' tuple
-        y_true = [random.choice([0, 1]) for _ in batch]
-
-        # `discriminator_loss` is used in both Discriminator and Generator losses
-        discriminator_predictions = self._get_discriminator_predictions(batch, y_true)
         all_samples_losses = self.loss_func(discriminator_predictions, y_true)
         discriminator_loss = all_samples_losses.mean(all_samples_losses)
 
@@ -49,7 +48,7 @@ class GAN(pl.LightningModule):
         #   Generator Step
         if optimizer_idx == 1:
             generator_batch = self._get_generator_batch(batch)
-            begin_end_indexes, documents_sentences, max_len = self._break_sentence_batch(generator_batch)
+            begin_end_indexes, documents_sentences, max_len = break_sentence_batch(generator_batch)
             bert_inputs = self._get_bert_inputs(documents_sentences)
             mlm_loss = self._get_mlm_loss(bert_inputs)
             loss =  self.hparams.mlm_factor * mlm_loss + self.hparams.discriminator_factor * discriminator_loss
@@ -84,13 +83,14 @@ class GAN(pl.LightningModule):
         optimizer1 = torch.optim.Adam(grouped_parameters1, lr=self.hparams.learning_rate)
         return [optimizer0, optimizer1]
 
-    def _get_discriminator_batch(self, batch, shuffle_vector):
+    def _get_discriminator_batch_and_shuffle_vector(self, batch):
         clean_batch = []  # batch where each document has a pair , no unmatched documents allowed
         for sample in batch:
             if sample['biased'] is None or sample['unbiased'] is None:
                 continue
             clean_batch.append(sample)
 
+        shuffle_vector = [random.choice([0, 1]) for _ in clean_batch]
         result_batch = []
         for index, entry in enumerate(clean_batch):
             biased_text = entry['biased']
@@ -101,7 +101,7 @@ class GAN(pl.LightningModule):
             if shuffle_vector[index] == 1:
                 result_batch.append(unbiased_text)
                 result_batch.append(biased_text)
-        return result_batch
+        return result_batch, shuffle_vector
 
     def _get_generator_batch(self, batch):
         result_batch = []
@@ -154,44 +154,26 @@ class GAN(pl.LightningModule):
         y_predictions = self.classifier(aggregated).squeeze(1)
         return y_predictions
 
-    def _get_discriminator_predictions(self, batch, shuffle_vector):
+    def _get_discriminator_predictions(self, batch):
         """
 
-        :param batch: a batch of PubMedGan in the sahpe of {'origin':int,'biased':string,'unbiased':string}
+        :param batch: a batch of PubMedGan in the shape of {'origin':int,'biased':string,'unbiased':string}
         might include `None` values in the `biased` and `unbiased` entry in case the origin document has no match.
 
-        :param shuffle_vector: list in the shape of [0,...,1,0...]. we use each entry to tell how to concat
-        the fields `biased` and `unbiased` where
-        # 0 : [biased,unbiased]
-        # 1 : [unbiased,biased]
-
-        :return:This function wil return the classifier predictions over bertmodel output embeddings
+        :return:This function wil return the classifier predictions over bertmodel output embeddings and the shuffle_vector: list in the shape of [0,...,1,0...]. we use each entry to tell how to concat
+        the fields `biased` and `unbiased` where 0 : [biased,unbiased], 1 : [unbiased,biased]
         """
 
-        discriminator_batch = self._get_discriminator_batch(batch, shuffle_vector)
+        discriminator_batch, shuffle_vector = self._get_discriminator_batch_and_shuffle_vector(batch)
 
-        begin_end_indexes, documents_sentences, max_len = self._break_sentence_batch(discriminator_batch)
+        begin_end_indexes, documents_sentences, max_len = break_sentence_batch(discriminator_batch)
 
         bert_inputs = self._get_bert_inputs(documents_sentences)
 
         # `bert_all_outputs` is not being used.
         bert_all_outputs, bert_cls_outputs = self._get_bert_outputs(bert_inputs)
-        return self._bertEmbeddingToPredictions(bert_cls_outputs, begin_end_indexes)
+        return self._bertEmbeddingToPredictions(bert_cls_outputs, begin_end_indexes), shuffle_vector
 
-    def _break_sentence_batch(self, batch):
-        indexes = []
-        all_sentences = []
-        index = 0
-        max_len = 0
-        for sample in batch:
-            sample_as_list = sample.split('<BREAK>')
-            # sample is a list of sentences
-            indexes.append((index, index + len(sample_as_list)))
-            index += len(sample_as_list)
-            all_sentences.extend(sample_as_list)
-            if max_len < len(sample_as_list):
-                max_len = len(sample_as_list)
-        return indexes, all_sentences, max_len
 
     def _get_mlm_loss(self, inputs):
         pass
