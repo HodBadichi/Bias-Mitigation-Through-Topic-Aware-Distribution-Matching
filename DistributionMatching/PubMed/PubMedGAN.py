@@ -31,24 +31,27 @@ class GAN(pl.LightningModule):
         # we`ll use y_true for loss and also in order to shuffle 'biased','unbiased' tuple
         y_true = [random.choice([0, 1]) for _ in batch]
 
-        # `discriminator_predictions` is used in both Discriminator and Generator losses
+        # `discriminator_loss` is used in both Discriminator and Generator losses
         discriminator_predictions = self._get_discriminator_predictions(batch, y_true)
+        all_samples_losses = self.loss_func(discriminator_predictions, y_true)
+        discriminator_loss = all_samples_losses.mean(all_samples_losses)
 
         #   Discriminator Step
         if optimizer_idx == 0:
-            all_samples_losses = self.loss_func(discriminator_predictions, y_true)
-            discriminator_loss = all_samples_losses.mean(all_samples_losses)
+
 
         #   Generator Step
         if optimizer_idx == 1:
             generator_batch = self._get_generator_batch(batch)
-            generator_flattend_batch = self.flatten_documents_batch(generator_batch)
-            generator_begin_end_indexes, generator_documents_sentences = break_sentence_batch(generator_flattend_batch)
-            generator_bert_inputs = self._get_bert_inputs(generator_documents_sentences)
 
-            mlm_loss_objective = self._get_mlm_loss(generator_bert_inputs)
-            all_samples_losses = self.loss_func(discriminator_predictions, y_true)
-            discriminator_loss_objective = all_samples_losses.mean(all_samples_losses)
+            begin_end_indexes, documents_sentences, max_len = self._break_sentence_batch(generator_batch)
+
+            bert_inputs = self._get_bert_inputs(documents_sentences)
+
+            mlm_loss = self._get_mlm_loss(bert_inputs)
+
+
+
 
     def training_step(self):
         pass
@@ -60,9 +63,6 @@ class GAN(pl.LightningModule):
         pass
 
     def configure_optimizers(self):
-        pass
-
-    def _break_sentence_batch(self):
         pass
 
     def _get_discriminator_batch(self, batch, shuffle_vector):
@@ -85,7 +85,10 @@ class GAN(pl.LightningModule):
         return result_batch
 
     def _get_generator_batch(self, batch):
-        pass
+        result_batch = []
+        for index, entry in enumerate(batch):
+            result_batch.append(entry['origin_text'])
+        return result_batch
 
     def _get_bert_outputs(self, bert_inputs):
         all_outputs = self.bert_model(**bert_inputs, output_hidden_states=True).hidden_states[-1]
@@ -103,6 +106,12 @@ class GAN(pl.LightningModule):
         sample_embedding = []
 
         def fix_sentences_size(sent_embeddings):
+            """
+            Fix embedding size in case it requires padding or truncating
+
+            :param sent_embeddings:
+            :return:
+            """
             if len(sent_embeddings[start_index_first_document, end_index_first_document]) > self.max_sentences:  # 
                 # Too many sentences 
                 truncated_embeddings = sent_embeddings[:self.max_sentences]
@@ -142,7 +151,7 @@ class GAN(pl.LightningModule):
 
         discriminator_batch = self._get_discriminator_batch(batch, shuffle_vector)
 
-        begin_end_indexes, documents_sentences, max_len = self.break_sentence_batch(discriminator_batch)
+        begin_end_indexes, documents_sentences, max_len = self._break_sentence_batch(discriminator_batch)
 
         bert_inputs = self._get_bert_inputs(documents_sentences)
 
@@ -150,7 +159,7 @@ class GAN(pl.LightningModule):
         bert_all_outputs, bert_cls_outputs = self._get_bert_outputs(bert_inputs)
         return self._bertEmbeddingToPredictions(bert_cls_outputs, begin_end_indexes)
 
-    def break_sentence_batch(self, batch):
+    def _break_sentence_batch(self, batch):
         indexes = []
         all_sentences = []
         index = 0
@@ -164,3 +173,5 @@ class GAN(pl.LightningModule):
             if max_len < len(sample_as_list):
                 max_len = len(sample_as_list)
         return indexes, all_sentences, max_len
+    def _get_mlm_loss(self,inputs):
+        pass

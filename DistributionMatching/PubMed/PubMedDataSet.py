@@ -26,6 +26,9 @@ class PubMedDataSet(Dataset):
             similar_document_broken_abstracts = None
         origin_document_broken_abstracts = self.documents_dataframe['broken_abstracts'][index]
 
+        #This field will ease MLM loss calculation
+        batch_entry['origin_text'] = origin_document_broken_abstracts
+
         if project_utils.are_women_minority(index, self.Matcher.documents_dataframe):
             batch_entry['biased'] = origin_document_broken_abstracts
             batch_entry['unbiased'] = similar_document_broken_abstracts
