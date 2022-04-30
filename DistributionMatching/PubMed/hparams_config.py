@@ -6,10 +6,10 @@ hparams = {'learning_rate': 5e5,
            'gender_and_topic_path': '../../data/abstract_2005_2020_gender_and_topic.csv',
            'batch_size': 64,
            'test_size': 0.7,
-           'bert_pretrained_over_pubMed_path': '',
+           'bert_pretrained_over_pubMed_path': '../Models/bert_pretrain/bert_tiny_uncased_abstract_2005_2020_gender_and_topic_epochs/bert_tiny_uncased_abstract_2005_2020_gender_and_topic_39_',
            'bert_tokenizer': 'google/bert_uncased_L-2_H-128_A-2',
            'similarity_metric': 'cosine_similarity',
            'reset_different_topic_entries_flag': 1,
-           'SimilarityMatrixPath': '',
-           'ProbabilityMatrixPath': ''
+           'SimilarityMatrixPath': '../NoahArc/CS_sim_matrix_with_BERTopic_clean',
+           'ProbabilityMatrixPath': '../NoahArc/CS_prob_matrix_with_BERTopic_clean'
            }
