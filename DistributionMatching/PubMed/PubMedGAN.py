@@ -2,23 +2,18 @@ import pytorch_lightning as pl
 import torch
 from torch import nn
 from transformers import AutoTokenizer, BertForMaskedLM
-from pytorch_lightning import Trainer
-from DistributionMatching.utils import config
-import numpy as np
 import random
-from PubMedModule import PubMedModule
-from pytorch_lightning.loggers import WandbLogger
-from datetime import datetime
-import pytz
 from DistributionMatching.text_utils import break_sentence_batch
 
 
-class GAN(pl.LightningModule):
+class PubMedGAN(pl.LightningModule):
     def __init__(self, hparams):
-        super(GAN, self).__init__()
+        super(PubMedGAN, self).__init__()
         self.hparams = hparams
         self.bert_tokenizer = AutoTokenizer.from_pretrained(self.hparams.bert_tokenizer)
         # TODO get bert_pretrained_path
+        self.max_len = 50
+        self.max_sentences = 20
         self.bert_model = BertForMaskedLM.from_pretrained(self.hparams.bert_pretrained_over_pubMed_path)
         self.sentence_embedding_size = self.bert_model.get_input_embeddings().embedding_dim
         self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences, 1)
@@ -39,12 +34,11 @@ class GAN(pl.LightningModule):
         if optimizer_idx == 0:
             mlm_loss = 0
             discriminator_loss = self._discriminator_step(batch, name)
-
+            loss = discriminator_loss
         #   Generator Step
         if optimizer_idx == 1:
             discriminator_loss = self._discriminator_step(batch)
             loss, mlm_loss = self._generator_step(batch, discriminator_loss, name)
-
         return {'loss': loss,
                 'mlm_loss': mlm_loss,
                 'optimizer_idx': optimizer_idx}
@@ -73,7 +67,7 @@ class GAN(pl.LightningModule):
 
     """################# DISCRIMINATOR FUNCTIONS #####################"""
 
-    def _discriminator_step(self, batch,name):
+    def _discriminator_step(self, batch, name):
         clean_discriminator_batch = self._discriminator_clean_batch(batch)
         discriminator_y_true = [random.choice([0, 1]) for _ in clean_discriminator_batch]
         discriminator_predictions = self._discriminator_get_predictions(clean_discriminator_batch, discriminator_y_true)
@@ -158,11 +152,11 @@ class GAN(pl.LightningModule):
 
         bert_inputs = self._get_bert_inputs(documents_sentences)
 
-        # `bert_all_outputs` is not being used.
         bert_cls_outputs = self._discriminator_get_cls_bert_outputs(bert_inputs)
         return self._discriminator_bert_embeddings_to_predictions(bert_cls_outputs, begin_end_indexes)
 
     """################# GENERATOR FUNCTIONS #####################"""
+
     def _generator_step(self, batch, discriminator_loss, name):
         generator_batch = self._get_generator_batch(batch)
         begin_end_indexes, documents_sentences, max_len = break_sentence_batch(generator_batch)
@@ -198,33 +192,3 @@ class GAN(pl.LightningModule):
                                                        add_special_tokens=True, return_tensors="pt")
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         return inputs
-
-
-hparams = {'learning_rate': 5e5,
-           'discriminator_factor': 0.5,
-           'mlm_factor': 0.5,
-           'gpus': 1,
-           'max_epochs': 40,
-           'gender_and_topic_path': '../../data/abstract_2005_2020_gender_and_topic.csv',
-           'batch_size': 64,
-           'test_size': 0.7,
-           'bert_pretrained_over_pubMed_path': '',
-           'bert_tokenizer': 'google/bert_uncased_L-2_H-128_A-2'
-           }
-
-if __name__ == '__main__':
-    dm = PubMedModule(hparams)
-    model = GAN(hparams)
-    logger = WandbLogger(name=f'GAN_over_topic_and_gender_70_15_15',
-                         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
-                         project='GAN_test',
-                         config={'lr': 5e-5, 'batch_size': 16})
-    trainer = pl.Trainer(gpus=hparams.gpus,
-                         max_epochs=hparams.max_epochs,
-                         logger=logger,
-                         log_every_n_steps=20,
-                         accumulate_grad_batches=1,
-                         num_sanity_val_steps=0,
-                         # gradient_clip_val=0.3
-                         )
-    trainer.fit(model, datamodule=dm)
