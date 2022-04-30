@@ -37,7 +37,7 @@ class PubMedModuleForBert(pl.LightningDataModule):
 
     def prepare_data(self):
         self.documents_df = pd.read_csv(rf'../../data/abstract_2005_2020_gender_and_topic.csv', encoding='utf8')
-        train_df, testing_df = train_test_split(self.documents_df, test_size=0.7,random_state=42)
+        train_df, testing_df = train_test_split(self.documents_df, test_size=0.7, random_state=42)
         test_df, val_df = train_test_split(testing_df, test_size=0.5, random_state=42)
         self.train_df = clean_abstracts(train_df)
         self.val_df = clean_abstracts(val_df)
@@ -121,7 +121,7 @@ if __name__ == '__main__':
                          project='Document_embeddings_test',
                          config={'lr': 5e-5, 'batch_size': 16})
     trainer = pl.Trainer(gpus=1,
-                         auto_select_gpus=True,
+                         auto_select_gpus=False,
                          max_epochs=40,
                          logger=logger,
                          log_every_n_steps=10,

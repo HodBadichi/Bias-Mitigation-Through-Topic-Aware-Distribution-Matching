@@ -11,9 +11,9 @@ class PubMedGAN(pl.LightningModule):
         super(PubMedGAN, self).__init__()
         self.hparams = hparams
         self.bert_tokenizer = AutoTokenizer.from_pretrained(self.hparams.bert_tokenizer)
-        # TODO get bert_pretrained_path
         self.max_len = 50
         self.max_sentences = 20
+        # TODO get bert_pretrained_path
         self.bert_model = BertForMaskedLM.from_pretrained(self.hparams.bert_pretrained_over_pubMed_path)
         self.sentence_embedding_size = self.bert_model.get_input_embeddings().embedding_dim
         self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences, 1)

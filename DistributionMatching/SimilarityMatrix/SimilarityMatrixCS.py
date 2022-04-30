@@ -9,11 +9,15 @@ import torch
 # from TopicModeling.Bert.src.PubMed_BertTopic import bert_apply_clean
 from sentence_transformers import SentenceTransformer
 import numpy as np
+import os
 
 class SimilarityMatrixCS(SimilarityMatrix):
-    def __init__(self, documents_dataframe):
-        super().__init__(documents_dataframe)
-        self.matrix = self._calc_similarities()
+    def __init__(self, documents_dataframe, SimilarityMatrixPath):
+        super().__init__(documents_dataframe, SimilarityMatrixPath)
+        if(os.path.isfile(self.SimilarityMatrixPath)):
+            self.matrix = torch.load(self.SimilarityMatrixPath)
+        else:
+            self.matrix = self._calc_similarities()
 
 
     def _calc_similarities(self):

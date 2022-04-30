@@ -3,12 +3,15 @@ sys.path.append('/home/mor.filo/nlp_project/')
 import torch
 from DistributionMatching.SimilarityMatrix.SimilarityMatrix import SimilarityMatrix
 import json
-
+import os
 
 class SimilarityMatrixCE(SimilarityMatrix):
-    def __init__(self, documents_dataframe):
-        super().__init__(documents_dataframe)
-        self.matrix = self._calc_similarities()
+    def __init__(self, documents_dataframe, SimilarityMatrixPath):
+        super().__init__(documents_dataframe, SimilarityMatrixPath)
+        if(os.path.isfile(self.SimilarityMatrixPath)):
+            self.matrix = torch.load(self.SimilarityMatrixPath)
+        else:
+            self.matrix = self._calc_similarities()
 
     def _calc_similarities(self):
         probs = self.documents_dataframe['probs'].apply(lambda x: json.loads(x))

@@ -12,7 +12,7 @@ def plot_document_matches_distribution():
         rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project_v2\data\abstract_2005_2020_gender_and_topic.csv')
     sim_matrix = SimilarityMatrixFactory.create(dataframe,
                                                 "cross_entropy")
-    noah_arc = NoahArcFactory.create("cross_entropy", True, sim_matrix)
+    noah_arc = NoahArcFactory.create("cross_entropy", sim_matrix, True)
     # NoahArcFactory.save(noah_arc,"ok")
     # noah_arc = NoahArcFactory.load("ok")
     results = {}

@@ -2,15 +2,18 @@ import sys
 sys.path.append('/home/mor.filo/nlp_project/')
 from DistributionMatching.NoahArc.NoahArc import NoahArc
 import torch
-
+import os
 
 class NoahArcCE(NoahArc):
-    def __init__(self,dataframe, reset_different_topic_entries_flag, similarity_matrix):
-        super().__init__(dataframe, reset_different_topic_entries_flag, similarity_matrix)
-        self._reset_same_bias_entries()
-        if reset_different_topic_entries_flag:
-            self._reset_different_topic_entries()
-        self.probability_matrix = self._calc_probabilities()
+    def __init__(self,dataframe, similarity_matrix, reset_different_topic_entries_flag, ProbabilityMatrixPath):
+        super().__init__(dataframe, similarity_matrix, reset_different_topic_entries_flag, ProbabilityMatrixPath)
+        if (os.path.isfile(self.ProbabilityMatrixPath)):
+            self.probability_matrix = torch.load(self.ProbabilityMatrixPath)
+        else:
+            self._reset_same_bias_entries()
+            if reset_different_topic_entries_flag:
+                self._reset_different_topic_entries()
+            self.probability_matrix = self._calc_probabilities()
 
     def _calc_probabilities(self):
         """

@@ -7,5 +7,9 @@ hparams = {'learning_rate': 5e5,
            'batch_size': 64,
            'test_size': 0.7,
            'bert_pretrained_over_pubMed_path': '',
-           'bert_tokenizer': 'google/bert_uncased_L-2_H-128_A-2'
+           'bert_tokenizer': 'google/bert_uncased_L-2_H-128_A-2',
+           'similarity_metric': 'cosine_similarity',
+           'reset_different_topic_entries_flag': 1,
+           'SimilarityMatrixPath': '',
+           'ProbabilityMatrixPath': ''
            }

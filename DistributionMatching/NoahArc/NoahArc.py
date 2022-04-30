@@ -1,7 +1,6 @@
 import sys
 sys.path.append('/home/mor.filo/nlp_project/')
 from abc import abstractmethod
-from DistributionMatching.utils import config
 import torch
 import numpy as np
 import DistributionMatching.utils as project_utils
@@ -12,8 +11,9 @@ class NoahArc:
     Abstract class , used to supply NoahArc API
     """
 
-    def __init__(self,dataframe, reset_diff_topic_entries_flag, similarity_matrix):
+    def __init__(self,dataframe, similarity_matrix, reset_diff_topic_entries_flag, ProbabilityMatrixPath):
         self.documents_dataframe = dataframe
+        self.ProbabilityMatrixPath = ProbabilityMatrixPath
         self.probability_matrix = None
         self._similarity_matrix = similarity_matrix.matrix
         self._reset_different_topic_entries_flag = reset_diff_topic_entries_flag
@@ -78,7 +78,7 @@ class NoahArc:
 
     def _get_probability_matrix_zeros_rows(self):
         zeroed_rows_indexes = [idx for idx, row in enumerate(self._similarity_matrix) if
-                               torch.count_nonzero(row).item() <= config['minimum_documents_matches']]
+                               torch.count_nonzero(row).item() <= project_utils.config['minimum_documents_matches']]
         return zeroed_rows_indexes
 
     def _put_zeros_in_rows(self, indices, probability_matrix):

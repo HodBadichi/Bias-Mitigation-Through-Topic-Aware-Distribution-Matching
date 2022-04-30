@@ -7,9 +7,10 @@ from DistributionMatching.text_utils import TextUtils
 
 
 class PubMedDataSet(Dataset):
-    def __init__(self, documents_dataframe):
-        self.Matcher = PubMedDataSet._build_noah_arc(documents_dataframe, config['similarity_metric'])
+    def __init__(self, documents_dataframe, hprams):
+        self.hprams = hprams
         self.documents_dataframe = documents_dataframe
+        self.Matcher = self.build_noah_arc()
         self.tu = TextUtils()
 
     def __len__(self):
@@ -37,15 +38,15 @@ class PubMedDataSet(Dataset):
             batch_entry['unbiased'] = origin_document_broken_abstracts
         return batch_entry
 
-    @staticmethod
-    def _build_noah_arc(dataframe, similarity_metric):
-        target_file = f"noaharc_{similarity_metric}"
+    def build_noah_arc(self):
+        target_file = f"noaharc_{self.hprams.similarity_metric}"
         try:
             return NoahArcFactory.load(target_file)
         except FileNotFoundError:
-            similarity_matrix = SimilarityMatrixFactory.create(dataframe, similarity_metric)
-            probability_matrix = NoahArcFactory.create(dataframe, similarity_metric,
-                                                       config['reset_different_topic_entries_flag'],
-                                                       similarity_matrix)
+            similarity_matrix = SimilarityMatrixFactory.create(self.documents_dataframe, self.hprams.similarity_metric,
+                                                               self.hprams.SimilarityMatrixPath)
+            probability_matrix = NoahArcFactory.create(self.documents_dataframe, self.hprams.similarity_metric,
+                                                       similarity_matrix, self.hprams.reset_different_topic_entries_flag,
+                                                       self.hprams.ProbabilityMatrixPath)
             NoahArcFactory.save(probability_matrix, target_file)
             return probability_matrix
