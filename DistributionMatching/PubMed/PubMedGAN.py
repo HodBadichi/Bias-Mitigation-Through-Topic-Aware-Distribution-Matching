@@ -38,9 +38,7 @@ class GAN(pl.LightningModule):
         #   Discriminator Step
         if optimizer_idx == 0:
             mlm_loss = 0
-            discriminator_loss = self.discriminator_step(batch)
-            loss = discriminator_loss
-            self.log(f'discriminator/{name}_loss', discriminator_loss)
+            discriminator_loss = self._discriminator_step(batch, name)
 
         #   Generator Step
         if optimizer_idx == 1:
@@ -75,12 +73,13 @@ class GAN(pl.LightningModule):
 
     """################# DISCRIMINATOR FUNCTIONS #####################"""
 
-    def _discriminator_step(self, batch):
+    def _discriminator_step(self, batch,name):
         clean_discriminator_batch = self._discriminator_clean_batch(batch)
         discriminator_y_true = [random.choice([0, 1]) for _ in clean_discriminator_batch]
         discriminator_predictions = self._discriminator_get_predictions(clean_discriminator_batch, discriminator_y_true)
         all_samples_losses = self.loss_func(discriminator_predictions, discriminator_y_true)
         discriminator_loss = all_samples_losses.mean(all_samples_losses)
+        self.log(f'discriminator/{name}_loss', discriminator_loss)
         return discriminator_loss
 
     def _discriminator_clean_batch(self, batch):
@@ -144,7 +143,6 @@ class GAN(pl.LightningModule):
 
     def _discriminator_get_predictions(self, batch, shuffle_vector):
         """
-
         :param batch: a batch of PubMedGan in the shape of {'origin':int,'biased':string,'unbiased':string}
         might include `None` values in the `biased` and `unbiased` entry in case the origin document has no match.
 
