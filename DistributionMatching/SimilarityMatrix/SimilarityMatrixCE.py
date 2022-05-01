@@ -7,7 +7,7 @@ import os
 
 class SimilarityMatrixCE(SimilarityMatrix):
     def __init__(self, documents_dataframe, df_name, SimilarityMatrixPath):
-        super().__init__(documents_dataframe, SimilarityMatrixPath)
+        super().__init__(documents_dataframe, df_name, SimilarityMatrixPath)
         if(os.path.isfile(self.SimilarityMatrixPath)):
             self.matrix = torch.load(self.SimilarityMatrixPath)
         else:
