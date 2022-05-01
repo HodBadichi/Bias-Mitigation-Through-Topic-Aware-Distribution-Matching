@@ -16,6 +16,9 @@ class SimilarityMatrixCE(SimilarityMatrix):
 
     def _calc_similarities(self):
         probs = self.documents_dataframe['probs'].apply(lambda x: json.loads(x))
+        print(type(probs))
+        print(type(probs.iloc[0]))
+        print(probs.shape)
         tensor_probs = torch.as_tensor(probs)  # shape num_of_docs X num_of_topics (distribution for every doc)
         res = self._cross_entropy(tensor_probs, tensor_probs)  # tensor shape num_of_docs X num_of_docs
         return res

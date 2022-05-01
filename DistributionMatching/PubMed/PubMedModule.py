@@ -1,3 +1,6 @@
+import sys
+sys.path.append('/home/mor.filo/nlp_project/')
+
 import pytorch_lightning as pl
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -57,17 +60,21 @@ class PubMedModule(pl.LightningDataModule):
             self.documents_df = documents_df
         train_df, testing_df = train_test_split(self.documents_df, test_size=self.hparams['test_size'],random_state=42)
         test_df, val_df = train_test_split(testing_df, test_size=0.5, random_state=42)
-        self.train_df = clean_abstracts(train_df)
-        self.val_df = clean_abstracts(val_df)
-        self.test_df = clean_abstracts(test_df)
+        self.train_df = train_df.reset_index()
+        self.test_df = test_df.reset_index()
+        self.val_df = val_df.reset_index()
+        if "broken_abstracts" not in self.documents_df.columns:
+            self.train_df = clean_abstracts(self.train_df)
+            self.val_df = clean_abstracts(self.val_df)
+            self.test_df = clean_abstracts(self.test_df)
 
     def setup(self, stage=None):
         # Runs on all gpus
         # Data set instances (val, train, test)
 
-        self.train = PubMedDataSet(self.train_df, self.hparams, "train")
-        self.val = PubMedDataSet(self.val_df, self.hparams, "val")
-        self.test = PubMedDataSet(self.test_df, self.hparams, "test")
+        self.train = PubMedDataSet(self.train_df, self.hparams, "train", self.hparams['SimilarityMatrixPathTrain'], self.hparams['ProbabilityMatrixPathTrain'])
+        self.val = PubMedDataSet(self.val_df, self.hparams, "val", self.hparams['SimilarityMatrixPathVal'], self.hparams['ProbabilityMatrixPathVal'])
+        self.test = PubMedDataSet(self.test_df, self.hparams, "test", self.hparams['SimilarityMatrixPathTest'], self.hparams['ProbabilityMatrixPathTest'])
 
     def train_dataloader(self):
         # data set, batch size, shuffel, workers

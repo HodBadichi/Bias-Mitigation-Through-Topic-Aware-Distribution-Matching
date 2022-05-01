@@ -14,14 +14,14 @@ import pytorch_lightning as pl
 def Run():
     dm = PubMedModule(hparams)
     model = PubMedGAN(hparams)
-    logger = WandbLogger(name=f'GAN_over_topic_and_gender_70_15_15',
+    logger = WandbLogger(name=f'GAN_over_topic_and_gender_70_15_15_v2',
                          version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
                          project='GAN_test',
                          config={'lr': hparams['learning_rate'], 'batch_size': hparams['batch_size']})
     trainer = pl.Trainer(gpus=hparams['gpus'],
                          max_epochs=hparams['max_epochs'],
                          logger=logger,
-                         log_every_n_steps=20,
+                         log_every_n_steps=1,
                          accumulate_grad_batches=1,
                          num_sanity_val_steps=0,
                          )
