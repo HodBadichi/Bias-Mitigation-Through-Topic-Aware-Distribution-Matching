@@ -10,9 +10,12 @@ hparams = {'learning_rate': 2e-5,
            'bert_tokenizer': 'google/bert_uncased_L-2_H-128_A-2',
            'similarity_metric': 'cross_entropy',
            'reset_different_topic_entries_flag': 1,
-           'SimilarityMatrixPath': '../NoahArc/CE_sim_matrix',
-           'ProbabilityMatrixPath': '../NoahArc/CE_prob_matrix_reset_different_topic_entries_flag',
+           'SimilarityMatrixPath': '',
+           'ProbabilityMatrixPath': '',
            'max_length_bert_input': 50,
            'max_sentences_per_abstract': 20,
            'SAVE_PATH': "/home/mor.filo/nlp_project/DistributionMatching/PubMed/Models"
            }
+
+# 'SimilarityMatrixPath': '../NoahArc/CE_sim_matrix',
+# 'ProbabilityMatrixPath': '../NoahArc/CE_prob_matrix_reset_different_topic_entries_flag',

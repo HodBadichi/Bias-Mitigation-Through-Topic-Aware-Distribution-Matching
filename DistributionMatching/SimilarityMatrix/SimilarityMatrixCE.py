@@ -6,12 +6,13 @@ import json
 import os
 
 class SimilarityMatrixCE(SimilarityMatrix):
-    def __init__(self, documents_dataframe, SimilarityMatrixPath):
+    def __init__(self, documents_dataframe, df_name, SimilarityMatrixPath):
         super().__init__(documents_dataframe, SimilarityMatrixPath)
         if(os.path.isfile(self.SimilarityMatrixPath)):
             self.matrix = torch.load(self.SimilarityMatrixPath)
         else:
             self.matrix = self._calc_similarities()
+            torch.save(self.matrix, f"CE_sim_matrix_{df_name}")
 
     def _calc_similarities(self):
         probs = self.documents_dataframe['probs'].apply(lambda x: json.loads(x))

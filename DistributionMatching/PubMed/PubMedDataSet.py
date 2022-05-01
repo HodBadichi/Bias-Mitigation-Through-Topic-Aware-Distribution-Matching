@@ -7,10 +7,10 @@ from DistributionMatching.text_utils import TextUtils
 
 
 class PubMedDataSet(Dataset):
-    def __init__(self, documents_dataframe, hparams):
+    def __init__(self, documents_dataframe, hparams, df_name):
         self.hparams = hparams
         self.documents_dataframe = documents_dataframe
-        self.Matcher = self.build_noah_arc()
+        self.Matcher = self.build_noah_arc(df_name)
         self.tu = TextUtils()
 
     def __len__(self):
@@ -38,10 +38,10 @@ class PubMedDataSet(Dataset):
             batch_entry['unbiased'] = origin_document_broken_abstracts
         return batch_entry
 
-    def build_noah_arc(self):
+    def build_noah_arc(self, df_name):
         similarity_matrix = SimilarityMatrixFactory.create(self.documents_dataframe, self.hparams.similarity_metric,
-                                                           self.hparams.SimilarityMatrixPath)
+                                                           df_name, self.hparams.SimilarityMatrixPath)
         probability_matrix = NoahArcFactory.create(self.documents_dataframe, self.hparams.similarity_metric,
                                                    similarity_matrix, self.hparams.reset_different_topic_entries_flag,
-                                                   self.hparams.ProbabilityMatrixPath)
+                                                   df_name, self.hparams.ProbabilityMatrixPath)
         return probability_matrix

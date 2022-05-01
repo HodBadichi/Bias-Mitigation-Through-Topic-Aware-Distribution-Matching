@@ -6,11 +6,11 @@ import pandas as pd
 
 class SimilarityMatrixFactory:
     @staticmethod
-    def create(documents_dataframe, similarity_metric, SimilarityMatrixPath = ''):
+    def create(documents_dataframe, similarity_metric, df_name, SimilarityMatrixPath = ''):
         if similarity_metric == "cross_entropy":
-            return SimilarityMatrixCE(documents_dataframe, SimilarityMatrixPath)
+            return SimilarityMatrixCE(documents_dataframe, df_name, SimilarityMatrixPath)
         elif similarity_metric == "cosine_similarity":
-            return SimilarityMatrixCS(documents_dataframe, SimilarityMatrixPath)
+            return SimilarityMatrixCS(documents_dataframe, df_name, SimilarityMatrixPath)
         raise NotImplementedError("`SimilarityMatrixFactory` unsupported metric")
 
 

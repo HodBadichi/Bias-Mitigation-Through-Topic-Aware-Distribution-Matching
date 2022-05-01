@@ -65,9 +65,9 @@ class PubMedModule(pl.LightningDataModule):
         # Runs on all gpus
         # Data set instances (val, train, test)
 
-        self.train = PubMedDataSet(self.train_df, self.hparams)
-        self.val = PubMedDataSet(self.val_df, self.hparams)
-        self.test = PubMedDataSet(self.test_df, self.hparams)
+        self.train = PubMedDataSet(self.train_df, self.hparams, "train")
+        self.val = PubMedDataSet(self.val_df, self.hparams, "val")
+        self.test = PubMedDataSet(self.test_df, self.hparams, "test")
 
     def train_dataloader(self):
         # data set, batch size, shuffel, workers

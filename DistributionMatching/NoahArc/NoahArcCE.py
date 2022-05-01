@@ -5,8 +5,8 @@ import torch
 import os
 
 class NoahArcCE(NoahArc):
-    def __init__(self,dataframe, similarity_matrix, reset_different_topic_entries_flag, ProbabilityMatrixPath):
-        super().__init__(dataframe, similarity_matrix, reset_different_topic_entries_flag, ProbabilityMatrixPath)
+    def __init__(self,dataframe, similarity_matrix, reset_different_topic_entries_flag, df_name, ProbabilityMatrixPath):
+        super().__init__(dataframe, similarity_matrix, reset_different_topic_entries_flag, df_name, ProbabilityMatrixPath)
         if (os.path.isfile(self.ProbabilityMatrixPath)):
             self.probability_matrix = torch.load(self.ProbabilityMatrixPath)
         else:
@@ -14,6 +14,8 @@ class NoahArcCE(NoahArc):
             if reset_different_topic_entries_flag:
                 self._reset_different_topic_entries()
             self.probability_matrix = self._calc_probabilities()
+            reset_str = ["no_reset", "reset"]
+            torch.save(self.matrix, f"CE_prob_matrix_{reset_str[reset_different_topic_entries_flag]}_different_topic_entries_flag_{df_name}")
 
     def _calc_probabilities(self):
         """

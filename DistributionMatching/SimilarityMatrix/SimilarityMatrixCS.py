@@ -12,12 +12,13 @@ import numpy as np
 import os
 
 class SimilarityMatrixCS(SimilarityMatrix):
-    def __init__(self, documents_dataframe, SimilarityMatrixPath):
-        super().__init__(documents_dataframe, SimilarityMatrixPath)
+    def __init__(self, documents_dataframe, df_name, SimilarityMatrixPath):
+        super().__init__(documents_dataframe, df_name, SimilarityMatrixPath)
         if(os.path.isfile(self.SimilarityMatrixPath)):
             self.matrix = torch.load(self.SimilarityMatrixPath)
         else:
             self.matrix = self._calc_similarities()
+            torch.save(self.matrix, f"CS_sim_matrix_with_BERTopic_clean_{df_name}")
 
 
     def _calc_similarities(self):
@@ -26,13 +27,10 @@ class SimilarityMatrixCS(SimilarityMatrix):
             create the cosine similarity similarity matrix where each value
             similarity_matrix[i][j] = (i embeddings)dot(j embeddings)/max(l2_norm(i embeddings)*l2_norm(j embeddings),eps)
         '''
-        # if 'clean_title_and_abstract' not in self.documents_dataframe.columns:
-        #     clean_abstracts = bert_apply_clean(self.documents_dataframe["title_and_abstract"])
-        # else:
         clean_abstracts = self.documents_dataframe['broken_abstracts']
         SentenceTransformerModel = SentenceTransformer('all-MiniLM-L6-v2')
         sentence_embeddings = SentenceTransformerModel.encode(clean_abstracts,convert_to_tensor=True)
-        self.matrix = torch.as_tensor(cosine_similarity(sentence_embeddings, sentence_embeddings))
-        torch.save(self.matrix, "sim_matrix_with_bert_clean")
+        matrix = torch.as_tensor(cosine_similarity(sentence_embeddings, sentence_embeddings))
+        return matrix
 
 
