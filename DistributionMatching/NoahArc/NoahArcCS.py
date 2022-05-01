@@ -12,7 +12,7 @@ class NoahArcCS(NoahArc):
         else:
             self._reset_same_bias_entries()
             self.probability_matrix = self._calc_probabilities()
-            torch.save(self.matrix, f"CS_prob_matrix_with_BERTopic_clean_{df_name}")
+            torch.save(self.probability_matrix, f"CS_prob_matrix_with_BERTopic_clean_{df_name}")
 
     def _calc_probabilities(self):
         probability_matrix = self._similarity_matrix.double()

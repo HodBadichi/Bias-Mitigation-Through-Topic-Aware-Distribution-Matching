@@ -37,15 +37,15 @@ class NoahArcFactory:
     #     return _NoahArcLoaded(probability_matrix, documents_dataframe)
 
 
-if __name__ == '__main__':
-    df = pd.read_csv(rf'../../data/abstract_2005_2020_gender_and_topic.csv', encoding='utf8')
-    matrix = SimilarityMatrixFactory.create(df, similarity_metric='cross_entropy')
-    # torch.save(matrix, "CE_sim_matrix")
-    # matrix = torch.load("sim_matrix_with_BERTopic_clean")
-    # print(f'sim_matrix_with_BERTopic_clean: {matrix.shape}')
-    # print(f'sim_matrix_with_BERTopic_clean: {type(matrix)}')
-    # print(f'sim_matrix_with_BERTopic_clean: {matrix[1][0]}')
-    Prob = NoahArcFactory.create(df, 'cross_entropy', matrix, False)
-    torch.save(Prob.probability_matrix, "CE_prob_matrix_no_reset_different_topic_entries_flag")
-    assert not torch.isnan(Prob.probability_matrix).any()
+# if __name__ == '__main__':
+#     df = pd.read_csv(rf'../../data/abstract_2005_2020_gender_and_topic.csv', encoding='utf8')
+#     matrix = SimilarityMatrixFactory.create(df, similarity_metric='cross_entropy')
+#     # torch.save(matrix, "CE_sim_matrix")
+#     # matrix = torch.load("sim_matrix_with_BERTopic_clean")
+#     # print(f'sim_matrix_with_BERTopic_clean: {matrix.shape}')
+#     # print(f'sim_matrix_with_BERTopic_clean: {type(matrix)}')
+#     # print(f'sim_matrix_with_BERTopic_clean: {matrix[1][0]}')
+#     Prob = NoahArcFactory.create(df, 'cross_entropy', matrix, False)
+#     torch.save(Prob.probability_matrix, "CE_prob_matrix_no_reset_different_topic_entries_flag")
+#     assert not torch.isnan(Prob.probability_matrix).any()
 

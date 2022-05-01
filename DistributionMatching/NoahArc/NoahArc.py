@@ -18,6 +18,7 @@ class NoahArc:
         self._similarity_matrix = similarity_matrix.matrix
         self._reset_different_topic_entries_flag = reset_diff_topic_entries_flag
         self._reset_different_topics_called_flag = False
+        self.df_name = df_name
 
     def get_match(self, document_index):
         """
