@@ -7,8 +7,8 @@ from DistributionMatching.text_utils import TextUtils
 
 
 class PubMedDataSet(Dataset):
-    def __init__(self, documents_dataframe, hprams):
-        self.hprams = hprams
+    def __init__(self, documents_dataframe, hparams):
+        self.hparams = hparams
         self.documents_dataframe = documents_dataframe
         self.Matcher = self.build_noah_arc()
         self.tu = TextUtils()
@@ -39,14 +39,9 @@ class PubMedDataSet(Dataset):
         return batch_entry
 
     def build_noah_arc(self):
-        target_file = f"noaharc_{self.hprams.similarity_metric}"
-        try:
-            return NoahArcFactory.load(target_file)
-        except FileNotFoundError:
-            similarity_matrix = SimilarityMatrixFactory.create(self.documents_dataframe, self.hprams.similarity_metric,
-                                                               self.hprams.SimilarityMatrixPath)
-            probability_matrix = NoahArcFactory.create(self.documents_dataframe, self.hprams.similarity_metric,
-                                                       similarity_matrix, self.hprams.reset_different_topic_entries_flag,
-                                                       self.hprams.ProbabilityMatrixPath)
-            NoahArcFactory.save(probability_matrix, target_file)
-            return probability_matrix
+        similarity_matrix = SimilarityMatrixFactory.create(self.documents_dataframe, self.hparams.similarity_metric,
+                                                           self.hparams.SimilarityMatrixPath)
+        probability_matrix = NoahArcFactory.create(self.documents_dataframe, self.hparams.similarity_metric,
+                                                   similarity_matrix, self.hparams.reset_different_topic_entries_flag,
+                                                   self.hparams.ProbabilityMatrixPath)
+        return probability_matrix

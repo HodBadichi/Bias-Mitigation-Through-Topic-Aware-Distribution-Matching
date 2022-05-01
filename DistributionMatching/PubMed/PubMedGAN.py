@@ -4,19 +4,29 @@ from torch import nn
 from transformers import AutoTokenizer, BertForMaskedLM
 import random
 from DistributionMatching.text_utils import break_sentence_batch
-
+from sklearn.metrics import roc_auc_score, accuracy_score
+import wandb
+import numpy as np
+import pandas as pd
+import os
+from datetime import datetime
+import pytz
 
 class PubMedGAN(pl.LightningModule):
     def __init__(self, hparams):
         super(PubMedGAN, self).__init__()
-        self.hparams = hparams
-        self.bert_tokenizer = AutoTokenizer.from_pretrained(self.hparams.bert_tokenizer)
-        self.max_len = 50
-        self.max_sentences = 20
-        # TODO get bert_pretrained_path
-        self.bert_model = BertForMaskedLM.from_pretrained(self.hparams.bert_pretrained_over_pubMed_path)
+        self.hparams.update(hparams)
+        self.bert_tokenizer = AutoTokenizer.from_pretrained(self.hparams['bert_tokenizer'])
+        self.max_length_bert_input = self.hparams['max_length_bert_input']
+        self.max_sentences_per_abstract = self.hparams['max_sentences_per_abstract']
+        self.bert_model = BertForMaskedLM.from_pretrained(self.hparams['bert_pretrained_over_pubMed_path'])
+        # self.frozen_bert_model = BertForMaskedLM.from_pretrained(self.hparams['bert_pretrained_over_pubMed_path'])
         self.sentence_embedding_size = self.bert_model.get_input_embeddings().embedding_dim
-        self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences, 1)
+        # The linear layer if from 2 concat abstract (1 is bias and 1 unbiased) to binary label:
+        # 1 - the couple of matching docs was [biased,unbiased]
+        # 0 - the couple of matching docs was [unbiased,biased]
+        self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
+        # todo : why reduction='none'
         self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
 
     def forward(self):
@@ -25,56 +35,117 @@ class PubMedGAN(pl.LightningModule):
 
     def step(self, batch: dict, optimizer_idx: int = None, name='train'):
         """
-        :param batch:{'origin_text':string,'biased':string,'unbiased':string,'origin':index}
+        :param batch:{'origin_text':string,'biased':string,'unbiased':string}
         :param optimizer_idx: determines which step is it - discriminator or generator
         :param name:
         :return:
         """
         #   Discriminator Step
+        step_ret_dict = {}
+        # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
         if optimizer_idx == 0:
-            mlm_loss = 0
-            discriminator_loss = self._discriminator_step(batch, name)
-            loss = discriminator_loss
+            step_ret_dict = self._discriminator_step(batch, name)
         #   Generator Step
         if optimizer_idx == 1:
-            discriminator_loss = self._discriminator_step(batch)
-            loss, mlm_loss = self._generator_step(batch, discriminator_loss, name)
-        return {'loss': loss,
-                'mlm_loss': mlm_loss,
-                'optimizer_idx': optimizer_idx}
+            step_ret_dict = self._discriminator_step(batch, name)
+            step_ret_dict = self._generator_step(batch, step_ret_dict, name)
+        return step_ret_dict
 
     def training_step(self, batch: dict, batch_idx: int, optimizer_idx: int = None) -> dict:
         return self.step(batch, optimizer_idx, 'train')
 
     def validation_step(self, batch: dict, batch_idx: int, optimizer_idx: int = None) -> dict:
-        # TODO Shunit: why do you preform both optimizers but only returns the loss of generator?
         outs = []
         for i in range(len(self.optimizers())):
             outs.append(self.step(batch, i, 'val'))
+        # return value doesn't meter, its only pl requirement, the logging is with wandb
         return outs[1]  # generator
 
     def test_step(self, batch: dict, batch_idx: int, optimizer_idx: int = None):
         return self.validation_step(batch, batch_idx, optimizer_idx)
 
+    def test_epoch_end(self, outputs) -> None:
+        self.log('test/val_mlm_loss_avg', torch.Tensor([output['mlm_loss'] for output in outputs]).mean())
+        if self.hparams['max_epochs'] > 0:
+            dir_path = os.path.join(self.hparams['SAVE_PATH'],
+                                    f"bert_GAN_model_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}")
+            self.bert_model.save_pretrained(os.path.join(dir_path, f'epoch{self.hparams["max_epochs"] - 1}'))
+            if not os.path.exists(f'{dir_path}/config'):
+                np.save(f'{dir_path}/config', self.hparams)
+
+    def training_epoch_end(self, outputs):
+        self.on_end(outputs, 'train')
+
+    def validation_epoch_end(self, outputs):
+        self.on_end(outputs, 'val')
+
+    def on_end(self, outputs, name):
+        # outputs is a list (len=number of batches) of dicts (as returned from the step methods).
+        if name == 'train':
+            outputs = outputs[0]  # TODO: WHY? only generator outputs. TODO: really?
+        losses = torch.cat([output['losses'] for output in outputs])
+        y_true = torch.cat([output['y_true'] for output in outputs])
+        y_proba = torch.cat([output['y_proba'] for output in outputs])
+        y_score = torch.cat([output['y_score'] for output in outputs])
+
+        self.log(f'debug/{name}_loss_histogram', wandb.Histogram(losses))
+        self.log(f'debug/{name}_probability_histogram', wandb.Histogram(y_proba))
+        self.log(f'debug/{name}_score_histogram', wandb.Histogram(y_score))
+        self.log(f'debug/{name}_loss', losses.mean())
+        self.log(f'debug/{name}_accuracy', (1.*((1.*(y_proba >= 0.5)) == y_true)).mean())
+        self.log(f'debug/{name}_1_accuracy', (1.*(y_proba[y_true == 1] >= 0.5)).mean())
+        self.log(f'debug/{name}_0_accuracy', (1.*(y_proba[y_true == 0] < 0.5)).mean())
+
+        # if name == 'val':
+        #     texts = np.concatenate([output['text'] for output in outputs])
+        #
+        #     df = pd.DataFrame({'text': texts, 'y_true': y_true, 'y_score': y_score, 'y_proba': y_proba, 'loss': losses})
+        #     df = df[(df['loss'] <= df['loss'].quantile(0.05)) | (df['loss'] >= df['loss'].quantile(0.95))]
+        #     self.log(f'debug/{name}_table', wandb.Table(dataframe=df))
+
     def configure_optimizers(self):
         # Discriminator step paramteres -  classifier.
-        grouped_parameters0 = [{'params': self.classifier.parameters()}]
-        optimizer0 = torch.optim.Adam(grouped_parameters0, lr=self.hparams.learning_rate)
+        grouped_parameters_discriminator = [{'params': self.classifier.parameters()}]
+        optimizer_discriminator = torch.optim.Adam(grouped_parameters_discriminator, lr=self.hparams['learning_rate'])
         # Generator step parameters - only 'the bert model.
-        grouped_parameters1 = [{'params': self.bert_model.parameters()}]
-        optimizer1 = torch.optim.Adam(grouped_parameters1, lr=self.hparams.learning_rate)
-        return [optimizer0, optimizer1]
+        grouped_parameters_generator = [{'params': self.bert_model.parameters()}]
+        optimizer_generator = torch.optim.Adam(grouped_parameters_generator, lr=self.hparams['learning_rate'])
+        return [optimizer_discriminator, optimizer_generator]
 
     """################# DISCRIMINATOR FUNCTIONS #####################"""
+    def _y_pred_to_probabilities(self, y_pred):
+        return torch.sigmoid(y_pred)
 
     def _discriminator_step(self, batch, name):
+        """
+        :param batch:{'origin_text':string,'biased':string,'unbiased':string}
+        :param name:
+        :return: result dictionary
+        since not all batch items represent a couple of docs to discriminator (some didn't get match with noahArc matcher)
+        we clean (leave) the relevant docs in the batch, shuffle them, get prediction and return loss
+        """
+        result_dictionary = {}
+        # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
+        result_dictionary['mlm_loss'] = 0
+        result_dictionary['optimizer_idx'] = 0
         clean_discriminator_batch = self._discriminator_clean_batch(batch)
         discriminator_y_true = [random.choice([0, 1]) for _ in clean_discriminator_batch]
+        result_dictionary['y_true'] = discriminator_y_true
+        # discriminator_y_true created in order to shuffle the bias/unbiased order
         discriminator_predictions = self._discriminator_get_predictions(clean_discriminator_batch, discriminator_y_true)
         all_samples_losses = self.loss_func(discriminator_predictions, discriminator_y_true)
+        result_dictionary['losses'] = all_samples_losses
         discriminator_loss = all_samples_losses.mean(all_samples_losses)
+        result_dictionary['loss'] = discriminator_loss
         self.log(f'discriminator/{name}_loss', discriminator_loss)
-        return discriminator_loss
+        y_proba = self._y_pred_to_probabilities(discriminator_predictions).cpu().detach()
+        result_dictionary['y_proba'] = y_proba
+        result_dictionary['y_score'] = discriminator_y_true.cpu().detach() * y_proba + (1 - discriminator_y_true.cpu().detach()) * (1 - y_proba)
+        if not all(discriminator_y_true) and any(discriminator_y_true):
+            # Calc auc only if batch has more than one class.
+            self.log(f'discriminator/{name}_auc', roc_auc_score(discriminator_y_true.cpu().detach(), y_proba))
+        self.log(f'discriminator/{name}_accuracy', accuracy_score(discriminator_y_true.cpu().detach(), y_proba.round()))
+        return
 
     def _discriminator_clean_batch(self, batch):
         clean_batch = []  # batch where each document has a pair , no unmatched documents allowed
@@ -112,12 +183,12 @@ class PubMedGAN(pl.LightningModule):
             :param sent_embeddings:
             :return:
             """
-            if len(sent_embeddings[start_index_first_document, end_index_first_document]) > self.max_sentences:  # 
+            if len(sent_embeddings[start_index_first_document, end_index_first_document]) > self.max_sentences_per_abstract:  #
                 # Too many sentences 
-                truncated_embeddings = sent_embeddings[:self.max_sentences]
+                truncated_embeddings = sent_embeddings[:self.max_sentences_per_abstract]
                 return torch.flatten(truncated_embeddings)
             else:
-                padding = torch.zeros(self.max_sentences - len(sent_embeddings), self.sentence_embedding_size,
+                padding = torch.zeros(self.max_sentences_per_abstract - len(sent_embeddings), self.sentence_embedding_size,
                                       device=self.device)
                 return torch.flatten(torch.cat([sent_embeddings, padding], dim=0))
 
@@ -157,16 +228,23 @@ class PubMedGAN(pl.LightningModule):
 
     """################# GENERATOR FUNCTIONS #####################"""
 
-    def _generator_step(self, batch, discriminator_loss, name):
+    def _generator_step(self, batch, discriminator_step_ret_dict, name):
+        step_ret_dict = discriminator_step_ret_dict
+        step_ret_dict['optimizer_idx'] = 1
+        discriminator_loss = discriminator_step_ret_dict['loss']
+        # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
         generator_batch = self._get_generator_batch(batch)
         begin_end_indexes, documents_sentences, max_len = break_sentence_batch(generator_batch)
         bert_inputs = self._get_bert_inputs(documents_sentences)
-        mlm_loss = self._get_generator_mlm_loss(bert_inputs)
-        loss = self.hparams.mlm_factor * mlm_loss + self.hparams.discriminator_factor * discriminator_loss
-        self.log(f'generator/{name}_loss', loss)
+        mlm_loss = self._generator_get_mlm_loss(bert_inputs)
+        step_ret_dict['mlm_loss'] = mlm_loss
+        total_loss = self.hparams['mlm_factor'] * mlm_loss - self.hparams['discriminator_factor'] * discriminator_loss
+        step_ret_dict['loss'] = total_loss
+        # TODO diff from frozen and tune the factors
+        self.log(f'generator/{name}_loss', total_loss)
         self.log(f'generator/{name}_mlm_loss', mlm_loss)
         self.log(f'generator/{name}_discriminator_loss', discriminator_loss)
-        return loss, mlm_loss
+        return step_ret_dict
 
     def _generator_get_mlm_loss(self, inputs):
         """returns MLM loss"""
