@@ -37,11 +37,21 @@ class PubMedModuleForBert(pl.LightningDataModule):
 
     def prepare_data(self):
         self.documents_df = pd.read_csv(rf'../../data/abstract_2005_2020_gender_and_topic.csv', encoding='utf8')
-        train_df, testing_df = train_test_split(self.documents_df, test_size=0.7, random_state=42)
-        test_df, val_df = train_test_split(testing_df, test_size=0.5, random_state=42)
-        self.train_df = clean_abstracts(train_df)
-        self.val_df = clean_abstracts(val_df)
-        self.test_df = clean_abstracts(test_df)
+        # train_test_split was done once and in order to make sure we keep the same groups
+        # we will use the "belong to group" column
+
+        # train_df, testing_df = train_test_split(self.documents_df, test_size=0.7, random_state=42)
+        # test_df, val_df = train_test_split(testing_df, test_size=0.5, random_state=42)
+        train_df = self.documents_df.loc[self.documents_df['belongs_to_group'] == 'train']
+        test_df = self.documents_df.loc[self.documents_df['belongs_to_group'] == 'test']
+        val_df = self.documents_df.loc[self.documents_df['belongs_to_group'] == 'val']
+        self.train_df = train_df.reset_index()
+        self.test_df = test_df.reset_index()
+        self.val_df = val_df.reset_index()
+        if "broken_abstracts" not in self.documents_df.columns:
+            self.train_df = clean_abstracts(self.train_df)
+            self.val_df = clean_abstracts(self.val_df)
+            self.test_df = clean_abstracts(self.test_df)
 
     def setup(self, stage=None):
         self.train = PubMedDataSetForBert(self.train_df)
