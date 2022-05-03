@@ -9,9 +9,11 @@ import pytz
 from pytorch_lightning.loggers import WandbLogger
 import sys
 import pytorch_lightning as pl
+import os
 
 
 def Run():
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
     dm = PubMedModule(hparams)
     model = PubMedGAN(hparams)
     logger = WandbLogger(name=f'GAN_over_topic_and_gender_70_15_15_v2',

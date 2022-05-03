@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append('/home/mor.filo/nlp_project/')
 
 import pytorch_lightning as pl
@@ -15,6 +16,7 @@ import os
 from datetime import datetime
 import pytz
 import pprint
+
 
 class PubMedGAN(pl.LightningModule):
     def __init__(self, hparams):
@@ -55,7 +57,7 @@ class PubMedGAN(pl.LightningModule):
         #   Generator Step
         if optimizer_idx == 1:
             step_ret_dict = self._discriminator_step(batch, name)
-            # step_ret_dict = self._generator_step(batch, step_ret_dict, name)
+            step_ret_dict = self._generator_step(batch, step_ret_dict, name)
             print('_generator_step_ret_dict')
             pprint.pprint(step_ret_dict)
         return step_ret_dict
@@ -101,9 +103,9 @@ class PubMedGAN(pl.LightningModule):
         self.log(f'debug/{name}_probability_histogram', wandb.Histogram(y_proba))
         self.log(f'debug/{name}_score_histogram', wandb.Histogram(y_score))
         self.log(f'debug/{name}_loss', losses.mean())
-        self.log(f'debug/{name}_accuracy', (1.*((1.*(y_proba >= 0.5)) == y_true)).mean())
-        self.log(f'debug/{name}_1_accuracy', (1.*(y_proba[y_true == 1] >= 0.5)).mean())
-        self.log(f'debug/{name}_0_accuracy', (1.*(y_proba[y_true == 0] < 0.5)).mean())
+        self.log(f'debug/{name}_accuracy', (1. * ((1. * (y_proba >= 0.5)) == y_true)).mean())
+        self.log(f'debug/{name}_1_accuracy', (1. * (y_proba[y_true == 1] >= 0.5)).mean())
+        self.log(f'debug/{name}_0_accuracy', (1. * (y_proba[y_true == 0] < 0.5)).mean())
 
         # if name == 'val':
         #     texts = np.concatenate([output['text'] for output in outputs])
@@ -122,6 +124,7 @@ class PubMedGAN(pl.LightningModule):
         return [optimizer_discriminator, optimizer_generator]
 
     """################# DISCRIMINATOR FUNCTIONS #####################"""
+
     def _y_pred_to_probabilities(self, y_pred):
         return torch.sigmoid(y_pred)
 
@@ -147,14 +150,15 @@ class PubMedGAN(pl.LightningModule):
         device = discriminator_predictions.get_device()
         all_samples_losses = self.loss_func(discriminator_predictions, discriminator_y_true.to(device))
         print(3)
-        result_dictionary['losses'] = all_samples_losses
         discriminator_loss = all_samples_losses.mean()
         result_dictionary['loss'] = discriminator_loss
+        result_dictionary['losses'] = all_samples_losses
         self.log(f'discriminator/{name}_loss', discriminator_loss)
         y_proba = self._y_pred_to_probabilities(discriminator_predictions).cpu().detach()
         result_dictionary['y_proba'] = y_proba
         print(4)
-        result_dictionary['y_score'] = discriminator_y_true.cpu().detach() * y_proba + (1 - discriminator_y_true.cpu().detach()) * (1 - y_proba)
+        result_dictionary['y_score'] = discriminator_y_true.cpu().detach() * y_proba + (
+                    1 - discriminator_y_true.cpu().detach()) * (1 - y_proba)
         if not all(discriminator_y_true) and any(discriminator_y_true):
             # Calc auc only if batch has more than one class.
             self.log(f'discriminator/{name}_auc', roc_auc_score(discriminator_y_true.cpu().detach(), y_proba))
@@ -202,7 +206,8 @@ class PubMedGAN(pl.LightningModule):
                 truncated_embeddings = sent_embeddings[:self.max_sentences_per_abstract]
                 return torch.flatten(truncated_embeddings)
             else:
-                padding = torch.zeros(self.max_sentences_per_abstract - len(sent_embeddings), self.sentence_embedding_size,
+                padding = torch.zeros(self.max_sentences_per_abstract - len(sent_embeddings),
+                                      self.sentence_embedding_size,
                                       device=self.device)
                 return torch.flatten(torch.cat([sent_embeddings, padding], dim=0))
 
@@ -287,3 +292,8 @@ class PubMedGAN(pl.LightningModule):
                                                        add_special_tokens=True, return_tensors="pt")
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         return inputs
+
+    def _convert_to_list_of_dicts(self, batch):
+        batch_df = pd.DataFrame.from_dict(batch)
+        batch = batch_df.T.to_dict().values()
+        return batch

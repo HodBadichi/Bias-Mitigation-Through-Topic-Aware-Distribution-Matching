@@ -78,11 +78,11 @@ class PubMedModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         # data set, batch size, shuffel, workers
-        return DataLoader(self.train, shuffle=True, batch_size=self.hparams['batch_size'], num_workers=8)
+        return DataLoader(self.train, shuffle=True, batch_size=self.hparams['batch_size'], num_workers=2)
 
     def test_dataloader(self):
-        return DataLoader(self.test, shuffle=True, batch_size=self.hparams['batch_size'], num_workers=8)
+        return DataLoader(self.test, shuffle=True, batch_size=self.hparams['batch_size'], num_workers=2)
 
     def val_dataloader(self):
-        return DataLoader(self.val, shuffle=True, batch_size=self.hparams['batch_size'], num_workers=8)
+        return DataLoader(self.val, shuffle=True, batch_size=self.hparams['batch_size'], num_workers=2)
 

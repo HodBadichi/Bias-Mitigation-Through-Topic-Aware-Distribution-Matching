@@ -22,7 +22,6 @@ class PubMedDataSet(Dataset):
     def __getitem__(self, index):
         batch_entry = {}
         similar_document_index = self.Matcher.get_match(index)
-
         if similar_document_index is not None:
             similar_document_broken_abstracts = self.documents_dataframe['broken_abstracts'][similar_document_index]
         else:

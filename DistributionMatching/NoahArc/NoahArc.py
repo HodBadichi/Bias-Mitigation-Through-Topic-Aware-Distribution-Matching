@@ -4,7 +4,7 @@ from abc import abstractmethod
 import torch
 import numpy as np
 import DistributionMatching.utils as project_utils
-
+from DistributionMatching.PubMed.hparams_config import hparams
 
 class NoahArc:
     """
@@ -23,13 +23,16 @@ class NoahArc:
     def get_match(self, document_index):
         """
         :param document_index: The document index we need to find a matching document for
-        :return: matching document index,matching document PMID to use with other dfs
+        :return: matching document index
         """
         if self.possible_matches(document_index) == 0:
             return None
         probabilities = self.probability_matrix[document_index]
-        similar_doc_index = np.random.choice(range(0, len(self.probability_matrix)), 1, p=probabilities)
-        return similar_doc_index[0]
+        if hparams['DEBUG_FLAG'] is True:
+            similar_doc_index = (torch.argmax(probabilities)).item()
+        else:
+            similar_doc_index = np.random.choice(range(0, len(self.probability_matrix)), 1, p=probabilities)[0]
+        return similar_doc_index
 
     def possible_matches(self, document_index):
         return torch.count_nonzero(self.probability_matrix[document_index]).item()
