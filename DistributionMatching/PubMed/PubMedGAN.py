@@ -76,13 +76,7 @@ class PubMedGAN(pl.LightningModule):
         return self.validation_step(batch, batch_idx, optimizer_idx)
 
     def test_epoch_end(self, outputs) -> None:
-        self.log('test/val_mlm_loss_avg', torch.Tensor([output['mlm_loss'] for output in outputs]).mean(), batch_size=self.hparams['batch_size'])
-        if self.hparams['max_epochs'] > 0:
-            dir_path = os.path.join(self.hparams['SAVE_PATH'],
-                                    f"bert_GAN_model_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}")
-            self.bert_model.save_pretrained(os.path.join(dir_path, f'epoch{self.hparams["max_epochs"] - 1}'))
-            if not os.path.exists(f'{dir_path}/config'):
-                np.save(f'{dir_path}/config', self.hparams)
+        self.on_end(outputs, 'test')
 
     def training_epoch_end(self, outputs):
         self.on_end(outputs, 'train')
@@ -92,7 +86,7 @@ class PubMedGAN(pl.LightningModule):
 
     def on_end(self, outputs, name):
         # outputs is a list (len=number of batches) of dicts (as returned from the step methods).
-        if name == 'train':
+        if name == 'train' or name =='test':
             outputs = outputs[0]  # TODO: WHY? only generator outputs. TODO: really?
         losses = torch.cat([output['losses'] for output in outputs])
         y_true = torch.cat([output['y_true'] for output in outputs])
@@ -104,6 +98,15 @@ class PubMedGAN(pl.LightningModule):
         self.log(f'debug/{name}_1_accuracy', (1. * (y_proba[y_true == 1] >= 0.5)).mean(),batch_size=self.hparams['batch_size'])
         self.log(f'debug/{name}_0_accuracy', (1. * (y_proba[y_true == 0] < 0.5)).mean(),batch_size=self.hparams['batch_size'])
 
+        if name =='val':
+            # save model at the end of val epoch
+            if self.hparams['max_epochs'] > 0:
+                dir_path = os.path.join(self.hparams['SAVE_PATH'],
+                                        f"bert_GAN_model_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}")
+                self.bert_model.save_pretrained(os.path.join(dir_path, f'epoch{self.hparams["max_epochs"] - 1}'))
+                if not os.path.exists(f'{dir_path}/config'):
+                    # save the config to all of this GAN workflow, will be saved on first epoch
+                    np.save(f'{dir_path}/config', self.hparams)
 
     def configure_optimizers(self):
         # Discriminator step paramteres -  classifier.
