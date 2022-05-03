@@ -99,9 +99,9 @@ class PubMedGAN(pl.LightningModule):
         y_proba = torch.cat([output['y_proba'] for output in outputs])
         y_score = torch.cat([output['y_score'] for output in outputs])
 
-        self.log(f'debug/{name}_loss_histogram', wandb.Histogram(losses))
-        self.log(f'debug/{name}_probability_histogram', wandb.Histogram(y_proba))
-        self.log(f'debug/{name}_score_histogram', wandb.Histogram(y_score))
+        self.log(f'debug/{name}_loss_histogram', wandb.Histogram(losses.cpu()))
+        self.log(f'debug/{name}_probability_histogram', wandb.Histogram(y_proba.cpu()))
+        self.log(f'debug/{name}_score_histogram', wandb.Histogram(y_score.cpu()))
         self.log(f'debug/{name}_loss', losses.mean())
         self.log(f'debug/{name}_accuracy', (1. * ((1. * (y_proba >= 0.5)) == y_true)).mean())
         self.log(f'debug/{name}_1_accuracy', (1. * (y_proba[y_true == 1] >= 0.5)).mean())
@@ -147,8 +147,7 @@ class PubMedGAN(pl.LightningModule):
         result_dictionary['y_true'] = discriminator_y_true
         # discriminator_y_true created in order to shuffle the bias/unbiased order
         discriminator_predictions = self._discriminator_get_predictions(clean_discriminator_batch, discriminator_y_true)
-        device = discriminator_predictions.get_device()
-        all_samples_losses = self.loss_func(discriminator_predictions, discriminator_y_true.to(device))
+        all_samples_losses = self.loss_func(discriminator_predictions, discriminator_y_true.to(self.device))
         print(3)
         discriminator_loss = all_samples_losses.mean()
         result_dictionary['loss'] = discriminator_loss
