@@ -76,7 +76,7 @@ class PubMedGAN(pl.LightningModule):
         return self.validation_step(batch, batch_idx, optimizer_idx)
 
     def test_epoch_end(self, outputs) -> None:
-        self.log('test/val_mlm_loss_avg', torch.Tensor([output['mlm_loss'] for output in outputs]).mean())
+        self.log('test/val_mlm_loss_avg', torch.Tensor([output['mlm_loss'] for output in outputs]).mean(), batch_size=self.hparams['batch_size'])
         if self.hparams['max_epochs'] > 0:
             dir_path = os.path.join(self.hparams['SAVE_PATH'],
                                     f"bert_GAN_model_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}")
@@ -99,20 +99,11 @@ class PubMedGAN(pl.LightningModule):
         y_proba = torch.cat([output['y_proba'] for output in outputs])
         y_score = torch.cat([output['y_score'] for output in outputs])
 
-        self.log(f'debug/{name}_loss_histogram', wandb.Histogram(losses.cpu()))
-        self.log(f'debug/{name}_probability_histogram', wandb.Histogram(y_proba.cpu()))
-        self.log(f'debug/{name}_score_histogram', wandb.Histogram(y_score.cpu()))
-        self.log(f'debug/{name}_loss', losses.mean())
-        self.log(f'debug/{name}_accuracy', (1. * ((1. * (y_proba >= 0.5)) == y_true)).mean())
-        self.log(f'debug/{name}_1_accuracy', (1. * (y_proba[y_true == 1] >= 0.5)).mean())
-        self.log(f'debug/{name}_0_accuracy', (1. * (y_proba[y_true == 0] < 0.5)).mean())
+        self.log(f'debug/{name}_loss', losses.mean(),batch_size=self.hparams['batch_size'])
+        self.log(f'debug/{name}_accuracy', (1. * ((1. * (y_proba >= 0.5)) == y_true)).mean(),batch_size=self.hparams['batch_size'])
+        self.log(f'debug/{name}_1_accuracy', (1. * (y_proba[y_true == 1] >= 0.5)).mean(),batch_size=self.hparams['batch_size'])
+        self.log(f'debug/{name}_0_accuracy', (1. * (y_proba[y_true == 0] < 0.5)).mean(),batch_size=self.hparams['batch_size'])
 
-        # if name == 'val':
-        #     texts = np.concatenate([output['text'] for output in outputs])
-        #
-        #     df = pd.DataFrame({'text': texts, 'y_true': y_true, 'y_score': y_score, 'y_proba': y_proba, 'loss': losses})
-        #     df = df[(df['loss'] <= df['loss'].quantile(0.05)) | (df['loss'] >= df['loss'].quantile(0.95))]
-        #     self.log(f'debug/{name}_table', wandb.Table(dataframe=df))
 
     def configure_optimizers(self):
         # Discriminator step paramteres -  classifier.
@@ -152,7 +143,7 @@ class PubMedGAN(pl.LightningModule):
         discriminator_loss = all_samples_losses.mean()
         result_dictionary['loss'] = discriminator_loss
         result_dictionary['losses'] = all_samples_losses
-        self.log(f'discriminator/{name}_loss', discriminator_loss)
+        self.log(f'discriminator/{name}_loss', discriminator_loss, batch_size=self.hparams['batch_size'])
         y_proba = self._y_pred_to_probabilities(discriminator_predictions).cpu().detach()
         result_dictionary['y_proba'] = y_proba
         print(4)
@@ -160,8 +151,8 @@ class PubMedGAN(pl.LightningModule):
                     1 - discriminator_y_true.cpu().detach()) * (1 - y_proba)
         if not all(discriminator_y_true) and any(discriminator_y_true):
             # Calc auc only if batch has more than one class.
-            self.log(f'discriminator/{name}_auc', roc_auc_score(discriminator_y_true.cpu().detach(), y_proba))
-        self.log(f'discriminator/{name}_accuracy', accuracy_score(discriminator_y_true.cpu().detach(), y_proba.round()))
+            self.log(f'discriminator/{name}_auc', roc_auc_score(discriminator_y_true.cpu().detach(), y_proba), batch_size=self.hparams['batch_size'])
+        self.log(f'discriminator/{name}_accuracy', accuracy_score(discriminator_y_true.cpu().detach(), y_proba.round()), batch_size=self.hparams['batch_size'])
         return result_dictionary
 
     def _discriminator_clean_batch(self, batch):
@@ -229,8 +220,8 @@ class PubMedGAN(pl.LightningModule):
         :param batch: a batch of PubMedGan in the shape of {'origin':int,'biased':string,'unbiased':string}
         might include `None` values in the `biased` and `unbiased` entry in case the origin document has no match.
 
-        :return: This function wil return the classifier predictions over bertmodel output embeddings and the
-        "ground truth" a shuffle_vector: list in the shape of [0,...,1,0...] which can be interpreted like that:
+        :return: This function wil return the classifier predictions over bertmodel output embeddings
+        shuffle_vector: list in the shape of [0,...,1,0...] which can be interpreted like that:
         1 - the couple of matching docs was [biased,unbiased]
         0 - the couple of matching docs was [unbiased,biased]
         """
@@ -258,13 +249,13 @@ class PubMedGAN(pl.LightningModule):
         mlm_loss = self._generator_get_mlm_loss(bert_inputs)
         print(6)
         step_ret_dict['mlm_loss'] = mlm_loss
+        # TODO diff from frozen and tune the factors (mlm_loss is 2-5, discriminator_loss is ~0.5-1)
         total_loss = self.hparams['mlm_factor'] * mlm_loss - self.hparams['discriminator_factor'] * discriminator_loss
         step_ret_dict['loss'] = total_loss
         print(7)
-        # TODO diff from frozen and tune the factors
-        self.log(f'generator/{name}_loss', total_loss)
-        self.log(f'generator/{name}_mlm_loss', mlm_loss)
-        self.log(f'generator/{name}_discriminator_loss', discriminator_loss)
+        self.log(f'generator/{name}_loss', total_loss, batch_size=self.hparams['batch_size'])
+        self.log(f'generator/{name}_mlm_loss', mlm_loss, batch_size=self.hparams['batch_size'])
+        self.log(f'generator/{name}_discriminator_loss', discriminator_loss, batch_size=self.hparams['batch_size'])
         return step_ret_dict
 
     def _generator_get_mlm_loss(self, inputs):

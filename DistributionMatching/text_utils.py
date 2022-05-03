@@ -81,6 +81,7 @@ def clean_abstracts(df, abstract_field='title_and_abstract', output_sentences_fi
         return '<BREAK>'.join(sent_list_filtered_by_words)
 
     df[output_sentences_field] = df[abstract_field].apply(filter_sentences_and_words)
+    df = df.dropna(subset=['broken_abstracts'], axis=0)
     print(f"kept {d['remaining']}/{d['total']} sentences")
     return df
 
