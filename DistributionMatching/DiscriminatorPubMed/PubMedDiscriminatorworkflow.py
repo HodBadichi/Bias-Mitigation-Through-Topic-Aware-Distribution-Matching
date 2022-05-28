@@ -36,7 +36,7 @@ def parse_cli():
         required=False
     )
     args = parser.parse_args()
-    return args
+    return vars(args)
 
 
 def prepare_arguments():
@@ -64,7 +64,7 @@ def prepare_arguments():
     hparams['ProbabilityMatrixPathTest'] = os.path.join(os.pardir, 'PubMed', prob_matrix_str + 'test')
 
 def Run():
-    prepare_arguments
+    prepare_arguments()
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     dm = PubMedModule(hparams)
     model = PubMedDiscriminator(hparams)
