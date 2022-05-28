@@ -1,18 +1,19 @@
 import sys
-sys.path.append('/home/mor.filo/nlp_project/')
+import os
+
+if os.name !='nt':
+    sys.path.append('/home/mor.filo/nlp_project/')
 
 import pytorch_lightning as pl
 import numpy as np
-from sklearn.model_selection import train_test_split
 import pandas as pd
 from torch.utils.data import DataLoader
 
 from DistributionMatching.PubMed.PubMedDataSet import PubMedDataSet
 from DistributionMatching import utils as project_utils
 from DistributionMatching.text_utils import clean_abstracts
-
-from DistributionMatching.utils import config
 from DistributionMatching.text_utils import TextUtils
+
 
 class PubMedModule(pl.LightningDataModule):
     def __init__(self, hparams):
@@ -24,12 +25,12 @@ class PubMedModule(pl.LightningDataModule):
 
     def prepare_data(self):
         # run before setup, 1 gpu
-        '''
+        """
         :return:
         leaves docs with gender info only
         create "female_rate" col
         transform the model on the remaining docs and creates "topic"
-        '''
+        """
         # Note - transform (bert topic inference) will take ~30 minutes, check if the df already exists
         try:
             self.documents_df = pd.read_csv(self.hparams["gender_and_topic_path"], encoding='utf8')
@@ -77,17 +78,9 @@ class PubMedModule(pl.LightningDataModule):
     def setup(self, stage=None):
         # Runs on all gpus
         # Data set instances (val, train, test)
-        suffix = ''
-        if self.hparams['similarity_metric'] == 'cross_entropy':
-            suffix += 'CE'
-            if self.hparams['reset_different_topic_entries_flag'] == 1:
-                suffix +='_RESET'
-        else:
-            suffix += 'CS'
-
-            self.train = PubMedDataSet(self.train_df, self.hparams, "train", self.hparams['SimilarityMatrixPathTrain'+suffix], self.hparams['ProbabilityMatrixPathTrain'+suffix])
-            self.val = PubMedDataSet(self.val_df, self.hparams, "val", self.hparams['SimilarityMatrixPathVal'+suffix], self.hparams['ProbabilityMatrixPathVal'+suffix])
-            self.test = PubMedDataSet(self.test_df, self.hparams, "test", self.hparams['SimilarityMatrixPathTest'+suffix], self.hparams['ProbabilityMatrixPathTest'+suffix])
+        self.train = PubMedDataSet(self.train_df, self.hparams, "train", self.hparams['SimilarityMatrixPathTrain'], self.hparams['ProbabilityMatrixPathTrain'])
+        self.val = PubMedDataSet(self.val_df, self.hparams, "val", self.hparams['SimilarityMatrixPathVal'], self.hparams['ProbabilityMatrixPathVal'])
+        self.test = PubMedDataSet(self.test_df, self.hparams, "test", self.hparams['SimilarityMatrixPathTest'], self.hparams['ProbabilityMatrixPathTest'])
 
 
 
