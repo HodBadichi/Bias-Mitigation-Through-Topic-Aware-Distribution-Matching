@@ -1,8 +1,10 @@
 import sys
+import pandas as pd
 sys.path.append('/home/mor.filo/nlp_project/')
+
 from DistributionMatching.SimilarityMatrix.SimilarityMatrixCE import SimilarityMatrixCE
 from DistributionMatching.SimilarityMatrix.SimilarityMatrixCS import SimilarityMatrixCS
-import pandas as pd
+
 
 class SimilarityMatrixFactory:
     @staticmethod

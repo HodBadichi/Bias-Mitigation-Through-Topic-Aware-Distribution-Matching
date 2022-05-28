@@ -1,23 +1,24 @@
 import sys
-sys.path.append('/home/mor.filo/nlp_project/')
-from abc import abstractmethod
 import torch
 import numpy as np
+from abc import abstractmethod
+sys.path.append('/home/mor.filo/nlp_project/')
+
 import DistributionMatching.utils as project_utils
 from DistributionMatching.PubMed.hparams_config import hparams
 
+
 class NoahArc:
     """
-    Abstract class , used to supply NoahArc API
+    Abstract class , used to supply NoahArc interface
     """
 
-    def __init__(self,dataframe, similarity_matrix, reset_diff_topic_entries_flag, df_name, ProbabilityMatrixPath):
+    def __init__(self, dataframe, similarity_matrix, reset_diff_topic_entries_flag, df_name, ProbabilityMatrixPath):
         self.documents_dataframe = dataframe
         self.ProbabilityMatrixPath = ProbabilityMatrixPath
         self.probability_matrix = None
         self._similarity_matrix = similarity_matrix.matrix
         self._reset_different_topic_entries_flag = reset_diff_topic_entries_flag
-        self._reset_different_topics_called_flag = False
         self.df_name = df_name
 
     def get_match(self, document_index):
@@ -45,7 +46,6 @@ class NoahArc:
         pass
 
     def _reset_different_topic_entries(self):
-        self._reset_different_topics_called_flag = True
         number_of_topics = range(len(self.documents_dataframe.groupby('major_topic')))
         for idx, topic_num in enumerate(number_of_topics):
             topic_indices = list(np.where(self.documents_dataframe['major_topic'] == topic_num)[0])

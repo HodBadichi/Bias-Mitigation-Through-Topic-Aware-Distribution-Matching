@@ -1,20 +1,30 @@
 import sys
-sys.path.append('/home/mor.filo/nlp_project/')
 import torch
-import matplotlib.pyplot as plt
-from DistributionMatching.NoahArc.NoahArcFactory import NoahArcFactory
-import pandas as pd
-from DistributionMatching.SimilarityMatrix.SimilarityMatrixFactory import SimilarityMatrixFactory
 import os
+
+if os.name != 'nt':
+    sys.path.append('/home/mor.filo/nlp_project/')
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+from DistributionMatching.SimilarityMatrix.SimilarityMatrixFactory import SimilarityMatrixFactory
+from DistributionMatching.NoahArc.NoahArcFactory import NoahArcFactory
+
 
 def plot_document_matches_distribution():
     dataframe = pd.read_csv(
-        rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project_v2\data\abstract_2005_2020_gender_and_topic.csv')
-    sim_matrix = SimilarityMatrixFactory.create(dataframe,
-                                                "cross_entropy")
-    noah_arc = NoahArcFactory.create("cross_entropy", sim_matrix, True)
-    # NoahArcFactory.save(noah_arc,"ok")
-    # noah_arc = NoahArcFactory.load("ok")
+        rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project_v2\data\abstract_2005_2020_gender_and_topic.csv'
+    )
+
+    dataframe = dataframe.loc[dataframe['belongs_to_group'] == 'test']
+    # test_df = self.documents_df.loc[self.documents_df['belongs_to_group'] == 'test']
+    # val_df = self.documents_df.loc[self.documents_df['belongs_to_group'] == 'val']
+    dataframe = dataframe.reset_index()
+
+    sim_matrix = SimilarityMatrixFactory.create(dataframe, "cross_entropy", 'test')
+    noah_arc = NoahArcFactory.create(dataframe, "cross_entropy", sim_matrix, True, 'test')
+    # torch.save(noah_arc.probability_matrix, "ok_val")
     results = {}
     for idx, row in enumerate(noah_arc._similarity_matrix):
         number_of_possible_matches = torch.count_nonzero(row).item()
@@ -65,16 +75,16 @@ def plot_document_matches_distribution():
     plt.bar(list(temp.keys()), temp.values(), color='g')
     plt.show()
 
-    results_5 = 0
-    results_10 = 0
+    results_list = [0] * 11
 
-    for k,v in results.items():
-        if k<=5:
-            results_5+=v
-            results_10 +=v
-        elif k<=10:
-            results_10+=v
-    print(f"Disposed documents when 5 is threshold {results_5}")
-    print(f"Disposed documents when 10 is threshold {results_10}")
+    for index, current_thresh in enumerate(results_list):
+        for k, v in results.items():
+            if k <= index:
+                results_list[index] += v
+    print(f"test df size is : {len(dataframe)}")
+    for index, item in enumerate(results_list):
+        print(f"Disposed values from test df when {index} is threshold: {results_list[index]}")
 
-plot_document_matches_distribution()
+
+if __name__ == '__main__':
+    plot_document_matches_distribution()

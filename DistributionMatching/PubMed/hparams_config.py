@@ -1,3 +1,6 @@
+import os
+
+
 hparams = {'learning_rate': 2e-5,
            'discriminator_factor': 0.5,
            'mlm_factor': 0.5,
