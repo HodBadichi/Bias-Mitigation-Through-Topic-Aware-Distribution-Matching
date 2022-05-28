@@ -1,8 +1,10 @@
+import sys
+sys.path.append(rf'C:\Users\morfi\PycharmProjects\NLP_project')
+
 import pandas as pd
 import os
-from nltk.stem import WordNetLemmatizer
 from bertopic import BERTopic
-# from TopicModeling.Utils.Metrics import BertTopicMetrics
+from TopicModeling.Utils.Metrics import BertTopicMetrics
 import csv
 import matplotlib.pyplot as plt
 
@@ -139,7 +141,7 @@ if (__name__ == '__main__'):
 
     bert_train(train_data_path=rf'clean_bert_train.csv',
                model_path=rf'bertTopic_train(81876)',
-               min_topic_size=[342,345,350], n_gram_range=(1, 1)
+               min_topic_size=[330,331,332,333,334], n_gram_range=(1, 1)
                )
 
 
