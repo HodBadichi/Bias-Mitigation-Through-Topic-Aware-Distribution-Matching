@@ -42,7 +42,6 @@ def load_abstract_PubMedData():
 def load_topic_model():
     return BERTopic.load(config['models']['topic_model_path'])
 
-
 # def plot_topic_female_rate_hists(data_path, loaded_model, result_path=""):
 #     # receives df that has "female_rate" col and "topic" col and a loaded model (to get topic name)
 #     documents_df = pd.read_csv(data_path, encoding='utf8')

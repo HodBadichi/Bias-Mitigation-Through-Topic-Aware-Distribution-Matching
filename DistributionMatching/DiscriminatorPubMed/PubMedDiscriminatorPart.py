@@ -1,21 +1,17 @@
 import sys
-
-sys.path.append('/home/mor.filo/nlp_project/')
-
-import pytorch_lightning as pl
-import torch
-from torch import nn
-from transformers import AutoTokenizer, BertForMaskedLM, DataCollatorForLanguageModeling
 import random
-from DistributionMatching.text_utils import break_sentence_batch
-from sklearn.metrics import roc_auc_score, accuracy_score
-import wandb
-import numpy as np
-import pandas as pd
+import torch
 import os
-from datetime import datetime
-import pytz
-import pprint
+if os.name != 'nt':
+    sys.path.append('/home/mor.filo/nlp_project/')
+
+from sklearn.metrics import roc_auc_score, accuracy_score
+import pandas as pd
+import pytorch_lightning as pl
+from torch import nn
+from transformers import AutoTokenizer, BertForMaskedLM
+
+from DistributionMatching.text_utils import break_sentence_batch
 
 
 class PubMedDiscriminator(pl.LightningModule):
@@ -30,10 +26,26 @@ class PubMedDiscriminator(pl.LightningModule):
         # The linear layer if from 2 concat abstract (1 is bias and 1 unbiased) to binary label:
         # 1 - the couple of matching docs was [biased,unbiased]
         # 0 - the couple of matching docs was [unbiased,biased]
-        self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
-        # todo : why reduction='none'
-        self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
+
+        self.input_dropout = nn.Dropout(p=self.hparams['dropout_rate'])
+        layers = []
+        hidden_sizes = [self.sentence_embedding_size * self.max_sentences_per_abstract * 2] + self.hparams['hidden_sizes']
+        for i in range(len(hidden_sizes) - 1):
+            layers.extend(
+                [nn.Linear(hidden_sizes[i],
+                           hidden_sizes[i + 1]),
+                 nn.LeakyReLU(0.2, inplace=True),
+                 nn.Dropout(self.hparams['dropout_rate'])])
+
+        self.layers = nn.Sequential(*layers)  # per il flatten
+        self.logit = nn.Linear(hidden_sizes[-1], 1)  # +1 for the probability of this sample being fake/real.
+        self.loss_func = nn.Softmax(dim=-1)
+
+        # self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
+        # # todo : why reduction='none'
+        # self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
         self.empty_batch_count = 0
+
     def forward(self):
         # Forward is unneeded , GaN model will not infer in the future
         pass
@@ -61,7 +73,6 @@ class PubMedDiscriminator(pl.LightningModule):
     def test_step(self, batch: dict, batch_idx: int):
         return self.validation_step(batch, batch_idx)
 
-
     def configure_optimizers(self):
         # Discriminator step paramteres -  classifier.
         grouped_parameters_discriminator = [{'params': self.classifier.parameters()}]
@@ -86,12 +97,12 @@ class PubMedDiscriminator(pl.LightningModule):
         print(1)
         result_dictionary['mlm_loss'] = 0
         result_dictionary['optimizer_idx'] = 0
-        assert (len(batch) > 0 )
+        assert (len(batch) > 0)
         clean_discriminator_batch = self._discriminator_clean_batch(batch)
         if len(clean_discriminator_batch) == 0:
             self.empty_batch_count += 1
             return None
-        assert (len(clean_discriminator_batch) > 0 )
+        assert (len(clean_discriminator_batch) > 0)
         discriminator_y_true = torch.as_tensor([float(random.choice([0, 1])) for _ in clean_discriminator_batch])
         print(2)
         result_dictionary['y_true'] = discriminator_y_true
@@ -107,11 +118,13 @@ class PubMedDiscriminator(pl.LightningModule):
         result_dictionary['y_proba'] = y_proba
         print(4)
         result_dictionary['y_score'] = discriminator_y_true.cpu().detach() * y_proba + (
-                    1 - discriminator_y_true.cpu().detach()) * (1 - y_proba)
+                1 - discriminator_y_true.cpu().detach()) * (1 - y_proba)
         if not all(discriminator_y_true) and any(discriminator_y_true):
             # Calc auc only if batch has more than one class.
-            self.log(f'discriminator/{name}_auc', roc_auc_score(discriminator_y_true.cpu().detach(), y_proba), batch_size=self.hparams['batch_size'])
-        self.log(f'discriminator/{name}_accuracy', accuracy_score(discriminator_y_true.cpu().detach(), y_proba.round()), batch_size=self.hparams['batch_size'])
+            self.log(f'discriminator/{name}_auc', roc_auc_score(discriminator_y_true.cpu().detach(), y_proba),
+                     batch_size=self.hparams['batch_size'])
+        self.log(f'discriminator/{name}_accuracy', accuracy_score(discriminator_y_true.cpu().detach(), y_proba.round()),
+                 batch_size=self.hparams['batch_size'])
         return result_dictionary
 
     def _discriminator_clean_batch(self, batch):
@@ -195,13 +208,12 @@ class PubMedDiscriminator(pl.LightningModule):
         return self._discriminator_bert_embeddings_to_predictions(bert_cls_outputs, begin_end_indexes)
 
     def test_epoch_end(self, outputs) -> None:
-        print(f'empty_batch_count: {self.empty_batch_count}')
-
+        pass
     def training_epoch_end(self, outputs):
-        print(f'empty_batch_count: {self.empty_batch_count}')
+        pass
 
     def validation_epoch_end(self, outputs):
-        print(f'empty_batch_count: {self.empty_batch_count}')
+        pass
 
     """################# UTILS FUNCTIONS #####################"""
 

@@ -1,36 +1,32 @@
 import sys
-sys.path.append('/home/mor.filo/nlp_project/')
-from DistributionMatching.SimilarityMatrix.SimilarityMatrix import SimilarityMatrix
-from sklearn.metrics.pairwise import cosine_similarity
-from transformers import AutoTokenizer, BertForMaskedLM
-from DistributionMatching.utils import config
-from DistributionMatching.text_utils import clean_abstracts, TextUtils, break_sentence_batch
-import torch
-# from TopicModeling.Bert.src.PubMed_BertTopic import bert_apply_clean
-from sentence_transformers import SentenceTransformer
-import numpy as np
 import os
+import torch
+if os.name != 'nt':
+    sys.path.append('/home/mor.filo/nlp_project/')
+
+from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer
+
+from DistributionMatching.SimilarityMatrix.SimilarityMatrix import SimilarityMatrix
+
 
 class SimilarityMatrixCS(SimilarityMatrix):
     def __init__(self, documents_dataframe, df_name, SimilarityMatrixPath):
         super().__init__(documents_dataframe, df_name, SimilarityMatrixPath)
-        if(os.path.isfile(self.SimilarityMatrixPath)):
+        if os.path.isfile(self.SimilarityMatrixPath):
             self.matrix = torch.load(self.SimilarityMatrixPath)
         else:
             self.matrix = self._calc_similarities()
             torch.save(self.matrix, f"CS_sim_matrix_with_BERTopic_clean_{df_name}")
 
-
     def _calc_similarities(self):
-        '''
+        """
             denote ce(i,j) : the cosine similarity of doc i embeddings and doc j embeddings
             create the cosine similarity similarity matrix where each value
             similarity_matrix[i][j] = (i embeddings)dot(j embeddings)/max(l2_norm(i embeddings)*l2_norm(j embeddings),eps)
-        '''
+        """
         clean_abstracts = self.documents_dataframe['broken_abstracts']
         SentenceTransformerModel = SentenceTransformer('all-MiniLM-L6-v2')
-        sentence_embeddings = SentenceTransformerModel.encode(clean_abstracts,convert_to_tensor=True)
+        sentence_embeddings = SentenceTransformerModel.encode(clean_abstracts, convert_to_tensor=True)
         matrix = torch.as_tensor(cosine_similarity(sentence_embeddings, sentence_embeddings))
         return matrix
-
-
