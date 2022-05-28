@@ -17,7 +17,7 @@ class SimilarityMatrixCS(SimilarityMatrix):
             self.matrix = torch.load(self.SimilarityMatrixPath)
         else:
             self.matrix = self._calc_similarities()
-            torch.save(self.matrix, f"CS_sim_matrix_with_BERTopic_clean_{df_name}")
+            torch.save(self.matrix, f"CS_sim_matrix_{df_name}")
 
     def _calc_similarities(self):
         """

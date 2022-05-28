@@ -29,7 +29,7 @@ class PubMedDiscriminator(pl.LightningModule):
 
         self.input_dropout = nn.Dropout(p=self.hparams['dropout_rate'])
         layers = []
-        hidden_sizes = [self.sentence_embedding_size * self.max_sentences_per_abstract * 2] + self.hparams['hidden_sizes']
+        hidden_sizes = [self.sentence_embedding_size * self.max_sentences_per_abstract * 2] + self.hparams['hidden_sizes'] + [1]
         for i in range(len(hidden_sizes) - 1):
             layers.extend(
                 [nn.Linear(hidden_sizes[i],
@@ -37,13 +37,10 @@ class PubMedDiscriminator(pl.LightningModule):
                  nn.LeakyReLU(0.2, inplace=True),
                  nn.Dropout(self.hparams['dropout_rate'])])
 
-        self.layers = nn.Sequential(*layers)  # per il flatten
-        self.logit = nn.Linear(hidden_sizes[-1], 1)  # +1 for the probability of this sample being fake/real.
-        self.loss_func = nn.Softmax(dim=-1)
-
+        self.classifier = nn.Sequential(*layers)  # per il flatten
         # self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
         # # todo : why reduction='none'
-        # self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
+        self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
         self.empty_batch_count = 0
 
     def forward(self):

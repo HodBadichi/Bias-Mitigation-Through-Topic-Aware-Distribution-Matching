@@ -78,10 +78,19 @@ class PubMedModule(pl.LightningDataModule):
     def setup(self, stage=None):
         # Runs on all gpus
         # Data set instances (val, train, test)
+        suffix = ''
+        if self.hparams['similarity_metric'] == 'cross_entropy':
+            suffix += 'CE'
+            if self.hparams['reset_different_topic_entries_flag'] == 1:
+                suffix +='_RESET'
+        else:
+            suffix += 'CS'
 
-        self.train = PubMedDataSet(self.train_df, self.hparams, "train", self.hparams['SimilarityMatrixPathTrain'], self.hparams['ProbabilityMatrixPathTrain'])
-        self.val = PubMedDataSet(self.val_df, self.hparams, "val", self.hparams['SimilarityMatrixPathVal'], self.hparams['ProbabilityMatrixPathVal'])
-        self.test = PubMedDataSet(self.test_df, self.hparams, "test", self.hparams['SimilarityMatrixPathTest'], self.hparams['ProbabilityMatrixPathTest'])
+            self.train = PubMedDataSet(self.train_df, self.hparams, "train", self.hparams['SimilarityMatrixPathTrain'+suffix], self.hparams['ProbabilityMatrixPathTrain'+suffix])
+            self.val = PubMedDataSet(self.val_df, self.hparams, "val", self.hparams['SimilarityMatrixPathVal'+suffix], self.hparams['ProbabilityMatrixPathVal'+suffix])
+            self.test = PubMedDataSet(self.test_df, self.hparams, "test", self.hparams['SimilarityMatrixPathTest'+suffix], self.hparams['ProbabilityMatrixPathTest'+suffix])
+
+
 
     def train_dataloader(self):
         # data set, batch size, shuffel, workers
