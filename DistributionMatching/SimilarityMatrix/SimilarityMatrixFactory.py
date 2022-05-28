@@ -18,4 +18,6 @@ class SimilarityMatrixFactory:
 if __name__ == '__main__':
     df = pd.read_csv(rf'../../data/abstract_2005_2020_gender_and_topic.csv',
                      encoding='utf8')
-    matrix = SimilarityMatrixFactory.create(df, similarity_metric='cosine_similarity')
+    train_df = df.loc[df['belongs_to_group'] == 'train']
+    train_df = train_df.reset_index()
+    matrix = SimilarityMatrixFactory.create(train_df, similarity_metric='cosine_similarity', df_name="train")

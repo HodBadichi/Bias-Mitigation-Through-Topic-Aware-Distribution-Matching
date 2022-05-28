@@ -62,8 +62,7 @@ class PubMedModule(pl.LightningDataModule):
         # train_test_split was done once and in order to make sure we keep the same groups
         # we will use the "belong to group" column
 
-        # train_df, testing_df = train_test_split(self.documents_df, test_size=self.hparams['test_size'],random_state=42)
-        # test_df, val_df = train_test_split(testing_df, test_size=0.5, random_state=42)
+
         train_df = self.documents_df.loc[self.documents_df['belongs_to_group'] == 'train']
         test_df = self.documents_df.loc[self.documents_df['belongs_to_group'] == 'test']
         val_df = self.documents_df.loc[self.documents_df['belongs_to_group'] == 'val']
