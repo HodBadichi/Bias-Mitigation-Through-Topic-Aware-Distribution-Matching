@@ -9,9 +9,7 @@ from sklearn.metrics import roc_auc_score, accuracy_score
 import pandas as pd
 import pytorch_lightning as pl
 from torch import nn
-from transformers import AutoTokenizer, BertForMaskedLM
 from sentence_transformers import SentenceTransformer
-from DistributionMatching.text_utils import break_sentence_batch
 
 
 class PubMedDiscriminator(pl.LightningModule):
@@ -22,10 +20,10 @@ class PubMedDiscriminator(pl.LightningModule):
         # The linear layer if from 2 concat abstract (1 is bias and 1 unbiased) to binary label:
         # 1 - the couple of matching docs was [biased,unbiased]
         # 0 - the couple of matching docs was [unbiased,biased]
-
+        self.sentence_embedding_size = 384
         self.input_dropout = nn.Dropout(p=self.hparams['dropout_rate'])
         layers = []
-        hidden_sizes = [self.sentence_embedding_size * self.max_sentences_per_abstract * 2] + self.hparams['hidden_sizes']
+        hidden_sizes = [self.sentence_embedding_size * 3] + self.hparams['hidden_sizes'] + [1]
         for i in range(len(hidden_sizes) - 1):
             layers.extend(
                 [nn.Linear(hidden_sizes[i],
@@ -33,12 +31,10 @@ class PubMedDiscriminator(pl.LightningModule):
                  nn.LeakyReLU(0.2, inplace=True),
                  nn.Dropout(self.hparams['dropout_rate'])])
 
-        self.layers = nn.Sequential(*layers)  # per il flatten
-
-
+        self.classifier = nn.Sequential(*layers)  # per il flatten
         # self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
         # # todo : why reduction='none'
-        # self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
+        self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
         self.empty_batch_count = 0
 
     def forward(self):
@@ -89,9 +85,6 @@ class PubMedDiscriminator(pl.LightningModule):
         """
         result_dictionary = {}
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
-        print(1)
-        result_dictionary['mlm_loss'] = 0
-        result_dictionary['optimizer_idx'] = 0
         assert (len(batch) > 0)
         clean_discriminator_batch = self._discriminator_clean_batch(batch)
         if len(clean_discriminator_batch) == 0:
@@ -99,19 +92,16 @@ class PubMedDiscriminator(pl.LightningModule):
             return None
         assert (len(clean_discriminator_batch) > 0)
         discriminator_y_true = torch.as_tensor([float(random.choice([0, 1])) for _ in clean_discriminator_batch])
-        print(2)
         result_dictionary['y_true'] = discriminator_y_true
         # discriminator_y_true created in order to shuffle the bias/unbiased order
         discriminator_predictions = self._discriminator_get_predictions(clean_discriminator_batch, discriminator_y_true)
         all_samples_losses = self.loss_func(discriminator_predictions, discriminator_y_true.to(self.device))
-        print(3)
         discriminator_loss = all_samples_losses.mean()
         result_dictionary['loss'] = discriminator_loss
         result_dictionary['losses'] = all_samples_losses
         self.log(f'discriminator/{name}_loss', discriminator_loss, batch_size=self.hparams['batch_size'])
         y_proba = self._y_pred_to_probabilities(discriminator_predictions).cpu().detach()
         result_dictionary['y_proba'] = y_proba
-        print(4)
         result_dictionary['y_score'] = discriminator_y_true.cpu().detach() * y_proba + (
                 1 - discriminator_y_true.cpu().detach()) * (1 - y_proba)
         if not all(discriminator_y_true) and any(discriminator_y_true):
