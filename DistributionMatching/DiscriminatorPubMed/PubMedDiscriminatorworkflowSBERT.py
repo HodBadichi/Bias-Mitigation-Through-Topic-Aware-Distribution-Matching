@@ -63,6 +63,7 @@ def prepare_arguments():
     new_hparams['ProbabilityMatrixPathVal'] = os.path.join(os.pardir, 'PubMed', prob_matrix_str + 'val')
     new_hparams['SimilarityMatrixPathTest'] = os.path.join(os.pardir, 'PubMed', sim_matrix_str + 'test')
     new_hparams['ProbabilityMatrixPathTest'] = os.path.join(os.pardir, 'PubMed', prob_matrix_str + 'test')
+    return new_hparams
 
 def Run():
     new_hparams = prepare_arguments()
