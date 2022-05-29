@@ -124,14 +124,16 @@ def bert_show_topic_frequency(model_path, model_name):
     plt.show()
 
 if (__name__ == '__main__'):
-    # loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_342_new")
-    # print(f"342 is :{len(loaded_model.get_topics())}")
-    # loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_334_new")
-    # print(f"334 is :{len(loaded_model.get_topics())}")
-    # loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_333")
-    # print(f"333 is :{len(loaded_model.get_topics())}")
-    # loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_334")
-    # print(f"334 is :{len(loaded_model.get_topics())}")
+    loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_330_new")
+    print(f"330 is :{len(loaded_model.get_topics())}")
+    loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_331_new")
+    print(f"331 is :{len(loaded_model.get_topics())}")
+    loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_332_new")
+    print(f"332 is :{len(loaded_model.get_topics())}")
+    loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_333_new")
+    print(f"333 is :{len(loaded_model.get_topics())}")
+    loaded_model = BERTopic.load(rf"bertTopic_train(81876)_n_gram_1_1_nr_topics_334_new")
+    print(f"334 is :{len(loaded_model.get_topics())}")
     # documents_path = rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project\data\abstract_2005_2020_gender.csv'
     # documents_df = pd.read_csv(documents_path, encoding='utf8')
     # new_series = bert_apply_clean(documents_df["title_and_abstract"])
@@ -139,10 +141,10 @@ if (__name__ == '__main__'):
     # documents_df.to_csv(rf'C:\Users\{os.getlogin()}\PycharmProjects\NLP_project\data\clean_abstract_2005_2020_gender.csv',
     #                   index=False)
 
-    bert_train(train_data_path=rf'clean_bert_train.csv',
-               model_path=rf'bertTopic_train(81876)',
-               min_topic_size=[330,331,332,333,334], n_gram_range=(1, 1)
-               )
+    # bert_train(train_data_path=rf'clean_bert_train.csv',
+    #            model_path=rf'bertTopic_train(81876)',
+    #            min_topic_size=[330,331,332,333,334], n_gram_range=(1, 1)
+    #            )
 
 
     # bert_coherence_evaluate(

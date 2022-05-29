@@ -28,8 +28,8 @@ class PubMedDiscriminator(pl.LightningModule):
             layers.extend(
                 [nn.Linear(hidden_sizes[i],
                            hidden_sizes[i + 1]),
-                 nn.LeakyReLU(0.2, inplace=True),
-                 nn.Dropout(self.hparams['dropout_rate'])])
+                 nn.ReLU(inplace=True)
+                 ])
 
         self.classifier = nn.Sequential(*layers)  # per il flatten
         # self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
