@@ -1,18 +1,19 @@
 import sys
-sys.path.append('/home/mor.filo/nlp_project/')
+import os
+
+if os.name !='nt':
+    sys.path.append('/home/mor.filo/nlp_project/')
 
 import pytorch_lightning as pl
 import numpy as np
-from sklearn.model_selection import train_test_split
 import pandas as pd
 from torch.utils.data import DataLoader
 
 from DistributionMatching.PubMed.PubMedDataSet import PubMedDataSet
 from DistributionMatching import utils as project_utils
 from DistributionMatching.text_utils import clean_abstracts
-
-from DistributionMatching.utils import config
 from DistributionMatching.text_utils import TextUtils
+
 
 class PubMedModule(pl.LightningDataModule):
     def __init__(self, hparams):
@@ -24,12 +25,12 @@ class PubMedModule(pl.LightningDataModule):
 
     def prepare_data(self):
         # run before setup, 1 gpu
-        '''
+        """
         :return:
         leaves docs with gender info only
         create "female_rate" col
         transform the model on the remaining docs and creates "topic"
-        '''
+        """
         # Note - transform (bert topic inference) will take ~30 minutes, check if the df already exists
         try:
             self.documents_df = pd.read_csv(self.hparams["gender_and_topic_path"], encoding='utf8')
