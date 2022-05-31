@@ -1,7 +1,7 @@
 import sys
 sys.path.append('/home/mor.filo/nlp_project/')
 import pandas as pd
-from DistributionMatching.text_utils import break_sentence_batch
+from GAN.PubMed.text_utils import break_sentence_batch
 from transformers import AutoTokenizer, BertForMaskedLM
 import torch
 

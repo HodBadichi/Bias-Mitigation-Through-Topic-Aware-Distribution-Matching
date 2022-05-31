@@ -10,9 +10,9 @@ import pytz
 from pytorch_lightning.loggers import WandbLogger
 import pytorch_lightning as pl
 
-from DistributionMatching.DiscriminatorPubMed.PubMedDiscriminatorPart import PubMedDiscriminator
-from DistributionMatching.PubMed.PubMedModule import PubMedModule
-from DistributionMatching.DiscriminatorPubMed.discriminator_hparams_config import hparams
+from GAN.DiscriminatorPubMed.PubMedDiscriminatorPartSBERT import PubMedDiscriminator
+from GAN.PubMed.PubMedModule import PubMedModule
+from GAN.DiscriminatorPubMed.discriminator_hparams_config import hparams
 
 
 def parse_cli():
@@ -48,9 +48,9 @@ def prepare_arguments():
 
     sim_matrix_str = None
     prob_matrix_str = None
-    if new_hparams['similarity_metric'] == 'cross_entropy':
+    if hparams['similarity_metric'] == 'cross_entropy':
         reset_str = ["no_reset", "reset"]
-        reset_flag = reset_str[new_hparams['reset_different_topic_entries_flag']]
+        reset_flag = reset_str[hparams['reset_different_topic_entries_flag']]
         prob_matrix_str = f'CE_prob_matrix_{reset_flag}_different_topic_entries_flag_'
         sim_matrix_str = 'CE_sim_matrix_'
     else:
@@ -65,14 +65,13 @@ def prepare_arguments():
     new_hparams['ProbabilityMatrixPathTest'] = os.path.join(os.pardir, 'PubMed', prob_matrix_str + 'test')
     return new_hparams
 
-
 def Run():
     new_hparams = prepare_arguments()
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     dm = PubMedModule(new_hparams)
     model = PubMedDiscriminator(new_hparams)
     logger = WandbLogger(
-        name='Discriminator_over_topic_and_gender_70_15_15_v2',
+        name='Discriminator_over_topic_and_gender_70_15_15_SBERT',
         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
         project='Discriminator_test',
         config=new_hparams

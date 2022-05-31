@@ -11,7 +11,7 @@ import pytorch_lightning as pl
 from torch import nn
 from transformers import AutoTokenizer, BertForMaskedLM
 
-from DistributionMatching.text_utils import break_sentence_batch
+from GAN.PubMed.text_utils import break_sentence_batch
 
 
 class PubMedDiscriminator(pl.LightningModule):

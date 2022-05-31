@@ -3,11 +3,10 @@ sys.path.append('/home/mor.filo/nlp_project/')
 import torch
 from transformers import AutoTokenizer, BertForMaskedLM
 from transformers import DataCollatorForLanguageModeling
-from sklearn.model_selection import train_test_split
 import pandas as pd
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-from DistributionMatching.text_utils import clean_abstracts, TextUtils, break_sentence_batch
+from GAN.PubMed.text_utils import clean_abstracts, TextUtils, break_sentence_batch
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from pytorch_lightning.loggers import WandbLogger

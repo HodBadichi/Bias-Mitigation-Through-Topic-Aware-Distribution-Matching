@@ -1,9 +1,9 @@
+import string
+import re
+
 import nltk.data
 from nltk.tokenize import word_tokenize
-import string
-from nltk.corpus import wordnet
-import re
-import json
+
 
 
 class TextUtils:

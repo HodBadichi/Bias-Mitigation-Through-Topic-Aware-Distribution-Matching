@@ -1,11 +1,10 @@
 import sys
 sys.path.append('/home/mor.filo/nlp_project/')
 from torch.utils.data import Dataset
-from DistributionMatching.NoahArc.NoahArcFactory import NoahArcFactory
-from DistributionMatching.SimilarityMatrix.SimilarityMatrixFactory import SimilarityMatrixFactory
+from DistributionMatching.NoahArc.src.NoahArcFactory import NoahArcFactory
+from DistributionMatching.SimilarityMatrix.src.SimilarityMatrixFactory import SimilarityMatrixFactory
 import DistributionMatching.utils as project_utils
-from DistributionMatching.utils import config
-from DistributionMatching.text_utils import TextUtils
+from GAN.PubMed.text_utils import TextUtils
 
 
 class PubMedDataSet(Dataset):
@@ -21,7 +20,7 @@ class PubMedDataSet(Dataset):
 
     def __getitem__(self, index):
         batch_entry = {}
-        similar_document_index = self.Matcher.get_match(index)
+        similar_document_index = self.Matcher.GetMatch(index)
         if similar_document_index is not None:
             similar_document_broken_abstracts = self.documents_dataframe['broken_abstracts'][similar_document_index]
         else:
@@ -31,7 +30,7 @@ class PubMedDataSet(Dataset):
         #This field will ease MLM loss calculation
         batch_entry['origin_text'] = origin_document_broken_abstracts
 
-        if project_utils.are_women_minority(index, self.Matcher.documents_dataframe):
+        if project_utils.AreWomenMinority(index, self.Matcher.documents_dataframe):
             batch_entry['biased'] = origin_document_broken_abstracts
             batch_entry['unbiased'] = similar_document_broken_abstracts
         else:

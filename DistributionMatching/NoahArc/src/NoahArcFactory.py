@@ -1,10 +1,8 @@
-import sys
-import os
-if os.name != 'nt':
-    sys.path.append('/home/mor.filo/nlp_project/')
+from DistributionMatching.NoahArc.src.NoahArcCE import NoahArcCE
+from DistributionMatching.NoahArc.src.NoahArcCS import NoahArcCS
 
-from DistributionMatching.NoahArc.NoahArcCE import NoahArcCE
-from DistributionMatching.NoahArc.NoahArcCS import NoahArcCS
+""" NoahArcFactory implementation factory of 'NoahArc'
+"""
 
 
 class NoahArcFactory:
@@ -15,7 +13,7 @@ class NoahArcFactory:
             similarity_matrix,
             reset_different_topic_entries_flag,
             df_name,
-            ProbabilityMatrixPath = ''
+            ProbabilityMatrixPath=''
     ):
         if similarity_metric == "cross_entropy":
             return NoahArcCE(
@@ -34,5 +32,3 @@ class NoahArcFactory:
                 ProbabilityMatrixPath
             )
         raise NotImplementedError("`NoahArcFactory` unsupported metric")
-
-
