@@ -2,9 +2,8 @@ import torch
 import numpy as np
 from abc import abstractmethod
 
-import DistributionMatching.utils as project_utils
-from GAN.PubMed.hparams_config import hparams
-
+import DistributionMatching.Utils.Utils as project_utils
+from DistributionMatching.Utils.Config import config
 """
 NoahArc implementation , abstract class used to supply NoahArc interface to match between 'biased' and 'unbiased' documents
 according to a certain similarity metric.
@@ -36,10 +35,7 @@ class NoahArc:
         if self.PossibleMatches(document_index) == 0:
             return None
         probabilities = self.probability_matrix[document_index]
-        if hparams['DEBUG_FLAG'] is True:
-            similar_doc_index = (torch.argmax(probabilities)).item()
-        else:
-            similar_doc_index = np.random.choice(range(0, len(self.probability_matrix)), 1, p=probabilities)[0]
+        similar_doc_index = np.random.choice(range(0, len(self.probability_matrix)), 1, p=probabilities)[0]
         return similar_doc_index
 
     def PossibleMatches(self, document_index):
@@ -96,7 +92,7 @@ class NoahArc:
 
     def _GetProbabilityMatrixZerosRows(self):
         zeroed_rows_indexes = [idx for idx, row in enumerate(self._similarity_matrix) if
-                               torch.count_nonzero(row).item() <= project_utils.config['minimum_documents_matches']]
+                               torch.count_nonzero(row).item() <= config['minimum_documents_matches'][self.df_name]]
         return zeroed_rows_indexes
 
     def _PutZerosInRows(self, indices, probability_matrix):

@@ -27,7 +27,6 @@ hparams = {'learning_rate': 2e-5,
            'max_length_bert_input': 50,
            'max_sentences_per_abstract': 20,
            'SAVE_PATH': "/home/mor.filo/nlp_project/DistributionMatching/PubMed/Models",
-           'DEBUG_FLAG': False
            }
 
 # 'SimilarityMatrixPath': '../NoahArc/CE_sim_matrix',

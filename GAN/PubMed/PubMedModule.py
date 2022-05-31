@@ -10,7 +10,7 @@ import pandas as pd
 from torch.utils.data import DataLoader
 
 from GAN.PubMed.PubMedDataSet import PubMedDataSet
-from DistributionMatching import utils as project_utils
+from DistributionMatching.Utils import Utils as project_utils
 from GAN.PubMed.text_utils import clean_abstracts
 from GAN.PubMed.text_utils import TextUtils
 
@@ -28,7 +28,7 @@ class PubMedModule(pl.LightningDataModule):
         """
         :return:
         leaves docs with gender info only
-        create "female_rate" col
+        Create "female_rate" col
         transform the model on the remaining docs and creates "topic"
         """
         # Note - transform (bert topic inference) will take ~30 minutes, check if the df already exists

@@ -32,7 +32,7 @@ def parse_cli():
         "--similarity_metric",
         "-M",
         choices=['cross_entropy', 'cosine_similarity'],
-        help="Which similarity to create",
+        help="Which similarity to Create",
         required=False
     )
     args = parser.parse_args()

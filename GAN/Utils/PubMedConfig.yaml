@@ -2,23 +2,8 @@
 data:
   full_path : ..\..\data\abstract_2005_2020_full.csv
   gender_and_topic_path: ..\..\data\abstract_2005_2020_gender_and_topic.csv
-testing_size : 0.3
-# similarity_type : "cosine_similarity" \ "cross_entropy"
-similarity_metric: cross_entropy
-reset_different_topic_entries_flag: 1
 women_minority_threshold:  0.5
 minimum_documents_matches: 5
 
-train:
-  batch_size: 64
-
-test:
-  batch_size: 64
-
-val:
-  batch_size: 64
-
 models:
   topic_model_path: ..\TopicModeling\Bert\src\bertTopic_train(81876)_n_gram_1_1_min_topic_size_50_with_probs
-  bert_tokenizer : 'google/bert_uncased_L-2_H-128_A-2'
-  bert_pretrained_path :

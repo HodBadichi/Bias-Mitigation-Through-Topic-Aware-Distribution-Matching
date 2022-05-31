@@ -162,7 +162,7 @@ def RunNumberOfTopicsExperiment():
     InitializeLogger()
     train_set, test_set = PrepareData()
 
-    #   Gensim LDA preparation - create corpus and id2word
+    #   Gensim LDA preparation - Create corpus and id2word
     train_LDA_params = GetLDAParams(train_set)
     test_LDA_params = GetLDAParams(test_set)
 

@@ -7,7 +7,7 @@ from DistributionMatching.SimilarityMatrix.src.SimilarityMatrixCS import Similar
 
 class SimilarityMatrixFactory:
     @staticmethod
-    def create(documents_dataframe, similarity_metric, df_name, SimilarityMatrixPath=''):
+    def Create(documents_dataframe, similarity_metric, df_name, SimilarityMatrixPath=''):
         if similarity_metric == "cross_entropy":
             return SimilarityMatrixCE(documents_dataframe, df_name, SimilarityMatrixPath)
         elif similarity_metric == "cosine_similarity":

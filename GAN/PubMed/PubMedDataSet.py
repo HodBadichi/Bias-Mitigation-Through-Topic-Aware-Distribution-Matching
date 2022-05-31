@@ -3,7 +3,7 @@ sys.path.append('/home/mor.filo/nlp_project/')
 from torch.utils.data import Dataset
 from DistributionMatching.NoahArc.src.NoahArcFactory import NoahArcFactory
 from DistributionMatching.SimilarityMatrix.src.SimilarityMatrixFactory import SimilarityMatrixFactory
-import DistributionMatching.utils as project_utils
+import DistributionMatching.Utils.Utils as project_utils
 from GAN.PubMed.text_utils import TextUtils
 
 
@@ -39,9 +39,9 @@ class PubMedDataSet(Dataset):
         return batch_entry
 
     def build_noah_arc(self, df_name, SimilarityMatrixPath, ProbabilityMatrixPath):
-        similarity_matrix = SimilarityMatrixFactory.create(self.documents_dataframe, self.hparams.similarity_metric,
+        similarity_matrix = SimilarityMatrixFactory.Create(self.documents_dataframe, self.hparams.similarity_metric,
                                                            df_name, SimilarityMatrixPath)
-        probability_matrix = NoahArcFactory.create(self.documents_dataframe, self.hparams.similarity_metric,
+        probability_matrix = NoahArcFactory.Create(self.documents_dataframe, self.hparams.similarity_metric,
                                                    similarity_matrix, self.hparams.reset_different_topic_entries_flag,
                                                    df_name, ProbabilityMatrixPath)
         return probability_matrix

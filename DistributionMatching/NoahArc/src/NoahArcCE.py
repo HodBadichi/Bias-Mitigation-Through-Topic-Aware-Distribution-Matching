@@ -21,7 +21,7 @@ class NoahArcCE(NoahArc):
         """
             :param dataframe:pandas dataframe
             :param similarity_matrix: SimilarityMatrix class, holds the similarity between all the documents
-            :param reset_diff_topic_entries_flag:Bool, whether to allow or not allow matches between documents from common topic
+            :param reset_different_topic_entries_flag:Bool, whether to allow or not allow matches between documents from common topic
             :param df_name: string, 'train' or 'test'
             :param ProbabilityMatrixPath: Path, in case the probability matrix already exists
             :return:None

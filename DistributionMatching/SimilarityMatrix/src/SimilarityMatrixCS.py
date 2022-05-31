@@ -17,13 +17,13 @@ class SimilarityMatrixCS(SimilarityMatrix):
         if os.path.isfile(self.SimilarityMatrixPath):
             self.matrix = torch.load(self.SimilarityMatrixPath)
         else:
-            self.matrix = self._calc_similarities()
+            self.matrix = self._CalcSimilarities()
             torch.save(self.matrix, f"CS_sim_matrix_{df_name}")
 
-    def _calc_similarities(self):
+    def _CalcSimilarities(self):
         """
             denote ce(i,j) : the cosine similarity of doc i embeddings and doc j embeddings
-            create the cosine similarity similarity matrix where each value
+            Create the cosine similarity similarity matrix where each value
             similarity_matrix[i][j] = (i embeddings)dot(j embeddings)/max(l2_norm(i embeddings)*l2_norm(j embeddings),eps)
         """
         clean_abstracts = self.documents_dataframe['broken_abstracts']

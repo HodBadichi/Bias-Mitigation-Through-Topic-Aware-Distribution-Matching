@@ -20,7 +20,7 @@ class SimilarityMatrix:
         self.matrix = None
 
     @abstractmethod
-    def _calc_similarities(self):
+    def _CalcSimilarities(self):
         """
         this function calculate all the similarities between the documents in the dataframe
         """

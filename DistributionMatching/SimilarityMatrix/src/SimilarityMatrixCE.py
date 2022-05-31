@@ -4,30 +4,28 @@ import torch
 
 from DistributionMatching.SimilarityMatrix.src.SimilarityMatrix import SimilarityMatrix
 
-
 """SimilarityMatrixCE implementation
 inherits from 'SimilarityMatrix' , measure similarity between documents with cross entropy  
 """
+
+
 class SimilarityMatrixCE(SimilarityMatrix):
     def __init__(self, documents_dataframe, df_name, SimilarityMatrixPath):
         super().__init__(documents_dataframe, df_name, SimilarityMatrixPath)
         if os.path.isfile(self.SimilarityMatrixPath):
             self.matrix = torch.load(self.SimilarityMatrixPath)
         else:
-            self.matrix = self._calc_similarities()
+            self.matrix = self._CalcSimilarities()
             torch.save(self.matrix, f"CE_sim_matrix_{df_name}")
 
-    def _calc_similarities(self):
+    def _CalcSimilarities(self):
         probs = self.documents_dataframe['probs'].apply(lambda x: json.loads(x))
-        print(type(probs))
-        print(type(probs.iloc[0]))
-        print(probs.shape)
         tensor_probs = torch.as_tensor(probs)  # shape num_of_docs X num_of_topics (distribution for every doc)
-        res = self._cross_entropy(tensor_probs, tensor_probs)  # tensor shape num_of_docs X num_of_docs
+        res = self._CrossEntropy(tensor_probs, tensor_probs)  # tensor shape num_of_docs X num_of_docs
         return res
 
     @staticmethod
-    def _cross_entropy(prob1_vector, prob2_vector, eps=1e-21):
+    def _CrossEntropy(prob1_vector, prob2_vector, eps=1e-21):
         """
             :param prob1_vector: tensor that represent probability
             :param prob2_vector: tensor that represent probability

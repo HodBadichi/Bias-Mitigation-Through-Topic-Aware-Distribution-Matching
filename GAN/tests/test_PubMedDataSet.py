@@ -1,7 +1,7 @@
 import pandas as pd
 
 from GAN.PubMed.PubMedDataSet import PubMedDataSet
-from DistributionMatching.utils import config
+from DistributionMatching.Utils.Utils import config
 from GAN.PubMed.text_utils import clean_abstracts
 
 

@@ -7,7 +7,7 @@ from DistributionMatching.NoahArc.src.NoahArcCS import NoahArcCS
 
 class NoahArcFactory:
     @staticmethod
-    def create(
+    def Create(
             dataframe,
             similarity_metric,
             similarity_matrix,
