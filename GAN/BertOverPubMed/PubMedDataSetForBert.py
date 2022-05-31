@@ -26,6 +26,7 @@ class PubMedDataSetForBert(Dataset):
     def __getitem__(self, index):
         return {'text': self.df.iloc[index]["broken_abstracts"]}
 
+
 class PubMedModuleForBert(pl.LightningDataModule):
     def __init__(self):
         super().__init__()

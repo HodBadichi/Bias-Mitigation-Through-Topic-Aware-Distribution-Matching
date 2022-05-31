@@ -48,6 +48,8 @@ def BertCoherenceGraph(evaluation_file_name, result_dir):
     column_names = train_df.columns
 
     for measure, ax in zip(column_names, axis.ravel()):
+        if (measure == "Topics") or (measure == "Model"):
+            continue
         train_scores = train_df[measure].tolist()
         # validation_scores=validation_df[measure].tolist()
         ax.plot(train_df.Topics.tolist(), train_scores, label="Train")
@@ -164,22 +166,22 @@ def RunTuningProcess(train_set, saved_models_directory, min_topic_size_range, n_
 
 def RunMinTopicSizeExperiment():
     np.random.seed(42)
-    saved_models_directory_path = os.path.join(os.pardir,os.pardir, 'saved_models')
-    results_directory_path = os.path.join(os.pardir,os.pardir, 'results')
+    saved_models_directory_path = os.path.join(os.pardir, os.pardir, 'saved_models')
+    results_directory_path = os.path.join(os.pardir, os.pardir, 'results')
     os.makedirs(saved_models_directory_path, exist_ok=True)
     os.makedirs(results_directory_path, exist_ok=True)
 
     train_set, test_set = PrepareData()
 
     #   Choose Hyperparameters:
-    # min_topic_size_range = [340, 345, 350]
-    # n_gram_range = (1, 1)
-    # trained_models_list = RunTuningProcess(
-    #     train_set=train_set,
-    #     saved_models_directory=saved_models_directory_path,
-    #     min_topic_size_range=min_topic_size_range,
-    #     n_gram_range=n_gram_range,
-    # )
+    min_topic_size_range = [340, 345, 350]
+    n_gram_range = (1, 1)
+    trained_models_list = RunTuningProcess(
+        train_set=train_set,
+        saved_models_directory=saved_models_directory_path,
+        min_topic_size_range=min_topic_size_range,
+        n_gram_range=n_gram_range,
+    )
     trained_models_list = ['bertTopic_train(81876)_n_gram_1_1_min_topic_size_50_with_probs']
     BertCoherenceEvaluate(
         train_set=train_set,
@@ -188,14 +190,14 @@ def RunMinTopicSizeExperiment():
         results_dir=results_directory_path,
     )
 
-    # for model in trained_models_list:
-    #     BertVisualize(
-    #         models_dir=saved_models_directory_path,
-    #         result_dir=results_directory_path,
-    #         model_name=model,
-    #         top_n_topics=20,
-    #         n_words_per_topic=15,
-    #     )
+    for model in trained_models_list:
+        BertVisualize(
+            models_dir=saved_models_directory_path,
+            result_dir=results_directory_path,
+            model_name=model,
+            top_n_topics=20,
+            n_words_per_topic=15,
+        )
 
     BertCoherenceGraph(
         evaluation_file_name=f'evaluate_{getCurrRunTime()}.csv',
