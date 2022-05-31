@@ -75,7 +75,8 @@ def CleanDocument(dirty_document):
 
 
 def CleanText(documents_df):
-    return documents_df.apply(CleanDocument)
+    documents_df = documents_df.apply(CleanDocument)
+
 
 
 def BertCoherenceEvaluate(train_set, models_dir, models_list, results_dir):
@@ -90,7 +91,7 @@ def BertCoherenceEvaluate(train_set, models_dir, models_list, results_dir):
     # calculate coherence
     result_path = os.path.join(results_dir, f'evaluate_{getCurrRunTime()}')
     my_dict = {"Model": 6, "Topics": 5, "u_mass": 4, "c_uci": 3, "c_npmi": 2, "c_v": 1}
-    docs = train_set.title_and_abstract.to_list()
+    docs = train_set.title_and_abstract.dropna().to_list()
     for model in models_list:
         loaded_model = BERTopic.load(rf"{models_dir}\{model}")
         loaded_topics = loaded_model._map_predictions(loaded_model.hdbscan_model.labels_)
@@ -110,11 +111,11 @@ def PrepareData():
 
     :return: tuple of dataframes , train and test
     """
-    data_directory = os.path.join(os.pardir, 'data')
+    data_directory = os.path.join(os.pardir, os.pardir, os.pardir, 'data')
     os.makedirs(data_directory, exist_ok=True)
 
-    full_data_path = os.path.join(os.pardir, 'data', 'abstract_2005_2020_full.csv')
-    clean_data_path = os.path.join(os.pardir, 'data', 'abstract_2005_2020_full_clean_BERT.csv')
+    full_data_path = os.path.join(os.pardir, os.pardir, os.pardir, 'data', 'abstract_2005_2020_full.csv')
+    clean_data_path = os.path.join(os.pardir, os.pardir, os.pardir, 'data', 'abstract_2005_2020_full_clean_BERT.csv')
 
     #   Load full dataframe
     if not os.path.exists(full_data_path):
@@ -151,7 +152,7 @@ def RunTuningProcess(train_set, saved_models_directory, min_topic_size_range, n_
     """
     saved_models_list = []
     # convert` to list
-    docs = train_set.title_and_abstract.to_list()
+    docs = train_set.title_and_abstract.dropna().to_list()
     for topic_size in min_topic_size_range:
         model = BERTopic(verbose=True, n_gram_range=n_gram_range, min_topic_size=topic_size)
         topics, probabilities = model.fit_transform(docs)
@@ -163,23 +164,23 @@ def RunTuningProcess(train_set, saved_models_directory, min_topic_size_range, n_
 
 def RunMinTopicSizeExperiment():
     np.random.seed(42)
-    saved_models_directory_path = os.path.join(os.pardir, 'saved_models')
-    results_directory_path = os.path.join(os.pardir, 'results')
+    saved_models_directory_path = os.path.join(os.pardir,os.pardir, 'saved_models')
+    results_directory_path = os.path.join(os.pardir,os.pardir, 'results')
     os.makedirs(saved_models_directory_path, exist_ok=True)
     os.makedirs(results_directory_path, exist_ok=True)
 
     train_set, test_set = PrepareData()
 
     #   Choose Hyperparameters:
-    min_topic_size_range = [330, 331, 332, 333, 334]
-    n_gram_range = (1, 1)
-    trained_models_list = RunTuningProcess(
-        train_set=train_set,
-        saved_models_directory=saved_models_directory_path,
-        min_topic_size_range=min_topic_size_range,
-        n_gram_range=n_gram_range,
-    )
-
+    # min_topic_size_range = [340, 345, 350]
+    # n_gram_range = (1, 1)
+    # trained_models_list = RunTuningProcess(
+    #     train_set=train_set,
+    #     saved_models_directory=saved_models_directory_path,
+    #     min_topic_size_range=min_topic_size_range,
+    #     n_gram_range=n_gram_range,
+    # )
+    trained_models_list = ['bertTopic_train(81876)_n_gram_1_1_min_topic_size_50_with_probs']
     BertCoherenceEvaluate(
         train_set=train_set,
         models_dir=saved_models_directory_path,

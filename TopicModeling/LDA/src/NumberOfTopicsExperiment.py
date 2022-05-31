@@ -105,8 +105,8 @@ def RunTuningProcess(
     }
     logging.info(params_dictionary)
 
-    models_directory_path = os.path.join(os.pardir, 'saved_models')
-    result_directory_path = os.path.join(os.pardir, 'results')
+    models_directory_path = os.path.join(os.pardir, os.pardir, 'saved_models')
+    result_directory_path = os.path.join(os.pardir, os.pardir, 'results')
     os.makedirs(models_directory_path, exist_ok=True)
     os.makedirs(result_directory_path, exist_ok=True)
 
