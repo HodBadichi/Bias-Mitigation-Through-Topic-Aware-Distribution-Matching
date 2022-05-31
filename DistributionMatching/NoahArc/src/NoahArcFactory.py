@@ -13,7 +13,6 @@ class NoahArcFactory:
             similarity_matrix,
             reset_different_topic_entries_flag,
             df_name,
-            ProbabilityMatrixPath=''
     ):
         if similarity_metric == "cross_entropy":
             return NoahArcCE(
@@ -21,7 +20,6 @@ class NoahArcFactory:
                 similarity_matrix,
                 reset_different_topic_entries_flag,
                 df_name,
-                ProbabilityMatrixPath
             )
         elif similarity_metric == "cosine_similarity":
             return NoahArcCS(
@@ -29,6 +27,5 @@ class NoahArcFactory:
                 similarity_matrix,
                 reset_different_topic_entries_flag,
                 df_name,
-                ProbabilityMatrixPath
             )
         raise NotImplementedError("`NoahArcFactory` unsupported metric")

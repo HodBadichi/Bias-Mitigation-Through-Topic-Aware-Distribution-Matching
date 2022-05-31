@@ -10,13 +10,18 @@ inherits from 'SimilarityMatrix' , measure similarity between documents with cro
 
 
 class SimilarityMatrixCE(SimilarityMatrix):
-    def __init__(self, documents_dataframe, df_name, SimilarityMatrixPath):
-        super().__init__(documents_dataframe, df_name, SimilarityMatrixPath)
-        if os.path.isfile(self.SimilarityMatrixPath):
-            self.matrix = torch.load(self.SimilarityMatrixPath)
+    def __init__(self, documents_dataframe, df_name, ):
+        super().__init__(documents_dataframe, df_name, )
+        matrix_file_name = f"CE_sim_matrix_{df_name}"
+        similarity_matrix_path = os.path.join(os.pardir, os.pardir, os.pardir, 'data', matrix_file_name)
+        if os.path.isfile(similarity_matrix_path):
+            print("Matching similarity matrix already exists, Loading ...")
+            self.matrix = torch.load(similarity_matrix_path)
         else:
+            print("Calculates CE similarity matrix...")
             self.matrix = self._CalcSimilarities()
-            torch.save(self.matrix, f"CE_sim_matrix_{df_name}")
+            print("Saving CE similarity matrix...")
+            torch.save(self.matrix, similarity_matrix_path)
 
     def _CalcSimilarities(self):
         probs = self.documents_dataframe['probs'].apply(lambda x: json.loads(x))

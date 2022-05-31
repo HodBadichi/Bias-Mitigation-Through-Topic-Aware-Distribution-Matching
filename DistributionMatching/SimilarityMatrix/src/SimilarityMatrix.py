@@ -7,15 +7,13 @@ in a dataframe. where the (i,j) entrance represents the similarity between docum
 
 
 class SimilarityMatrix:
-    def __init__(self, documents_dataframe, df_name, SimilarityMatrixPath):
+    def __init__(self, documents_dataframe, df_name, ):
         """
         :param documents_dataframe: dataframe, all the documents
         :param df_name: String, whether it is train or test
-        :param SimilarityMatrixPath: Path, in case the matrix is already saved
-        :return:
+        :return:None
         """
         self.documents_dataframe = documents_dataframe
-        self.SimilarityMatrixPath = SimilarityMatrixPath
         self.df_name = df_name
         self.matrix = None
 

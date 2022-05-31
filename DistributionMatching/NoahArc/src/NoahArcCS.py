@@ -15,28 +15,29 @@ class NoahArcCS(NoahArc):
             similarity_matrix,
             reset_different_topic_entries_flag,
             df_name,
-            ProbabilityMatrixPath
     ):
         """
             :param dataframe:pandas dataframe
             :param similarity_matrix: SimilarityMatrix class, holds the similarity between all the documents
             :param reset_diff_topic_entries_flag:Bool, whether to allow or not allow matches between documents from common topic
             :param df_name: string, 'train' or 'test'
-            :param ProbabilityMatrixPath: Path, in case the probability matrix already exists
             :return:None
         """
         super().__init__(
             dataframe,
             similarity_matrix,
             reset_different_topic_entries_flag,
-            df_name, ProbabilityMatrixPath
+            df_name,
         )
-        if os.path.isfile(self.ProbabilityMatrixPath):
-            self.probability_matrix = torch.load(self.ProbabilityMatrixPath)
+        reset_str = ["no_reset", "reset"]
+        matrix_file_name = f"CS_prob_matrix_{reset_str[reset_different_topic_entries_flag]}_different_topic_entries_flag_{df_name}"
+        probability_matrix_path = os.path.join(os.pardir, os.pardir, os.pardir, 'data', matrix_file_name)
+        if os.path.isfile(probability_matrix_path):
+            self.probability_matrix = torch.load(probability_matrix_path)
         else:
             self._ResetSameBiasEntries(bias_by_topic=False)
             self.probability_matrix = self._CalcProbabilities()
-            torch.save(self.probability_matrix, f"CS_prob_matrix_with_BERTopic_clean_{df_name}")
+            torch.save(self.probability_matrix, probability_matrix_path)
 
     def _CalcProbabilities(self):
         """
