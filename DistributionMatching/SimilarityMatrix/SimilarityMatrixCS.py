@@ -28,5 +28,5 @@ class SimilarityMatrixCS(SimilarityMatrix):
         clean_abstracts = self.documents_dataframe['broken_abstracts']
         SentenceTransformerModel = SentenceTransformer('all-MiniLM-L6-v2')
         sentence_embeddings = SentenceTransformerModel.encode(clean_abstracts, convert_to_tensor=True)
-        matrix = torch.as_tensor(cosine_similarity(sentence_embeddings, sentence_embeddings))
+        matrix = torch.as_tensor(cosine_similarity(sentence_embeddings.cpu(), sentence_embeddings.cpu()))
         return matrix
