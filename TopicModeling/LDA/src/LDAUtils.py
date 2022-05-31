@@ -59,11 +59,11 @@ def PrepareData():
     nltk.download('omw-1.4', quiet=True)
     nltk.download('stopwords', quiet=True)
 
-    data_directory = os.path.join(os.pardir, 'data')
+    data_directory = os.path.join(os.pardir, os.pardir, os.pardir, 'data')
     os.makedirs(data_directory, exist_ok=True)
 
-    full_data_path = os.path.join(os.pardir, 'data', 'abstract_2005_2020_full.csv')
-    clean_data_path = os.path.join(os.pardir, 'data', 'abstract_2005_2020_full_clean_LDA.csv')
+    full_data_path = os.path.join(os.pardir, os.pardir, os.pardir, 'data', 'abstract_2005_2020_full.csv')
+    clean_data_path = os.path.join(os.pardir, os.pardir, os.pardir, 'data', 'abstract_2005_2020_full_clean_LDA.csv')
 
     #   Load full dataframe
     if not os.path.exists(full_data_path):
