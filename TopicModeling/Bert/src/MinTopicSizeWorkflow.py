@@ -12,7 +12,7 @@ from TopicModeling.Utils.Metrics import BertTopicMetrics
 from TopicModeling.Utils.TopcModelingUtils import getCurrRunTime, IsAscii
 
 
-def BertVisualize(model_path, result_dir, model_name, top_n_topics, n_words_per_topic):
+def BertVisualize(models_dir, result_dir, model_name, top_n_topics, n_words_per_topic):
     """
     Create html with 2 figures:
     bar chart (main words in the topic) https://maartengr.github.io/BERTopic/api/bertopic.html#bertopic._bertopic.BERTopic.visualize_barchart
@@ -25,6 +25,7 @@ def BertVisualize(model_path, result_dir, model_name, top_n_topics, n_words_per_
     :return: None
     """
     # visualize model results and save it to html file
+    model_path = os.path.join(models_dir, model_name)
     loaded_model = BERTopic.load(model_path)
     fig1 = loaded_model.visualize_barchart(top_n_topics=top_n_topics, n_words=n_words_per_topic)
     fig2 = loaded_model.visualize_topics()
@@ -47,7 +48,7 @@ def BertCoherenceGraph(evaluation_file_name, result_dir):
     column_names = train_df.columns
 
     for measure, ax in zip(column_names, axis.ravel()):
-        if measure == 'Topics':
+        if (measure == "Topics") or (measure == "Model"):
             continue
         train_scores = train_df[measure].tolist()
         # validation_scores=validation_df[measure].tolist()
@@ -75,7 +76,7 @@ def CleanDocument(dirty_document):
 
 
 def CleanText(documents_df):
-    documents_df = documents_df.apply(CleanDocument)
+    return documents_df.apply(CleanDocument)
 
 
 
@@ -89,16 +90,17 @@ def BertCoherenceEvaluate(train_set, models_dir, models_list, results_dir):
     :return: None
     """
     # calculate coherence
-    result_path = os.path.join(results_dir, f'evaluate_{getCurrRunTime()}')
-    my_dict = {"Model": 6, "Topics": 5, "u_mass": 4, "c_uci": 3, "c_npmi": 2, "c_v": 1}
+    result_path = os.path.join(results_dir, f'evaluate_{getCurrRunTime()}.csv')
+    my_dict = {"Model": "Model", "Topics": "Topics", "u_mass": "u_mass", "c_uci": "c_uci", "c_npmi": "c_npmi", "c_v": "c_v"}
     docs = train_set.title_and_abstract.dropna().to_list()
-    for model in models_list:
-        loaded_model = BERTopic.load(rf"{models_dir}\{model}")
-        loaded_topics = loaded_model._map_predictions(loaded_model.hdbscan_model.labels_)
-        with open(result_path, "a") as csv_file:
+    with open(result_path, "a") as csv_file:
+        writer = csv.DictWriter(csv_file, my_dict.keys())
+        writer.writerow(my_dict)
+        for model in models_list:
+            loaded_model = BERTopic.load(rf"{models_dir}\{model}")
+            loaded_topics = loaded_model._map_predictions(loaded_model.hdbscan_model.labels_)
             my_metrics = BertTopicMetrics(loaded_model, docs, loaded_topics)
             result_dict = my_metrics.EvaluateAllMetrics()
-            writer = csv.DictWriter(csv_file, my_dict.keys())
             result_dict['Model'] = model
             result_dict['Topics'] = len(loaded_model.get_topics())
             writer.writerow(result_dict)
@@ -164,22 +166,22 @@ def RunTuningProcess(train_set, saved_models_directory, min_topic_size_range, n_
 
 def RunMinTopicSizeExperiment():
     np.random.seed(42)
-    saved_models_directory_path = os.path.join(os.pardir,os.pardir, 'saved_models')
-    results_directory_path = os.path.join(os.pardir,os.pardir, 'results')
+    saved_models_directory_path = os.path.join(os.pardir, os.pardir, 'saved_models')
+    results_directory_path = os.path.join(os.pardir, os.pardir, 'results')
     os.makedirs(saved_models_directory_path, exist_ok=True)
     os.makedirs(results_directory_path, exist_ok=True)
 
     train_set, test_set = PrepareData()
 
     #   Choose Hyperparameters:
-    # min_topic_size_range = [340, 345, 350]
-    # n_gram_range = (1, 1)
-    # trained_models_list = RunTuningProcess(
-    #     train_set=train_set,
-    #     saved_models_directory=saved_models_directory_path,
-    #     min_topic_size_range=min_topic_size_range,
-    #     n_gram_range=n_gram_range,
-    # )
+    min_topic_size_range = [340, 345, 350]
+    n_gram_range = (1, 1)
+    trained_models_list = RunTuningProcess(
+        train_set=train_set,
+        saved_models_directory=saved_models_directory_path,
+        min_topic_size_range=min_topic_size_range,
+        n_gram_range=n_gram_range,
+    )
     trained_models_list = ['bertTopic_train(81876)_n_gram_1_1_min_topic_size_50_with_probs']
     BertCoherenceEvaluate(
         train_set=train_set,
@@ -190,7 +192,7 @@ def RunMinTopicSizeExperiment():
 
     for model in trained_models_list:
         BertVisualize(
-            model_path=saved_models_directory_path,
+            models_dir=saved_models_directory_path,
             result_dir=results_directory_path,
             model_name=model,
             top_n_topics=20,
@@ -198,7 +200,7 @@ def RunMinTopicSizeExperiment():
         )
 
     BertCoherenceGraph(
-        evaluation_file_name=f'evaluate_{getCurrRunTime()}',
+        evaluation_file_name=f'evaluate_{getCurrRunTime()}.csv',
         result_dir=results_directory_path,
     )
 
