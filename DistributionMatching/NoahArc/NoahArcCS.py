@@ -10,7 +10,7 @@ class NoahArcCS(NoahArc):
         if (os.path.isfile(self.ProbabilityMatrixPath)):
             self.probability_matrix = torch.load(self.ProbabilityMatrixPath)
         else:
-            self._reset_same_bias_entries()
+            self._reset_same_bias_entries(bias_by_topic=False)
             self.probability_matrix = self._calc_probabilities()
             torch.save(self.probability_matrix, f"CS_prob_matrix_with_BERTopic_clean_{df_name}")
 

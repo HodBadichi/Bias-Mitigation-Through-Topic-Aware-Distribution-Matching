@@ -13,7 +13,7 @@ class NoahArcCE(NoahArc):
         if os.path.isfile(self.ProbabilityMatrixPath):
             self.probability_matrix = torch.load(self.ProbabilityMatrixPath)
         else:
-            self._reset_same_bias_entries()
+            self._reset_same_bias_entries(bias_by_topic=True)
             if reset_different_topic_entries_flag:
                 self._reset_different_topic_entries()
             self.probability_matrix = self._calc_probabilities()
