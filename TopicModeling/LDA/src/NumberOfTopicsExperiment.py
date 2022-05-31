@@ -1,15 +1,60 @@
 import logging
-from datetime import datetime
 import csv
 import os
 
 import numpy as np
 import gensim
+import pandas as pd
 from gensim.models import CoherenceModel
+from matplotlib import pyplot as plt
+from scipy.interpolate import make_interp_spline
 
 from TopicModeling.Utils.Metrics import LDAMetrics
 from TopicModeling.LDA.src.LDAUtils import GetLDAParams
 from TopicModeling.LDA.src.LDAUtils import PrepareData
+from TopicModeling.Utils.TopcModelingUtils import getCurrRunTime
+
+
+def ShowEvaluationGraphs(file_path, dataset_name, smooth=False, poly_deg=None):
+    """
+    Used for 'NumberOfTopicsExperiment' results.
+
+    Print on the screen metrics results against number of topics
+    :param file_path:CSV file which holds in a single column 'Number of topics' and different measures
+    :param dataset_name: string, `test` or `train`
+    :param smooth: Boolean flag, if True it smooth the results graph
+    :param poly_deg: Int, matches a polynomial of degree 'poly_deg'  to the results graph
+    :return:None
+    """
+    figure, axis = plt.subplots(2, 3)
+    figure.set_size_inches(18.5, 10.5)
+    train_df = pd.read_csv(file_path)
+    column_names = train_df.columns
+
+    for measure, ax in zip(column_names, axis.ravel()):
+        if measure == 'Topics':
+            continue
+        train_scores = train_df[measure].tolist()
+
+        X_Y_Spline = make_interp_spline(train_df.Topics.tolist(), train_scores)
+        # Returns evenly spaced numbers
+        # over a specified interval.
+        X_ = np.linspace(train_df.Topics.min(), train_df.Topics.max(), 500)
+        Y_ = X_Y_Spline(X_)
+        if poly_deg is not None:
+            coefs = np.polyfit(train_df.Topics.tolist(), train_scores, poly_deg)
+            y_poly = np.polyval(coefs, train_df.Topics.tolist())
+            ax.plot(train_df.Topics.tolist(), train_scores, "o", label="data points")
+            ax.plot(train_df.Topics, y_poly, label=dataset_name, color='red')
+        elif smooth is False:
+            ax.plot(train_df.Topics, train_scores, label="Validation", color='red')
+        else:
+            ax.plot(X_, Y_, label=dataset_name, color='red')
+        ax.set_title(measure + " Measure ")
+        ax.set_xlabel("Number of topics")
+        ax.set_ylabel("Measure values")
+        ax.legend()
+    plt.show()
 
 
 def InitializeLogger(sFileName=None):
@@ -22,7 +67,7 @@ def InitializeLogger(sFileName=None):
     os.makedirs(logs_directory_path, exist_ok=True)
 
     if sFileName is None:
-        sFileName = f'log_{datetime.now().strftime("%d_%m_%Y_%H%M%S")}.txt'
+        sFileName = f'log_{getCurrRunTime()}.txt'
     LoggerPath = os.path.join(os.pardir, 'logs', sFileName)
     from importlib import reload
     reload(logging)
@@ -67,7 +112,6 @@ def RunTuningProcess(
 
     # Keys are meant to write CSV headers later on ,values are dummy values
     my_dict = {"Topics": 6, "u_mass": 5, "c_uci": 4, "c_npmi": 3, "c_v": 2, "perplexity": 1}
-    current_time = datetime.now().strftime("%d_%m_%Y_%H%M%S")
     for num_of_topics in topics_range:
         logging.info(f"Running number of topics model : {num_of_topics}")
         curr_lda_model = gensim.models.ldamodel.LdaModel(corpus=train_LDA_parameters['corpus'],
@@ -79,10 +123,10 @@ def RunTuningProcess(
                                                          passes=passes,
                                                          iterations=iterations)
 
-        saved_model_path = os.path.join(models_directory_path, f'model_{num_of_topics}_{current_time}')
+        saved_model_path = os.path.join(models_directory_path, f'model_{num_of_topics}_{getCurrRunTime()}')
         curr_lda_model.save(saved_model_path)
         # Save results of train set
-        train_results_path = os.path.join(result_directory_path, fr'train_evaluation_{current_time}.csv')
+        train_results_path = os.path.join(result_directory_path, fr'train_evaluation_{getCurrRunTime()}.csv')
         with open(train_results_path, "a") as csv_file:
             # Initialize 'LDAMetrics' class
             my_metrics = LDAMetrics(curr_lda_model, train_LDA_parameters['corpus'], train_LDA_parameters['texts'])
@@ -91,7 +135,7 @@ def RunTuningProcess(
             result_dict['Topics'] = num_of_topics
             writer.writerow(result_dict)
 
-        test_results_path = os.path.join(result_directory_path, fr'test_evaluation_{current_time}.csv')
+        test_results_path = os.path.join(result_directory_path, fr'test_evaluation_{getCurrRunTime()}.csv')
         with open(test_results_path, "a") as csv_file:
             # Initialize 'LDAMetrics' class
             my_metrics = LDAMetrics(curr_lda_model, test_LDA_parameters['corpus'], test_LDA_parameters['texts'])
@@ -111,10 +155,15 @@ def RunNumberOfTopicsExperiment():
     train_LDA_params = GetLDAParams(train_set)
     test_LDA_params = GetLDAParams(test_set)
 
-    #   ChooseHyperparameters:
+    #   Choose Hyperparameters:
     topics_range = range(1, 10)
     RunTuningProcess(train_LDA_params, test_LDA_params, topics_range)
 
 
 if __name__ == '__main__':
     RunNumberOfTopicsExperiment()
+
+    test_results_path = fr'test_evaluation_{getCurrRunTime()}.csv',
+    train_results_path = fr'train_evaluation_{getCurrRunTime()}.csv'
+    ShowEvaluationGraphs(train_results_path, "Train", False, None)
+    ShowEvaluationGraphs(train_results_path, "Test", False, None)

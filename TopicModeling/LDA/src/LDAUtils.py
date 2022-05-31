@@ -1,33 +1,23 @@
-import re
 import logging
 import os
 import string
 
-import gensim
 from gensim import corpora
 import gdown
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import nltk
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
-from scipy.interpolate import make_interp_spline
 
 
-def IsAscii(word_str):
-    """
-    Check whether the string contains non-ascii character
-    :param word_str:string
-    :return: True if the string is ONLY ascii , false otherwise
-    """
-    return all(ord(c) < 128 for c in word_str)
+from TopicModeling.Utils.TopcModelingUtils import IsAscii
 
 
 def CleanDocument(dirty_document):
     """
-    Process 'dirty' document for better LDA preformance
+    Process 'dirty' document for better LDA performance
     :param dirty_document: string of the dirty document
     :return: string of the clean document
     """
@@ -96,64 +86,6 @@ def PrepareData():
     clean_dataframe = pd.read_csv(clean_data_path, encoding='utf8')
     training_dataset, test_dataset = train_test_split(clean_dataframe, train_size=0.9, random_state=42)
     return training_dataset, test_dataset
-
-
-def GetAllModelTopicsWords(model):
-    x = model.show_topics(model.num_topics - 1)
-    all_words = []
-    for topic, word in x:
-        all_words.append(re.sub('[^A-Za-z ]+', '', word).split())
-
-    flat_list = [word for sub_word in all_words for word in sub_word]
-    return flat_list
-
-
-def LoadLDAModel(filepath):
-    """
-    Function which wraps Gensim`s load API
-    :param filepath:file path where the saved model is located
-    :return: the loaded model
-    """
-    return gensim.models.ldamodel.LdaModel.load(filepath)
-
-
-def ShowEvaluationGraphs(file_path, smooth=False, poly_deg=None):
-    """
-    Print on the screen metrics results against number of topics
-    :param file_path:CSV file which holds in a single column 'Number of topics' and different measures
-    :param smooth: Boolean flag, if True it smooth the results graph
-    :param poly_deg: Int, matches a polynomial of degree 'poly_deg'  to the results graph
-    :return:None
-    """
-    figure, axis = plt.subplots(2, 3)
-    figure.set_size_inches(18.5, 10.5)
-    train_df = pd.read_csv(file_path)
-    column_names = train_df.columns
-
-    for measure, ax in zip(column_names, axis.ravel()):
-        if measure == 'Topics':
-            continue
-        train_scores = train_df[measure].tolist()
-
-        X_Y_Spline = make_interp_spline(train_df.Topics.tolist(), train_scores)
-        # Returns evenly spaced numbers
-        # over a specified interval.
-        X_ = np.linspace(train_df.Topics.min(), train_df.Topics.max(), 500)
-        Y_ = X_Y_Spline(X_)
-        if poly_deg is not None:
-            coefs = np.polyfit(train_df.Topics.tolist(), train_scores, poly_deg)
-            y_poly = np.polyval(coefs, train_df.Topics.tolist())
-            ax.plot(train_df.Topics.tolist(), train_scores, "o", label="data points")
-            ax.plot(train_df.Topics, y_poly, label="Validation", color='red')
-        elif smooth is False:
-            ax.plot(train_df.Topics, train_scores, label="Validation", color='red')
-        else:
-            ax.plot(X_, Y_, label="Validation", color='red')
-        ax.set_title(measure + " Measure ")
-        ax.set_xlabel("number of topics")
-        ax.set_ylabel("measure values")
-        ax.legend()
-    plt.show()
 
 
 def GetLDAParams(data_set):
