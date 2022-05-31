@@ -1,13 +1,14 @@
-import sys
 import os
 import torch
-if os.name != 'nt':
-    sys.path.append('/home/mor.filo/nlp_project/')
 
 from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 
-from DistributionMatching.SimilarityMatrix.SimilarityMatrix import SimilarityMatrix
+from DistributionMatching.SimilarityMatrix.src.SimilarityMatrix import SimilarityMatrix
+
+"""SimilarityMatrixCS implementation
+inherits from 'SimilarityMatrix' , measure similarity between documents with cosine similarity  
+"""
 
 
 class SimilarityMatrixCS(SimilarityMatrix):

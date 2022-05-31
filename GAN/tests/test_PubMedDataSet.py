@@ -1,8 +1,8 @@
 import pandas as pd
 
-from DistributionMatching.PubMed.PubMedDataSet import PubMedDataSet
+from GAN.PubMed.PubMedDataSet import PubMedDataSet
 from DistributionMatching.utils import config
-from DistributionMatching.text_utils import clean_abstracts
+from GAN.PubMed.text_utils import clean_abstracts
 
 
 def test_getitem():

@@ -1,13 +1,13 @@
-import sys
 import json
 import os
 import torch
-if os.name != 'nt':
-    sys.path.append('/home/mor.filo/nlp_project/')
 
-from DistributionMatching.SimilarityMatrix.SimilarityMatrix import SimilarityMatrix
+from DistributionMatching.SimilarityMatrix.src.SimilarityMatrix import SimilarityMatrix
 
 
+"""SimilarityMatrixCE implementation
+inherits from 'SimilarityMatrix' , measure similarity between documents with cross entropy  
+"""
 class SimilarityMatrixCE(SimilarityMatrix):
     def __init__(self, documents_dataframe, df_name, SimilarityMatrixPath):
         super().__init__(documents_dataframe, df_name, SimilarityMatrixPath)

@@ -2,8 +2,8 @@ import os
 import pandas as pd
 import torch
 
-from DistributionMatching.NoahArc.NoahArcFactory import NoahArcFactory
-from DistributionMatching.SimilarityMatrix.SimilarityMatrixFactory import SimilarityMatrixFactory
+from DistributionMatching.NoahArc.src.NoahArcFactory import NoahArcFactory
+from DistributionMatching.SimilarityMatrix.src.SimilarityMatrixFactory import SimilarityMatrixFactory
 
 
 def test_no_nans():

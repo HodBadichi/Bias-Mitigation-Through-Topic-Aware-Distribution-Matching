@@ -9,10 +9,10 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import DataLoader
 
-from DistributionMatching.PubMed.PubMedDataSet import PubMedDataSet
+from GAN.PubMed.PubMedDataSet import PubMedDataSet
 from DistributionMatching import utils as project_utils
-from DistributionMatching.text_utils import clean_abstracts
-from DistributionMatching.text_utils import TextUtils
+from GAN.PubMed.text_utils import clean_abstracts
+from GAN.PubMed.text_utils import TextUtils
 
 
 class PubMedModule(pl.LightningDataModule):
@@ -35,13 +35,13 @@ class PubMedModule(pl.LightningDataModule):
         try:
             self.documents_df = pd.read_csv(self.hparams["gender_and_topic_path"], encoding='utf8')
         except FileNotFoundError:
-            documents_df = project_utils.load_abstract_PubMedData()
+            documents_df = project_utils.LoadAbstractPubMedData()
             # keeps docs with participants info only
             documents_df = documents_df[~documents_df['female'].isnull()]
             documents_df = documents_df[~documents_df['male'].isnull()]
             documents_df['female_rate'] = documents_df['female'] / (documents_df['female'] + documents_df['male'])
             docs = documents_df.clean_title_and_abstract.to_list()
-            topics, probs = project_utils.load_topic_model().transform(docs)
+            topics, probs = project_utils.LoadTopicModel().transform(docs)
             col_topics = pd.Series(topics)
             # get topics
             documents_df['topic_with_outlier_topic'] = col_topics
