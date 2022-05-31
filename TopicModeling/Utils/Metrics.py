@@ -1,32 +1,53 @@
 from abc import ABCMeta, abstractmethod
-from TopicModeling.Utils.my_exceptions import CustomError
 from gensim.models import CoherenceModel
 import gensim.corpora as corpora
 import pandas as pd
 import gensim.models
 
 
+"""
+    `Metrics` class implementation, an abstract class which will be used to aggregate different models metrics
+"""
+
+
 class Metrics(object, metaclass=ABCMeta):
 
     @abstractmethod
     def __init__(self, model, metrics_list):
+        """
+
+        :param model: trained model to Evaluate
+        :param metrics_list: list of strings which metrics to Evaluate
+        """
         self.model = model
         self.metrics_list = metrics_list
 
     @abstractmethod
-    def _measure(self, metric):
+    def _Measure(self, metric):
+        """
+        Measure the model performance according to a given metric
+        :param metric: the metric we want to evaluate
+        :return: evaluation score
+        """
         pass
 
-    def evaluate(self, metric):
+    def Evaluate(self, metric):
+        """
+        wrapper function for '_Measure'
+        :param metric: the metric we want to evaluate
+        :return: evaluation score
+        """
         if metric not in self.metrics_list:
-            raise CustomError("Tried to evaluate a non-existing Metric")
-        return self._measure(metric)
+            raise CustomError("Tried to Evaluate a non-existing Metric")
+        return self._Measure(metric)
 
-    def evaluate_all_metrics(self):
+    def EvaluateAllMetrics(self):
+        """
+        :return:dictionary of model performances on all metrics
+        """
         evaluations_dict = {}
         for metric in self.metrics_list:
-            evaluations_dict[metric] = self._measure(metric)
-            print(f"{metric}: {evaluations_dict[metric]}")
+            evaluations_dict[metric] = self._Measure(metric)
         return evaluations_dict
 
 
@@ -38,12 +59,12 @@ class LDAMetrics(Metrics):
         self.corpus = curr_corpus
         self.texts = curr_texts
 
-    def _measure(self, metric):
+    def _Measure(self, metric):
         if (metric == "perplexity"):
             return self.model.log_perplexity(self.corpus)
         else:
             coherencemodel = gensim.models.CoherenceModel(
-                model=self.model, texts=self.texts, corpus=self.corpus,coherence=metric)
+                model=self.model, texts=self.texts, corpus=self.corpus, coherence=metric)
             return coherencemodel.get_coherence()
 
 
@@ -71,10 +92,9 @@ class BertTopicMetrics(Metrics):
         self.dictionary = corpora.Dictionary(self.tokens)
         self.corpus = [self.dictionary.doc2bow(token) for token in self.tokens]
         self.topic_words = [[words for words, _ in self.model.get_topic(topic)]
-                       for topic in range(len(set(self.topics)) - 1)]
+                            for topic in range(len(set(self.topics)) - 1)]
 
-
-    def _measure(self, metric):
+    def _Measure(self, metric):
         # Evaluate
         coherence_model = CoherenceModel(topics=self.topic_words,
                                          texts=self.tokens,
@@ -82,3 +102,6 @@ class BertTopicMetrics(Metrics):
                                          dictionary=self.dictionary,
                                          coherence=metric)
         return coherence_model.get_coherence()
+
+class CustomError(Exception):
+    pass

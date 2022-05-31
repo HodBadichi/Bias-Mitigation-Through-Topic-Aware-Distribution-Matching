@@ -59,7 +59,7 @@ def bert_coherence_evaluate(train_data_path, models_dir, models_list, result_pat
         loaded_topics = loaded_model._map_predictions(loaded_model.hdbscan_model.labels_)
         with open(result_path, "a") as csv_file:
             my_metrics = BertTopicMetrics(loaded_model, docs, loaded_topics)
-            result_dict = my_metrics.evaluate_all_metrics()
+            result_dict = my_metrics.EvaluateAllMetrics()
             writer = csv.DictWriter(csv_file, my_dict.keys())
             result_dict['Model'] = model
             result_dict['Topics'] = len(loaded_model.get_topics())
