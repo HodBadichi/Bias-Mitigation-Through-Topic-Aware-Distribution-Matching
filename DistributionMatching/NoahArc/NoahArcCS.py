@@ -16,7 +16,7 @@ class NoahArcCS(NoahArc):
 
     def _calc_probabilities(self):
         probability_matrix = self._similarity_matrix.double()
+        probability_matrix = torch.where(probability_matrix < 0.0, torch.tensor(0, dtype=probability_matrix.dtype), probability_matrix)
         rows_sum_vector = torch.sum(probability_matrix, 1).reshape((-1, 1))
-        probability_matrix = (torch.div(probability_matrix, rows_sum_vector)).type(torch.LongTensor)
-        probability_matrix = torch.where(probability_matrix < 0, 0, probability_matrix)
+        probability_matrix = torch.div(probability_matrix, rows_sum_vector)
         return probability_matrix
