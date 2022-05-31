@@ -1,9 +1,0 @@
-#INITIAL SETTINGS
-data:
-  full_path : ..\..\data\abstract_2005_2020_full.csv
-  gender_and_topic_path: ..\..\data\abstract_2005_2020_gender_and_topic.csv
-women_minority_threshold:  0.5
-minimum_documents_matches: 5
-
-models:
-  topic_model_path: ..\TopicModeling\Bert\src\bertTopic_train(81876)_n_gram_1_1_min_topic_size_50_with_probs
