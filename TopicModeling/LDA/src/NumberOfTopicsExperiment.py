@@ -30,7 +30,8 @@ def ShowEvaluationGraphs(file_path, dataset_name, smooth=False, poly_deg=None):
     figure.set_size_inches(18.5, 10.5)
     train_df = pd.read_csv(file_path)
     column_names = train_df.columns
-
+    if len(train_df) < 4:
+        raise ValueError("dataframe in `ShowEvaluationGraphs`  should be larger than 4 samples!")
     for measure, ax in zip(column_names, axis.ravel()):
         if measure == 'Topics':
             continue
@@ -81,8 +82,8 @@ def RunTuningProcess(
         train_LDA_parameters,
         test_LDA_parameters,
         topics_range,
-        passes=3,
-        iterations=5,
+        passes=1,
+        iterations=1,
         chunksize=300,
 ):
     """
@@ -111,7 +112,18 @@ def RunTuningProcess(
     os.makedirs(result_directory_path, exist_ok=True)
 
     # Keys are meant to write CSV headers later on ,values are dummy values
-    my_dict = {"Topics": 6, "u_mass": 5, "c_uci": 4, "c_npmi": 3, "c_v": 2, "perplexity": 1}
+    # my_dict = {"Topics": 6, "u_mass": 5, "c_uci": 4, "c_npmi": 3, "c_v": 2, "perplexity": 1}
+    field_names = ['Topics', 'u_mass', 'c_uci', 'c_npmi', 'c_v', 'perplexity']
+    train_results_path = os.path.join(result_directory_path, fr'train_evaluation_{getCurrRunTime()}.csv')
+    test_results_path = os.path.join(result_directory_path, fr'test_evaluation_{getCurrRunTime()}.csv')
+    with open(train_results_path, "w", encoding='UTF8', newline='') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=field_names)
+        writer.writeheader()
+
+    with open(test_results_path, "w", encoding='UTF8', newline='') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=field_names)
+        writer.writeheader()
+
     for num_of_topics in topics_range:
         logging.info(f"Running number of topics model : {num_of_topics}")
         curr_lda_model = gensim.models.ldamodel.LdaModel(corpus=train_LDA_parameters['corpus'],
@@ -126,23 +138,22 @@ def RunTuningProcess(
         saved_model_path = os.path.join(models_directory_path, f'model_{num_of_topics}_{getCurrRunTime()}')
         curr_lda_model.save(saved_model_path)
         # Save results of train set
-        train_results_path = os.path.join(result_directory_path, fr'train_evaluation_{getCurrRunTime()}.csv')
-        with open(train_results_path, "a") as csv_file:
+
+        with open(train_results_path, "a", encoding='UTF8', newline='') as csv_file:
             # Initialize 'LDAMetrics' class
             my_metrics = LDAMetrics(curr_lda_model, train_LDA_parameters['corpus'], train_LDA_parameters['texts'])
-            writer = csv.DictWriter(csv_file, my_dict.keys())
+            writer = csv.DictWriter(csv_file, fieldnames=field_names)
             result_dict = my_metrics.EvaluateAllMetrics()
             result_dict['Topics'] = num_of_topics
-            writer.writerow(result_dict)
+            writer.writerows([result_dict])
 
-        test_results_path = os.path.join(result_directory_path, fr'test_evaluation_{getCurrRunTime()}.csv')
-        with open(test_results_path, "a") as csv_file:
+        with open(test_results_path, "a", encoding='UTF8', newline='') as csv_file:
             # Initialize 'LDAMetrics' class
             my_metrics = LDAMetrics(curr_lda_model, test_LDA_parameters['corpus'], test_LDA_parameters['texts'])
-            writer = csv.DictWriter(csv_file, my_dict.keys())
+            writer = csv.DictWriter(csv_file, fieldnames=field_names)
             result_dict = my_metrics.EvaluateAllMetrics()
             result_dict['Topics'] = num_of_topics
-            writer.writerow(result_dict)
+            writer.writerows([result_dict])
 
 
 def RunNumberOfTopicsExperiment():
@@ -156,14 +167,17 @@ def RunNumberOfTopicsExperiment():
     test_LDA_params = GetLDAParams(test_set)
 
     #   Choose Hyperparameters:
-    topics_range = range(1, 10)
+    topics_range = range(1, 2)
     RunTuningProcess(train_LDA_params, test_LDA_params, topics_range)
+    logging.info("Evaluating stage is done successfully ")
+
+    test_results_path = os.path.join(os.pardir, 'results', fr'test_evaluation_{getCurrRunTime()}.csv', )
+    train_results_path = os.path.join(os.pardir, 'results', fr'train_evaluation_{getCurrRunTime()}.csv')
+
+    ShowEvaluationGraphs(train_results_path, "Train", False, None)
+    ShowEvaluationGraphs(test_results_path, "Test", False, None)
 
 
 if __name__ == '__main__':
     RunNumberOfTopicsExperiment()
-
-    test_results_path = fr'test_evaluation_{getCurrRunTime()}.csv',
-    train_results_path = fr'train_evaluation_{getCurrRunTime()}.csv'
-    ShowEvaluationGraphs(train_results_path, "Train", False, None)
-    ShowEvaluationGraphs(train_results_path, "Test", False, None)
+    print("im out")
