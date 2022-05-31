@@ -54,7 +54,7 @@ class NoahArc:
             for index in topic_indices:
                 self._similarity_matrix[index][mask] = 0
 
-    def _reset_same_bias_entries(self):
+    def _reset_same_bias_entries(self, bias_by_topic):
         """
             :return:
             for each row of similarity_matrix (a doc) -> keeps cross entropy score for docs from the other class
@@ -65,7 +65,7 @@ class NoahArc:
         unbiased_mask = []  # docs with women majority
 
         for doc_index in range(len(self.documents_dataframe)):
-            if project_utils.are_women_minority(doc_index, self.documents_dataframe):
+            if project_utils.are_women_minority(doc_index, self.documents_dataframe, bias_by_topic):
                 biased_mask.append(True)
                 unbiased_mask.append(False)
             else:
