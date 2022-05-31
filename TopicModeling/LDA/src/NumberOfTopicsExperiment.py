@@ -106,8 +106,8 @@ def RunTuningProcess(
     }
     logging.info(params_dictionary)
 
-    models_directory_path = os.path.join(os.pardir, 'saved_models')
-    result_directory_path = os.path.join(os.pardir, 'results')
+    models_directory_path = os.path.join(os.pardir, os.pardir, 'saved_models')
+    result_directory_path = os.path.join(os.pardir, os.pardir, 'results')
     os.makedirs(models_directory_path, exist_ok=True)
     os.makedirs(result_directory_path, exist_ok=True)
 
@@ -171,8 +171,8 @@ def RunNumberOfTopicsExperiment():
     RunTuningProcess(train_LDA_params, test_LDA_params, topics_range)
     logging.info("Evaluating stage is done successfully ")
 
-    test_results_path = os.path.join(os.pardir, 'results', fr'test_evaluation_{getCurrRunTime()}.csv', )
-    train_results_path = os.path.join(os.pardir, 'results', fr'train_evaluation_{getCurrRunTime()}.csv')
+    test_results_path = os.path.join(os.pardir, os.pardir, 'results', fr'test_evaluation_{getCurrRunTime()}.csv', )
+    train_results_path = os.path.join(os.pardir, os.pardir, 'results', fr'train_evaluation_{getCurrRunTime()}.csv')
 
     ShowEvaluationGraphs(train_results_path, "Train", False, None)
     ShowEvaluationGraphs(test_results_path, "Test", False, None)
@@ -180,4 +180,3 @@ def RunNumberOfTopicsExperiment():
 
 if __name__ == '__main__':
     RunNumberOfTopicsExperiment()
-    print("im out")

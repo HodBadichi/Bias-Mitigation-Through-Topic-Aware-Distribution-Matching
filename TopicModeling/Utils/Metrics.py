@@ -76,6 +76,9 @@ class BertTopicMetrics(Metrics):
         self.model = model
         self.docs = docs
         self.topics = topics
+        print(len(self.topics))
+        print(len(self.docs))
+        print(len(range(len(self.docs))))
         documents = pd.DataFrame({"Document": self.docs,
                                   "ID": range(len(self.docs)),
                                   "Topic": topics})
