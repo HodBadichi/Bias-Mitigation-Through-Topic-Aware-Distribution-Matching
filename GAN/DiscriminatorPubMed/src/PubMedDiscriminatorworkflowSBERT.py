@@ -10,15 +10,15 @@ import pytz
 from pytorch_lightning.loggers import WandbLogger
 import pytorch_lightning as pl
 
-from GAN.DiscriminatorPubMed.PubMedDiscriminatorPartSBERT import PubMedDiscriminator
-from GAN.PubMed.PubMedModule import PubMedModule
-from GAN.DiscriminatorPubMed.discriminator_hparams_config import hparams
+from GAN.DiscriminatorPubMed.src.PubMedDiscriminatorPartSBERT import PubMedDiscriminator
+from GAN.GANPubMed.src.PubMedModule import PubMedModule
+from GAN.DiscriminatorPubMed.src.hparams_config import hparams
 
 
 def parse_cli():
     parser = argparse.ArgumentParser(description='model arguments')
     parser.add_argument("--max-epochs", type=int, help="max_epochs", required=False)
-    parser.add_argument("--test-size", type=float, help="test_size", required=False)
+    parser.add_argument("--test_dataset-size", type=float, help="test_size", required=False)
     parser.add_argument("--lr", type=float, help="Learning rate", required=False)
     parser.add_argument("--drop-rate", type=float, help="Drop rate", required=False)
     parser.add_argument("--hidden-sizes",
@@ -57,12 +57,12 @@ def prepare_arguments():
         prob_matrix_str = 'CS_prob_matrix_with_BERTopic_clean_'
         sim_matrix_str = 'CS_sim_matrix_'
 
-    new_hparams['SimilarityMatrixPathTrain'] = os.path.join(os.pardir, 'PubMed', sim_matrix_str + 'train')
-    new_hparams['ProbabilityMatrixPathTrain'] = os.path.join(os.pardir, 'PubMed', prob_matrix_str + 'train')
-    new_hparams['SimilarityMatrixPathVal'] = os.path.join(os.pardir, 'PubMed', sim_matrix_str + 'val')
-    new_hparams['ProbabilityMatrixPathVal'] = os.path.join(os.pardir, 'PubMed', prob_matrix_str + 'val')
-    new_hparams['SimilarityMatrixPathTest'] = os.path.join(os.pardir, 'PubMed', sim_matrix_str + 'test')
-    new_hparams['ProbabilityMatrixPathTest'] = os.path.join(os.pardir, 'PubMed', prob_matrix_str + 'test')
+    new_hparams['SimilarityMatrixPathTrain'] = os.path.join(os.pardir, 'GANPubMed', sim_matrix_str + 'train_dataset')
+    new_hparams['ProbabilityMatrixPathTrain'] = os.path.join(os.pardir, 'GANPubMed', prob_matrix_str + 'train_dataset')
+    new_hparams['SimilarityMatrixPathVal'] = os.path.join(os.pardir, 'GANPubMed', sim_matrix_str + 'val_dataset')
+    new_hparams['ProbabilityMatrixPathVal'] = os.path.join(os.pardir, 'GANPubMed', prob_matrix_str + 'val_dataset')
+    new_hparams['SimilarityMatrixPathTest'] = os.path.join(os.pardir, 'GANPubMed', sim_matrix_str + 'test_dataset')
+    new_hparams['ProbabilityMatrixPathTest'] = os.path.join(os.pardir, 'GANPubMed', prob_matrix_str + 'test_dataset')
     return new_hparams
 
 def Run():

@@ -10,7 +10,7 @@ class SimilarityMatrix:
     def __init__(self, documents_dataframe, df_name, ):
         """
         :param documents_dataframe: dataframe, all the documents
-        :param df_name: String, whether it is train or test
+        :param df_name: String, whether it is train_dataset or test_dataset
         :return:None
         """
         self.documents_dataframe = documents_dataframe

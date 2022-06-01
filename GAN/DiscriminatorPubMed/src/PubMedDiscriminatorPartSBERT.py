@@ -41,7 +41,7 @@ class PubMedDiscriminator(pl.LightningModule):
         # Forward is unneeded , GaN model will not infer in the future
         pass
 
-    def step(self, batch: dict, name='train'):
+    def step(self, batch: dict, name='train_dataset'):
         """
         :param batch:{'origin_text':list[string],'biased':list[string],'unbiased':list[string]}
         :param optimizer_idx: determines which step is it - discriminator or generator
@@ -56,10 +56,10 @@ class PubMedDiscriminator(pl.LightningModule):
         return step_ret_dict
 
     def training_step(self, batch: dict, batch_idx: int) -> dict:
-        return self.step(batch, 'train')
+        return self.step(batch, 'train_dataset')
 
     def validation_step(self, batch: dict, batch_idx: int) -> dict:
-        return self.step(batch, 'val')
+        return self.step(batch, 'val_dataset')
 
     def test_step(self, batch: dict, batch_idx: int):
         return self.validation_step(batch, batch_idx)

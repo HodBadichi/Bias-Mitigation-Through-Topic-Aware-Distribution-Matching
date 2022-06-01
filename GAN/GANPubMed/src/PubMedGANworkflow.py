@@ -1,9 +1,9 @@
 import sys
 sys.path.append('/home/mor.filo/nlp_project/')
 
-from GAN.PubMed.PubMedGAN import PubMedGAN
-from GAN.PubMed.PubMedModule import PubMedModule
-from GAN.PubMed.hparams_config import hparams
+from GAN.GANPubMed.src.PubMedGAN import PubMedGAN
+from GAN.GANPubMed.src.PubMedModule import PubMedModule
+from GAN.GANPubMed.src.hparams_config import hparams
 from datetime import datetime
 import pytz
 from pytorch_lightning.loggers import WandbLogger

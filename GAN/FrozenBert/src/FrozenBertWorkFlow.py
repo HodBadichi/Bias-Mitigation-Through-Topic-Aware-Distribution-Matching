@@ -1,21 +1,23 @@
-import sys
-sys.path.append('/home/mor.filo/nlp_project/')
 import os
+import sys
+
 from pytorch_lightning.loggers import WandbLogger
 from datetime import datetime
 import pytorch_lightning as pl
 import pytz
-from BertModelOverPubMed import BertPretrain
-from PubMedDataSetForBert import PubMedModuleForBert
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+from GAN.FrozenBert.src.FrozenBert import FrozenBert
+from GAN.FrozenBert.src.FrozenBertDataModule import FrozenBertDataModule
 
 """
-workflow for training bert model on the PubMed data using the PubMedModuleForBert
+workflow for training bert model on the GANPubMed data using the FrozenBertDataModule
 """
 
-def Run():
-    dm = PubMedModuleForBert()
-    model = BertPretrain()
+
+def RunWorkflow():
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    dm = FrozenBertDataModule()
+    model = FrozenBert()
     logger = WandbLogger(name=f'bert_over_topic_and_gender_70_15_15',
                          version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
                          project='Document_embeddings_test',
@@ -31,4 +33,4 @@ def Run():
 
 
 if __name__ == '__main__':
-    sys.exit(Run())
+    sys.exit(RunWorkflow())

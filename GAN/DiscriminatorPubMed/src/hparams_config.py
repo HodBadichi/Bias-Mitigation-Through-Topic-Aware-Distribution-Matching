@@ -20,6 +20,6 @@ hparams = {'learning_rate': 2e-5,
                                                             'bert_tiny_uncased_abstract_2005_2020_gender_and_topic_39_'),
            'bert_tokenizer': os.path.join('google', 'bert_uncased_L-2_H-128_A-2'),
            'cosine_similarity_clean_method': '',
-           'SAVE_PATH': "/home/mor.filo/nlp_project/DistributionMatching/PubMed/Models",
+           'SAVE_PATH': "/home/mor.filo/nlp_project/DistributionMatching/GANPubMed/Models",
            'DEBUG_FLAG': False
            }

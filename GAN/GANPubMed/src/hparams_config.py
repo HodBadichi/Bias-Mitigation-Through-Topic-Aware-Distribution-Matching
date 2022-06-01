@@ -26,7 +26,7 @@ hparams = {'learning_rate': 2e-5,
            'ProbabilityMatrixPathTest': 'CE_prob_matrix_reset_different_topic_entries_flag_test',
            'max_length_bert_input': 50,
            'max_sentences_per_abstract': 20,
-           'SAVE_PATH': "/home/mor.filo/nlp_project/DistributionMatching/PubMed/Models",
+           'SAVE_PATH': "/home/mor.filo/nlp_project/DistributionMatching/GANPubMed/Models",
            }
 
 # 'SimilarityMatrixPath': '../NoahArc/CE_sim_matrix',

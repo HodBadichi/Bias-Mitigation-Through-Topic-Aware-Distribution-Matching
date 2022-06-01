@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 from DistributionMatching.NoahArc.src.NoahArcFactory import NoahArcFactory
 from DistributionMatching.SimilarityMatrix.src.SimilarityMatrixFactory import SimilarityMatrixFactory
 import DistributionMatching.Utils.Utils as project_utils
-from GAN.PubMed.text_utils import TextUtils
+from GAN.Utils.TextUtils import TextUtils
 
 
 class PubMedDataSet(Dataset):

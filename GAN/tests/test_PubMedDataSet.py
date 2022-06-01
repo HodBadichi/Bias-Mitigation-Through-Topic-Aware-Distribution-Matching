@@ -1,13 +1,13 @@
 import pandas as pd
 
-from GAN.PubMed.PubMedDataSet import PubMedDataSet
+from GAN.GANPubMed.src.PubMedDataSet import PubMedDataSet
 from DistributionMatching.Utils.Utils import config
-from GAN.PubMed.text_utils import clean_abstracts
+from GAN.Utils.TextUtils import CleanAbstracts
 
 
 def test_getitem():
     dataframe = pd.read_csv(config['data']['gender_and_topic_path'], encoding='utf8')
-    dataframe = clean_abstracts(dataframe)
+    dataframe = CleanAbstracts(dataframe)
     pubmed_dataset = PubMedDataSet(dataframe)
     #no matching doc PMID: 26476466
     no_matching_doc_index = pubmed_dataset.documents_dataframe.index[pubmed_dataset.documents_dataframe['PMID'] == 26476466].item()

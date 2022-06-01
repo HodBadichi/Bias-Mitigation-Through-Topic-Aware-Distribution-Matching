@@ -21,7 +21,7 @@ def ShowEvaluationGraphs(file_path, dataset_name, smooth=False, poly_deg=None):
 
     Print on the screen metrics results against number of topics
     :param file_path:CSV file which holds in a single column 'Number of topics' and different measures
-    :param dataset_name: string, `test` or `train`
+    :param dataset_name: string, `test_dataset` or `train_dataset`
     :param smooth: Boolean flag, if True it smooth the results graph
     :param poly_deg: Int, matches a polynomial of degree 'poly_deg'  to the results graph
     :return:None
@@ -137,7 +137,7 @@ def RunTuningProcess(
 
         saved_model_path = os.path.join(models_directory_path, f'model_{num_of_topics}_{getCurrRunTime()}')
         curr_lda_model.save(saved_model_path)
-        # Save results of train set
+        # Save results of train_dataset set
 
         with open(train_results_path, "a", encoding='UTF8', newline='') as csv_file:
             # Initialize 'LDAMetrics' class

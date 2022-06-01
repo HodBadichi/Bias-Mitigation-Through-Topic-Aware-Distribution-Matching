@@ -109,9 +109,9 @@ def BertCoherenceEvaluate(train_set, models_dir, models_list, results_dir):
 def PrepareData():
     """
     Load and process the data,
-    Since 'train_split' uses the same seed - the train and test are always the same
+    Since 'train_split' uses the same seed - the train_dataset and test_dataset are always the same
 
-    :return: tuple of dataframes , train and test
+    :return: tuple of dataframes , train_dataset and test_dataset
     """
     data_directory = os.path.join(os.pardir, os.pardir, os.pardir, 'data')
     os.makedirs(data_directory, exist_ok=True)
