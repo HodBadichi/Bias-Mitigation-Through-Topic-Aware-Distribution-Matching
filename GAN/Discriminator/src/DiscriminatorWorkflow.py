@@ -2,20 +2,19 @@ import sys
 import os
 import argparse
 
-if os.name != 'nt':
-    sys.path.append('/home/mor.filo/nlp_project/')
-
 from datetime import datetime
 import pytz
 from pytorch_lightning.loggers import WandbLogger
 import pytorch_lightning as pl
 
-from GAN.DiscriminatorPubMed.src.PubMedDiscriminatorPart import PubMedDiscriminator
+from GAN.Discriminator.src.Discriminator import Discriminator
 from GAN.GANPubMed.src.PubMedModule import PubMedModule
-from GAN.DiscriminatorPubMed.src.hparams_config import hparams
+from GAN.Discriminator.src.hparams_config import hparams
 
+"""This workflow run show how to conduct and experiment using 'Discriminator' 
+"""
 
-def parse_cli():
+def ParseCLI():
     parser = argparse.ArgumentParser(description='model arguments')
     parser.add_argument("--max-epochs", type=int, help="max_epochs", required=False)
     parser.add_argument("--test_dataset-size", type=float, help="test_size", required=False)
@@ -39,38 +38,20 @@ def parse_cli():
     return vars(args)
 
 
-def prepare_arguments():
+def PrepareArguments():
     new_hparams = hparams.copy()
-    cli_args = parse_cli()
+    cli_args = ParseCLI()
     for key in cli_args:
         if cli_args[key] is not None:
             new_hparams[key] = cli_args[key]
-
-    sim_matrix_str = None
-    prob_matrix_str = None
-    if new_hparams['similarity_metric'] == 'cross_entropy':
-        reset_str = ["no_reset", "reset"]
-        reset_flag = reset_str[new_hparams['reset_different_topic_entries_flag']]
-        prob_matrix_str = f'CE_prob_matrix_{reset_flag}_different_topic_entries_flag_'
-        sim_matrix_str = 'CE_sim_matrix_'
-    else:
-        prob_matrix_str = 'CS_prob_matrix_with_BERTopic_clean_'
-        sim_matrix_str = 'CS_sim_matrix_'
-
-    new_hparams['SimilarityMatrixPathTrain'] = os.path.join(os.pardir, 'GANPubMed', sim_matrix_str + 'train_dataset')
-    new_hparams['ProbabilityMatrixPathTrain'] = os.path.join(os.pardir, 'GANPubMed', prob_matrix_str + 'train_dataset')
-    new_hparams['SimilarityMatrixPathVal'] = os.path.join(os.pardir, 'GANPubMed', sim_matrix_str + 'val_dataset')
-    new_hparams['ProbabilityMatrixPathVal'] = os.path.join(os.pardir, 'GANPubMed', prob_matrix_str + 'val_dataset')
-    new_hparams['SimilarityMatrixPathTest'] = os.path.join(os.pardir, 'GANPubMed', sim_matrix_str + 'test_dataset')
-    new_hparams['ProbabilityMatrixPathTest'] = os.path.join(os.pardir, 'GANPubMed', prob_matrix_str + 'test_dataset')
     return new_hparams
 
 
 def Run():
-    new_hparams = prepare_arguments()
+    new_hparams = PrepareArguments()
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     dm = PubMedModule(new_hparams)
-    model = PubMedDiscriminator(new_hparams)
+    model = Discriminator(new_hparams)
     logger = WandbLogger(
         name='Discriminator_over_topic_and_gender_70_15_15_v2',
         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),

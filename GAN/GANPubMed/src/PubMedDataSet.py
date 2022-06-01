@@ -1,6 +1,5 @@
-import sys
-sys.path.append('/home/mor.filo/nlp_project/')
 from torch.utils.data import Dataset
+
 from DistributionMatching.NoahArc.src.NoahArcFactory import NoahArcFactory
 from DistributionMatching.SimilarityMatrix.src.SimilarityMatrixFactory import SimilarityMatrixFactory
 import DistributionMatching.Utils.Utils as project_utils
@@ -8,11 +7,10 @@ from GAN.Utils.TextUtils import TextUtils
 
 
 class PubMedDataSet(Dataset):
-    def __init__(self, documents_dataframe, hparams, df_name, SimilarityMatrixPath, ProbabilityMatrixPath):
+    def __init__(self, documents_dataframe, hparams, df_name, ):
         self.hparams = hparams
         self.documents_dataframe = documents_dataframe
-        self.Matcher = self.build_noah_arc(df_name, SimilarityMatrixPath, ProbabilityMatrixPath)
-        self.tu = TextUtils()
+        self.Matcher = self.build_noah_arc(df_name)
 
     def __len__(self):
         # defines len of epoch
@@ -27,7 +25,7 @@ class PubMedDataSet(Dataset):
             similar_document_broken_abstracts = ""
         origin_document_broken_abstracts = self.documents_dataframe['broken_abstracts'][index]
 
-        #This field will ease MLM loss calculation
+        # This field will ease MLM loss calculation
         batch_entry['origin_text'] = origin_document_broken_abstracts
 
         if project_utils.AreWomenMinority(index, self.Matcher.documents_dataframe):
@@ -38,10 +36,17 @@ class PubMedDataSet(Dataset):
             batch_entry['unbiased'] = origin_document_broken_abstracts
         return batch_entry
 
-    def build_noah_arc(self, df_name, SimilarityMatrixPath, ProbabilityMatrixPath):
-        similarity_matrix = SimilarityMatrixFactory.Create(self.documents_dataframe, self.hparams.similarity_metric,
-                                                           df_name, SimilarityMatrixPath)
-        probability_matrix = NoahArcFactory.Create(self.documents_dataframe, self.hparams.similarity_metric,
-                                                   similarity_matrix, self.hparams.reset_different_topic_entries_flag,
-                                                   df_name, ProbabilityMatrixPath)
+    def build_noah_arc(self, df_name):
+        similarity_matrix = SimilarityMatrixFactory.Create(
+            self.documents_dataframe,
+            self.hparams.similarity_metric,
+            df_name
+        )
+        probability_matrix = NoahArcFactory.Create(
+            self.documents_dataframe,
+            self.hparams.similarity_metric,
+            similarity_matrix,
+            self.hparams.reset_different_topic_entries_flag,
+            df_name
+        )
         return probability_matrix

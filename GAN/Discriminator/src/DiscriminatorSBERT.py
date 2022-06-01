@@ -1,9 +1,5 @@
-import sys
 import random
 import torch
-import os
-if os.name != 'nt':
-    sys.path.append('/home/mor.filo/nlp_project/')
 
 from sklearn.metrics import roc_auc_score, accuracy_score
 import pandas as pd
@@ -11,10 +7,15 @@ import pytorch_lightning as pl
 from torch import nn
 from sentence_transformers import SentenceTransformer
 
+"""DiscriminatorSBert Implementation
+This class inherits from 'pl.LightningModule', A basic network with linear layers using RELU between each layer
+which tries to detect which one of a documents duo given is a biased and an unbiased one based Sentence Bert embeddings
+"""
 
-class PubMedDiscriminator(pl.LightningModule):
+
+class DiscriminatorSBert(pl.LightningModule):
     def __init__(self, hparams):
-        super(PubMedDiscriminator, self).__init__()
+        super(DiscriminatorSBert, self).__init__()
         self.hparams.update(hparams)
         self.SentenceTransformerModel = SentenceTransformer('all-MiniLM-L6-v2')
         # The linear layer if from 2 concat abstract (1 is bias and 1 unbiased) to binary label:
@@ -35,7 +36,6 @@ class PubMedDiscriminator(pl.LightningModule):
         # self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
         # # todo : why reduction='none'
         self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
-        self.empty_batch_count = 0
 
     def forward(self):
         # Forward is unneeded , GaN model will not infer in the future
@@ -44,11 +44,9 @@ class PubMedDiscriminator(pl.LightningModule):
     def step(self, batch: dict, name='train_dataset'):
         """
         :param batch:{'origin_text':list[string],'biased':list[string],'unbiased':list[string]}
-        :param optimizer_idx: determines which step is it - discriminator or generator
         :param name:
         :return:
         """
-        print("Stepped in")
         batch = self._convert_to_list_of_dicts(batch)
         #   Discriminator Step
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
@@ -65,7 +63,7 @@ class PubMedDiscriminator(pl.LightningModule):
         return self.validation_step(batch, batch_idx)
 
     def configure_optimizers(self):
-        # Discriminator step paramteres -  classifier.
+        # Discriminator step parameters -  classifier.
         grouped_parameters_discriminator = [{'params': self.classifier.parameters()}]
         optimizer_discriminator = torch.optim.Adam(grouped_parameters_discriminator, lr=self.hparams['learning_rate'])
         return [optimizer_discriminator]
@@ -85,12 +83,13 @@ class PubMedDiscriminator(pl.LightningModule):
         """
         result_dictionary = {}
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
-        assert (len(batch) > 0)
         clean_discriminator_batch = self._discriminator_clean_batch(batch)
+
+        # In case there are no samples for the discriminator(all the documents in the batch does not have a match)
+        # we skip to the next batch
         if len(clean_discriminator_batch) == 0:
-            self.empty_batch_count += 1
             return None
-        assert (len(clean_discriminator_batch) > 0)
+
         discriminator_y_true = torch.as_tensor([float(random.choice([0, 1])) for _ in clean_discriminator_batch])
         result_dictionary['y_true'] = discriminator_y_true
         # discriminator_y_true created in order to shuffle the bias/unbiased order
@@ -133,14 +132,14 @@ class PubMedDiscriminator(pl.LightningModule):
                 result_batch.append(biased_text)
         return result_batch
 
-
     def _discriminator_bert_embeddings_to_predictions(self, sentence_embeddings):
         sample_embedding = []
 
         for i in range(0, len(sentence_embeddings), 2):
             first_document_embeddings = sentence_embeddings[i]
-            second_document_embeddings = sentence_embeddings[i+1]
-            curr_concat_embeddings = torch.cat((first_document_embeddings, second_document_embeddings, abs(first_document_embeddings-second_document_embeddings)))
+            second_document_embeddings = sentence_embeddings[i + 1]
+            curr_concat_embeddings = torch.cat((first_document_embeddings, second_document_embeddings,
+                                                abs(first_document_embeddings - second_document_embeddings)))
             sample_embedding.append(curr_concat_embeddings)
 
         aggregated = torch.stack(sample_embedding)
@@ -172,8 +171,6 @@ class PubMedDiscriminator(pl.LightningModule):
         pass
 
     """################# UTILS FUNCTIONS #####################"""
-
-
 
     def _convert_to_list_of_dicts(self, batch):
         # to make it a shape of {'origin':int,'biased':string,'unbiased':string}

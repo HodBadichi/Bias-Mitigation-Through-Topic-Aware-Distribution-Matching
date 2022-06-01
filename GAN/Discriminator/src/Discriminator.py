@@ -1,9 +1,5 @@
-import sys
 import random
 import torch
-import os
-if os.name != 'nt':
-    sys.path.append('/home/mor.filo/nlp_project/')
 
 from sklearn.metrics import roc_auc_score, accuracy_score
 import pandas as pd
@@ -13,10 +9,16 @@ from transformers import AutoTokenizer, BertForMaskedLM
 
 from GAN.Utils.TextUtils import BreakSentenceBatch
 
+"""Discriminator Implementation
+This class inherits from 'pl.LightningModule', A basic network with linear layers using RELU between each layer
+which tries to detect which one of a documents duo given is a biased and an unbiased one based on Bert embeddings
+trained over the whole PUBMED dataset
+"""
 
-class PubMedDiscriminator(pl.LightningModule):
+
+class Discriminator(pl.LightningModule):
     def __init__(self, hparams):
-        super(PubMedDiscriminator, self).__init__()
+        super(Discriminator, self).__init__()
         self.hparams.update(hparams)
         self.bert_tokenizer = AutoTokenizer.from_pretrained(self.hparams['bert_tokenizer'])
         self.max_length_bert_input = self.hparams['max_length_bert_input']
@@ -29,7 +31,8 @@ class PubMedDiscriminator(pl.LightningModule):
 
         self.input_dropout = nn.Dropout(p=self.hparams['dropout_rate'])
         layers = []
-        hidden_sizes = [self.sentence_embedding_size * self.max_sentences_per_abstract * 2] + self.hparams['hidden_sizes'] + [1]
+        hidden_sizes = [self.sentence_embedding_size * self.max_sentences_per_abstract * 2] + self.hparams[
+            'hidden_sizes'] + [1]
         for i in range(len(hidden_sizes) - 1):
             layers.extend(
                 [nn.Linear(hidden_sizes[i],
@@ -41,7 +44,6 @@ class PubMedDiscriminator(pl.LightningModule):
         # self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
         # # todo : why reduction='none'
         self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
-        self.empty_batch_count = 0
 
     def forward(self):
         # Forward is unneeded , GaN model will not infer in the future
@@ -50,11 +52,10 @@ class PubMedDiscriminator(pl.LightningModule):
     def step(self, batch: dict, name='train_dataset'):
         """
         :param batch:{'origin_text':list[string],'biased':list[string],'unbiased':list[string]}
-        :param optimizer_idx: determines which step is it - discriminator or generator
-        :param name:
-        :return:
+        :param name:string, 'train' , 'test' or 'val'
+        :return:dictionary,
+        step_ret_dict {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
         """
-        print("Stepped in")
         batch = self._convert_to_list_of_dicts(batch)
         #   Discriminator Step
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
@@ -71,7 +72,7 @@ class PubMedDiscriminator(pl.LightningModule):
         return self.validation_step(batch, batch_idx)
 
     def configure_optimizers(self):
-        # Discriminator step paramteres -  classifier.
+        # Discriminator step parameters -  classifier.
         grouped_parameters_discriminator = [{'params': self.classifier.parameters()}]
         optimizer_discriminator = torch.optim.Adam(grouped_parameters_discriminator, lr=self.hparams['learning_rate'])
         return [optimizer_discriminator]
@@ -84,36 +85,29 @@ class PubMedDiscriminator(pl.LightningModule):
     def _discriminator_step(self, batch, name):
         """
         :param batch:{'origin_text':string,'biased':string,'unbiased':string}
-        :param name:
+        :param name:string, 'train','test' or 'val'
         :return: result dictionary
         since not all batch items represent a couple of docs to discriminator (some didn't get match with noahArc matcher)
         we clean (leave) the relevant docs in the batch, shuffle them, get prediction and return loss
         """
-        result_dictionary = {}
+        result_dictionary = {'mlm_loss': 0, 'optimizer_idx': 0}
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
-        print(1)
-        result_dictionary['mlm_loss'] = 0
-        result_dictionary['optimizer_idx'] = 0
-        assert (len(batch) > 0)
         clean_discriminator_batch = self._discriminator_clean_batch(batch)
+        # In case there are no samples for the discriminator(all the documents in the batch does not have a match)
+        # we skip to the next batch
         if len(clean_discriminator_batch) == 0:
-            self.empty_batch_count += 1
             return None
-        assert (len(clean_discriminator_batch) > 0)
         discriminator_y_true = torch.as_tensor([float(random.choice([0, 1])) for _ in clean_discriminator_batch])
-        print(2)
         result_dictionary['y_true'] = discriminator_y_true
-        # discriminator_y_true created in order to shuffle the bias/unbiased order
+        # 'discriminator_y_true' created in order to shuffle the bias/unbiased order
         discriminator_predictions = self._discriminator_get_predictions(clean_discriminator_batch, discriminator_y_true)
         all_samples_losses = self.loss_func(discriminator_predictions, discriminator_y_true.to(self.device))
-        print(3)
         discriminator_loss = all_samples_losses.mean()
         result_dictionary['loss'] = discriminator_loss
         result_dictionary['losses'] = all_samples_losses
         self.log(f'discriminator/{name}_loss', discriminator_loss, batch_size=self.hparams['batch_size'])
         y_proba = self._y_pred_to_probabilities(discriminator_predictions).cpu().detach()
         result_dictionary['y_proba'] = y_proba
-        print(4)
         result_dictionary['y_score'] = discriminator_y_true.cpu().detach() * y_proba + (
                 1 - discriminator_y_true.cpu().detach()) * (1 - y_proba)
         if not all(discriminator_y_true) and any(discriminator_y_true):
@@ -125,6 +119,12 @@ class PubMedDiscriminator(pl.LightningModule):
         return result_dictionary
 
     def _discriminator_clean_batch(self, batch):
+        """
+        Disposes samples from batch which does not contain two documents,
+        happens if document `i` does not have a match.
+
+        :param batch:{'origin_text':string,'biased':string,'unbiased':string}
+        """
         clean_batch = []  # batch where each document has a pair , no unmatched documents allowed
         for sample in batch:
             if sample['biased'] == "" or sample['unbiased'] == "":
@@ -133,6 +133,14 @@ class PubMedDiscriminator(pl.LightningModule):
         return clean_batch
 
     def _discriminator_get_batch(self, batch, shuffle_vector):
+        """
+        Disposes samples from batch which does not contain two documents,
+        happens if document `i` does not have a match.
+
+        :param batch:{'origin_text':string,'biased':string,'unbiased':string}
+        :param shuffle_vector:Tensor, made of 0`s and 1`s each entry determines whether the ith sample  ,
+        which consists  of two documents, will be ordered ['biased','unbiased'] or ['unbiased','biased']
+        """
         result_batch = []
         for index, entry in enumerate(batch):
             biased_text = entry['biased']
@@ -146,6 +154,10 @@ class PubMedDiscriminator(pl.LightningModule):
         return result_batch
 
     def _discriminator_get_cls_bert_outputs(self, bert_inputs):
+        """
+        Infer bert outputs and return for the CLS`s  ONLY to be used later on
+        :param bert_inputs: bert input
+        """
         all_outputs = self.bert_model(**bert_inputs, output_hidden_states=True).hidden_states[-1]
         cls_outputs = all_outputs[:, 0]
         return cls_outputs
@@ -156,9 +168,8 @@ class PubMedDiscriminator(pl.LightningModule):
         def fix_sentences_size(sent_embeddings):
             """
             Fix embedding size in case it requires padding or truncating
-
-            :param sent_embeddings:
-            :return:
+            :param sent_embeddings: the embedding to be fixed
+            :return: Fixed size embedding
             """
             if len(sent_embeddings) > self.max_sentences_per_abstract:  #
                 # Too many sentences
@@ -206,6 +217,7 @@ class PubMedDiscriminator(pl.LightningModule):
 
     def test_epoch_end(self, outputs) -> None:
         pass
+
     def training_epoch_end(self, outputs):
         pass
 
