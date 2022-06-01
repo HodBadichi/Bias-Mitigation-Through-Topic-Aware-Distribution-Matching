@@ -4,7 +4,6 @@ import gensim.corpora as corpora
 import pandas as pd
 import gensim.models
 
-
 """
     `Metrics` class implementation, an abstract class which will be used to aggregate different models metrics
 """
@@ -102,6 +101,7 @@ class BertTopicMetrics(Metrics):
                                          dictionary=self.dictionary,
                                          coherence=metric)
         return coherence_model.get_coherence()
+
 
 class CustomError(Exception):
     pass

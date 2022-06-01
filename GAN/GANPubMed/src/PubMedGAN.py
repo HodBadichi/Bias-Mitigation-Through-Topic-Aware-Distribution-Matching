@@ -1,20 +1,20 @@
-import sys
+import random
+import os
 
-sys.path.append('/home/mor.filo/nlp_project/')
-
-import pytorch_lightning as pl
+import pytz
 import torch
 from torch import nn
-from transformers import AutoTokenizer, BertForMaskedLM, DataCollatorForLanguageModeling
-import random
-from GAN.Utils.TextUtils import BreakSentenceBatch
-from sklearn.metrics import roc_auc_score, accuracy_score
 import numpy as np
 import pandas as pd
-import os
+import pytorch_lightning as pl
 from datetime import datetime
-import pytz
-import pprint
+from transformers import AutoTokenizer, BertForMaskedLM, DataCollatorForLanguageModeling
+from sklearn.metrics import roc_auc_score, accuracy_score
+
+from GAN.Utils.TextUtils import BreakSentenceBatch
+
+"""PubMedGAN implementation 
+"""
 
 
 class PubMedGAN(pl.LightningModule):
@@ -32,7 +32,6 @@ class PubMedGAN(pl.LightningModule):
         # 1 - the couple of matching docs was [biased,unbiased]
         # 0 - the couple of matching docs was [unbiased,biased]
         self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
-        # todo : why reduction='none'
         self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
 
     def forward(self):
@@ -51,14 +50,10 @@ class PubMedGAN(pl.LightningModule):
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
         if optimizer_idx == 0:
             step_ret_dict = self._discriminator_step(batch, name)
-            print('_discriminator_step_ret_dict')
-            pprint.pprint(step_ret_dict)
         #   Generator Step
         if optimizer_idx == 1:
             step_ret_dict = self._discriminator_step(batch, name)
             step_ret_dict = self._generator_step(batch, step_ret_dict, name)
-            print('_generator_step_ret_dict')
-            pprint.pprint(step_ret_dict)
         return step_ret_dict
 
     def training_step(self, batch: dict, batch_idx: int, optimizer_idx: int = None) -> dict:
@@ -85,19 +80,22 @@ class PubMedGAN(pl.LightningModule):
 
     def on_end(self, outputs, name):
         # outputs is a list (len=number of batches) of dicts (as returned from the step methods).
-        if name == 'train_dataset' or name =='test_dataset':
+        if name == 'train_dataset' or name == 'test_dataset':
             outputs = outputs[0]  # TODO: WHY? only generator outputs. TODO: really?
         losses = torch.cat([output['losses'] for output in outputs])
         y_true = torch.cat([output['y_true'] for output in outputs])
         y_proba = torch.cat([output['y_proba'] for output in outputs])
         y_score = torch.cat([output['y_score'] for output in outputs])
 
-        self.log(f'debug/{name}_loss', losses.mean(),batch_size=self.hparams['batch_size'])
-        self.log(f'debug/{name}_accuracy', (1. * ((1. * (y_proba >= 0.5)) == y_true)).mean(),batch_size=self.hparams['batch_size'])
-        self.log(f'debug/{name}_1_accuracy', (1. * (y_proba[y_true == 1] >= 0.5)).mean(),batch_size=self.hparams['batch_size'])
-        self.log(f'debug/{name}_0_accuracy', (1. * (y_proba[y_true == 0] < 0.5)).mean(),batch_size=self.hparams['batch_size'])
+        self.log(f'debug/{name}_loss', losses.mean(), batch_size=self.hparams['batch_size'])
+        self.log(f'debug/{name}_accuracy', (1. * ((1. * (y_proba >= 0.5)) == y_true)).mean(),
+                 batch_size=self.hparams['batch_size'])
+        self.log(f'debug/{name}_1_accuracy', (1. * (y_proba[y_true == 1] >= 0.5)).mean(),
+                 batch_size=self.hparams['batch_size'])
+        self.log(f'debug/{name}_0_accuracy', (1. * (y_proba[y_true == 0] < 0.5)).mean(),
+                 batch_size=self.hparams['batch_size'])
 
-        if name =='val_dataset':
+        if name == 'val_dataset':
             # save model at the end of val_dataset epoch
             if self.hparams['max_epochs'] > 0:
                 dir_path = os.path.join(self.hparams['SAVE_PATH'],
@@ -131,30 +129,28 @@ class PubMedGAN(pl.LightningModule):
         """
         result_dictionary = {}
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
-        print(1)
         result_dictionary['mlm_loss'] = 0
         result_dictionary['optimizer_idx'] = 0
         clean_discriminator_batch = self._discriminator_clean_batch(batch)
         discriminator_y_true = torch.as_tensor([float(random.choice([0, 1])) for _ in clean_discriminator_batch])
-        print(2)
         result_dictionary['y_true'] = discriminator_y_true
         # discriminator_y_true created in order to shuffle the bias/unbiased order
         discriminator_predictions = self._discriminator_get_predictions(clean_discriminator_batch, discriminator_y_true)
         all_samples_losses = self.loss_func(discriminator_predictions, discriminator_y_true.to(self.device))
-        print(3)
         discriminator_loss = all_samples_losses.mean()
         result_dictionary['loss'] = discriminator_loss
         result_dictionary['losses'] = all_samples_losses
         self.log(f'discriminator/{name}_loss', discriminator_loss, batch_size=self.hparams['batch_size'])
         y_proba = self._y_pred_to_probabilities(discriminator_predictions).cpu().detach()
         result_dictionary['y_proba'] = y_proba
-        print(4)
         result_dictionary['y_score'] = discriminator_y_true.cpu().detach() * y_proba + (
-                    1 - discriminator_y_true.cpu().detach()) * (1 - y_proba)
+                1 - discriminator_y_true.cpu().detach()) * (1 - y_proba)
         if not all(discriminator_y_true) and any(discriminator_y_true):
             # Calc auc only if batch has more than one class.
-            self.log(f'discriminator/{name}_auc', roc_auc_score(discriminator_y_true.cpu().detach(), y_proba), batch_size=self.hparams['batch_size'])
-        self.log(f'discriminator/{name}_accuracy', accuracy_score(discriminator_y_true.cpu().detach(), y_proba.round()), batch_size=self.hparams['batch_size'])
+            self.log(f'discriminator/{name}_auc', roc_auc_score(discriminator_y_true.cpu().detach(), y_proba),
+                     batch_size=self.hparams['batch_size'])
+        self.log(f'discriminator/{name}_accuracy', accuracy_score(discriminator_y_true.cpu().detach(), y_proba.round()),
+                 batch_size=self.hparams['batch_size'])
         return result_dictionary
 
     def _discriminator_clean_batch(self, batch):

@@ -4,8 +4,7 @@ import pandas as pd
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
-from GAN.Utils.TextUtils import CleanAbstracts
-from GAN.Utils import Utils as GAN_Utils
+from GAN.Utils import Utils as GAN_utils
 from GAN.FrozenBert.src.FrozenBertDataSet import FrozenBertDataSet
 
 """
@@ -39,17 +38,11 @@ class FrozenBertDataModule(pl.LightningDataModule):
             'abstract_2005_2020_gender_and_topic.csv'
         )
         if not os.path.exists(dataframe_path):
-            GAN_Utils.GenerateGANdataframe()
+            GAN_utils.GenerateGANdataframe()
         self.documents_df = pd.read_csv(dataframe_path, encoding='utf8')
         # train_test_split was done once and in order to make sure we keep the same groups
         # we will use the "belong to group" column
-        self.train_df = self.documents_df.loc[self.documents_df['belongs_to_group'] == 'train_dataset'].reset_index()
-        self.test_df = self.documents_df.loc[self.documents_df['belongs_to_group'] == 'test_dataset'].reset_index()
-        self.val_df = self.documents_df.loc[self.documents_df['belongs_to_group'] == 'val_dataset'].reset_index()
-        if "broken_abstracts" not in self.documents_df.columns:
-            self.train_df = CleanAbstracts(self.train_df)
-            self.val_df = CleanAbstracts(self.val_df)
-            self.test_df = CleanAbstracts(self.test_df)
+        self.train_df, self.test_df, self.val_df = GAN_utils.SplitAndCleanDataFrame(self.documents_df)
 
     def setup(self, stage=None):
         self.train_dataset = FrozenBertDataSet(self.train_df)

@@ -1,9 +1,16 @@
-from gensim import models
+import os
 import logging
+
+from gensim import models
+import matplotlib.pyplot as plt
+
 from TopicModeling.LDA.src.LDAUtils import GetLDAParams
 from TopicModeling.LDA.src.LDAUtils import PrepareData
-import os
-import matplotlib.pyplot as plt
+
+"""
+Workflow for proofing convergence of a single LDA model by a given set of hyper params
+Note: the hyperparameters in this workflow are assigned by hand ! not with 'hparams'
+"""
 
 
 def InitLogger():
@@ -98,7 +105,7 @@ def RunConvergenceProcess(
         PlotConvergenceGraph()
 
 
-def RunConvergenceExperiment():
+def RunConvergenceWorkflow():
     number_of_topics = 1
     InitLogger()
     train_set, _ = PrepareData()
@@ -107,4 +114,4 @@ def RunConvergenceExperiment():
 
 
 if __name__ == '__main__':
-    RunConvergenceExperiment()
+    RunConvergenceWorkflow()

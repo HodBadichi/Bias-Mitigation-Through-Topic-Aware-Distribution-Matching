@@ -14,19 +14,22 @@ from GAN.Discriminator.src.hparams_config import hparams
 """This workflow run show how to conduct and experiment using 'Discriminator' 
 """
 
+
 def ParseCLI():
     parser = argparse.ArgumentParser(description='model arguments')
     parser.add_argument("--max-epochs", type=int, help="max_epochs", required=False)
     parser.add_argument("--test_dataset-size", type=float, help="test_size", required=False)
     parser.add_argument("--lr", type=float, help="Learning rate", required=False)
     parser.add_argument("--drop-rate", type=float, help="Drop rate", required=False)
-    parser.add_argument("--hidden-sizes",
-                        "-H",
-                        type=int,
-                        nargs="+",
-                        help="Output size of hidden linear layers",
-                        metavar="H",
-                        required=False, )
+    parser.add_argument(
+        "--hidden-sizes",
+        "-H",
+        type=int,
+        nargs="+",
+        help="Output size of hidden linear layers",
+        metavar="H",
+        required=False,
+    )
     parser.add_argument(
         "--similarity_metric",
         "-M",
@@ -59,13 +62,14 @@ def Run():
         config=new_hparams
     )
 
-    trainer = pl.Trainer(gpus=new_hparams['gpus'],
-                         max_epochs=new_hparams['max_epochs'],
-                         logger=logger,
-                         log_every_n_steps=1,
-                         accumulate_grad_batches=1,
-                         num_sanity_val_steps=0,
-                         )
+    trainer = pl.Trainer(
+        gpus=new_hparams['gpus'],
+        max_epochs=new_hparams['max_epochs'],
+        logger=logger,
+        log_every_n_steps=1,
+        accumulate_grad_batches=1,
+        num_sanity_val_steps=0,
+    )
     trainer.fit(model, datamodule=dm)
     trainer.test(model, datamodule=dm)
 

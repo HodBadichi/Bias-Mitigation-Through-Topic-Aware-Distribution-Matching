@@ -3,7 +3,11 @@ from torch.utils.data import Dataset
 from DistributionMatching.NoahArc.src.NoahArcFactory import NoahArcFactory
 from DistributionMatching.SimilarityMatrix.src.SimilarityMatrixFactory import SimilarityMatrixFactory
 import DistributionMatching.Utils.Utils as project_utils
-from GAN.Utils.TextUtils import TextUtils
+
+"""PubMedDataSet implementation
+produce samples for the GAN model such that each sample in the batch consists of 2 documents that are similar
+ ,but one of them is considered “biased” and the other “unbiased” using the 'Matcher'.
+"""
 
 
 class PubMedDataSet(Dataset):

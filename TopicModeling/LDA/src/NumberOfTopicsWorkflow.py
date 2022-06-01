@@ -10,9 +10,13 @@ from matplotlib import pyplot as plt
 from scipy.interpolate import make_interp_spline
 
 from TopicModeling.Utils.Metrics import LDAMetrics
-from TopicModeling.LDA.src.LDAUtils import GetLDAParams
-from TopicModeling.LDA.src.LDAUtils import PrepareData
+from TopicModeling.LDA.src.LDAUtils import GetLDAParams, PrepareData
 from TopicModeling.Utils.TopcModelingUtils import getCurrRunTime
+from TopicModeling.LDA.src.hparams_config import hparams
+
+"""
+Workflow for tuning gensim`s LDA model.
+"""
 
 
 def ShowEvaluationGraphs(file_path, dataset_name, smooth=False, poly_deg=None):
@@ -166,13 +170,18 @@ def RunNumberOfTopicsExperiment():
     train_LDA_params = GetLDAParams(train_set)
     test_LDA_params = GetLDAParams(test_set)
 
-    #   Choose Hyperparameters:
-    topics_range = range(1, 2)
-    RunTuningProcess(train_LDA_params, test_LDA_params, topics_range)
+    RunTuningProcess(
+        train_LDA_params,
+        test_LDA_params,
+        topics_range=hparams['topics_range'],
+        passes=hparams['passes'],
+        iterations=hparams['iterations'],
+        chunksize=hparams['chunksize'],
+    )
     logging.info("Evaluating stage is done successfully ")
 
-    test_results_path = os.path.join(os.pardir, os.pardir, 'results', fr'test_evaluation_{getCurrRunTime()}.csv', )
-    train_results_path = os.path.join(os.pardir, os.pardir, 'results', fr'train_evaluation_{getCurrRunTime()}.csv')
+    test_results_path = os.path.join(os.pardir, 'results', fr'test_evaluation_{getCurrRunTime()}.csv', )
+    train_results_path = os.path.join(os.pardir, 'results', fr'train_evaluation_{getCurrRunTime()}.csv')
 
     ShowEvaluationGraphs(train_results_path, "Train", False, None)
     ShowEvaluationGraphs(test_results_path, "Test", False, None)

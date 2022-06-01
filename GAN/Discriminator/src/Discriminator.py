@@ -118,7 +118,8 @@ class Discriminator(pl.LightningModule):
                  batch_size=self.hparams['batch_size'])
         return result_dictionary
 
-    def _discriminator_clean_batch(self, batch):
+    @staticmethod
+    def _discriminator_clean_batch(batch):
         """
         Disposes samples from batch which does not contain two documents,
         happens if document `i` does not have a match.
@@ -132,7 +133,8 @@ class Discriminator(pl.LightningModule):
             clean_batch.append(sample)
         return clean_batch
 
-    def _discriminator_get_batch(self, batch, shuffle_vector):
+    @staticmethod
+    def _discriminator_get_batch(batch, shuffle_vector):
         """
         Disposes samples from batch which does not contain two documents,
         happens if document `i` does not have a match.
@@ -237,7 +239,8 @@ class Discriminator(pl.LightningModule):
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         return inputs
 
-    def _convert_to_list_of_dicts(self, batch):
+    @staticmethod
+    def _convert_to_list_of_dicts(batch):
         # to make it a shape of {'origin':int,'biased':string,'unbiased':string}
         batch_df = pd.DataFrame.from_dict(batch)
         batch = batch_df.T.to_dict().values()
