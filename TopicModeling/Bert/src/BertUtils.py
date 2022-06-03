@@ -9,7 +9,6 @@ import gdown
 
 from TopicModeling.Utils.Metrics import BertTopicMetrics
 from TopicModeling.Utils.TopcModelingUtils import getCurrRunTime, IsAscii
-from TopicModeling.Bert.src.hparams_config import hparams
 
 
 def BertVisualize(models_dir, result_dir, model_name, top_n_topics, n_words_per_topic):

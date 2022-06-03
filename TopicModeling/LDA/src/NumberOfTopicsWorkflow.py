@@ -59,7 +59,8 @@ def ShowEvaluationGraphs(file_path, dataset_name, smooth=False, poly_deg=None):
         ax.set_xlabel("Number of topics")
         ax.set_ylabel("Measure values")
         ax.legend()
-    plt.show()
+    plt.savefig(os.path.join(os.pardir, 'results', f'eval_graphs_{getCurrRunTime()}'))
+    plt.close()
 
 
 def InitializeLogger(sFileName=None):
@@ -110,8 +111,8 @@ def RunTuningProcess(
     }
     logging.info(params_dictionary)
 
-    models_directory_path = os.path.join(os.pardir, os.pardir, 'saved_models')
-    result_directory_path = os.path.join(os.pardir, os.pardir, 'results')
+    models_directory_path = os.path.join(os.pardir, 'saved_models')
+    result_directory_path = os.path.join(os.pardir, 'results')
     os.makedirs(models_directory_path, exist_ok=True)
     os.makedirs(result_directory_path, exist_ok=True)
 
@@ -130,14 +131,16 @@ def RunTuningProcess(
 
     for num_of_topics in topics_range:
         logging.info(f"Running number of topics model : {num_of_topics}")
-        curr_lda_model = gensim.models.ldamodel.LdaModel(corpus=train_LDA_parameters['corpus'],
-                                                         id2word=train_LDA_parameters['id2word'],
-                                                         num_topics=num_of_topics,
-                                                         random_state=42,
-                                                         update_every=1,
-                                                         chunksize=chunksize,
-                                                         passes=passes,
-                                                         iterations=iterations)
+        curr_lda_model = gensim.models.ldamodel.LdaModel(
+            corpus=train_LDA_parameters['corpus'],
+            id2word=train_LDA_parameters['id2word'],
+            num_topics=num_of_topics,
+            random_state=42,
+            update_every=1,
+            chunksize=chunksize,
+            passes=passes,
+            iterations=iterations
+        )
 
         saved_model_path = os.path.join(models_directory_path, f'model_{num_of_topics}_{getCurrRunTime()}')
         curr_lda_model.save(saved_model_path)
