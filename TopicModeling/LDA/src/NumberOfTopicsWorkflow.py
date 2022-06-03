@@ -1,6 +1,10 @@
 import logging
 import csv
 import os
+import sys
+
+if os.name != 'nt':
+    sys.path.append(os.path.join(os.pardir, os.pardir, os.pardir))
 
 import numpy as np
 import gensim
