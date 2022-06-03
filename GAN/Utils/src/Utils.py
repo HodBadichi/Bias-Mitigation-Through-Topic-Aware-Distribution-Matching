@@ -1,20 +1,45 @@
 import os
 import sys
-sys.path.append(os.path.join(os.pardir,os.pardir,os.pardir))
+if os.name != 'nt':
+    sys.path.append(os.path.join(os.pardir,os.pardir,os.pardir))
 
 import pandas as pd
 from bertopic import BERTopic
 import numpy as np
+import gdown
 
 from GAN.Utils.src.GAN_config import config
 from GAN.Utils.src.TextUtils import TextUtils, CleanAbstracts
 
 
 def LoadAbstractPubMedData():
+    data_directory = os.path.join(os.pardir, os.pardir, os.pardir, 'data')
+    os.makedirs(data_directory, exist_ok=True)
+    full_data_path = config['PubMedData']
+
+    #   Load full dataframe
+    if not os.path.exists(full_data_path):
+        print("Downloading dataframe ...")
+        url = 'https://drive.google.com/uc?id=1xmifhCZ4IljgjUEY73QLVPnk99Y-A04A'
+        gdown.download(url, full_data_path, quiet=False)
+    else:
+        print("Dataframe already exists...")
+
     return pd.read_csv(config['PubMedData'], encoding='utf8')
 
 
 def LoadTopicModel():
+    models_directory = os.path.join(os.pardir,os.pardir, os.pardir, 'data')
+    os.makedirs(models_directory, exist_ok=True)
+    full_model_path = config['topic_model_path']
+
+    #   Load full dataframe
+    if not os.path.exists(full_model_path):
+        print("Downloading dataframe ...")
+        url = 'https://drive.google.com/uc?id=1K7_L-ijpb9hR43_Z0rxYcCtjBRw2x8eR'
+        gdown.download(url, full_model_path, quiet=False)
+    else:
+        print("Dataframe already exists...")
     return BERTopic.load(config['topic_model_path'])
 
 

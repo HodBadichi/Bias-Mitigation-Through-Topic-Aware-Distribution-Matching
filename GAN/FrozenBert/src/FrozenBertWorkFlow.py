@@ -1,6 +1,7 @@
 import os
 import sys
-sys.path.append(os.path.join(os.pardir,os.pardir,os.pardir))
+if os.name != 'nt':
+    sys.path.append(os.path.join(os.pardir,os.pardir,os.pardir))
 
 from pytorch_lightning.loggers import WandbLogger
 from datetime import datetime
