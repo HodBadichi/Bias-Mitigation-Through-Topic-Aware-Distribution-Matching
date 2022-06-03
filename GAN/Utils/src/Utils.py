@@ -10,7 +10,7 @@ import gdown
 
 from GAN.Utils.src.GAN_config import config
 from GAN.Utils.src.TextUtils import TextUtils, CleanAbstracts
-
+from TopicModeling.Bert.src.BertUtils import CleanText
 
 def LoadAbstractPubMedData():
     data_directory = os.path.join(os.pardir, os.pardir, os.pardir, 'data')
@@ -49,7 +49,9 @@ def GenerateGANdataframe():
     documents_df = documents_df[~documents_df['female'].isnull()]
     documents_df = documents_df[~documents_df['male'].isnull()]
     documents_df['female_rate'] = documents_df['female'] / (documents_df['female'] + documents_df['male'])
-    docs = documents_df.clean_title_and_abstract.to_list()
+    title_and_abstract_df = documents_df[["title_and_abstract"]]
+    clean_title_and_abstract_df = CleanText(title_and_abstract_df["title_and_abstract"])
+    docs = clean_title_and_abstract_df.clean_title_and_abstract_df.dropna().to_list()
     topics, probs = LoadTopicModel().transform(docs)
     col_topics = pd.Series(topics)
     # get topics
