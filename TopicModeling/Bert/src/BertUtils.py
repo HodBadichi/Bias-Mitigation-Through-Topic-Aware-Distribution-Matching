@@ -98,7 +98,7 @@ def BertCoherenceEvaluate(train_set, models_dir, models_list, results_dir):
         writer = csv.DictWriter(csv_file, my_dict.keys())
         writer.writerow(my_dict)
         for model in models_list:
-            loaded_model = BERTopic.load(rf"{models_dir}\{model}")
+            loaded_model = BERTopic.load(os.path.join(models_dir,model))
             loaded_topics = loaded_model._map_predictions(loaded_model.hdbscan_model.labels_)
             my_metrics = BertTopicMetrics(loaded_model, docs, loaded_topics)
             result_dict = my_metrics.EvaluateAllMetrics()
