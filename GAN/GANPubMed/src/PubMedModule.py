@@ -3,7 +3,7 @@ import pandas as pd
 from torch.utils.data import DataLoader
 
 from GAN.GANPubMed.src.PubMedDataSet import PubMedDataSet
-from GAN.Utils import Utils as GAN_utils
+from GAN.Utils.src import Utils as GAN_utils
 
 
 class PubMedModule(pl.LightningDataModule):

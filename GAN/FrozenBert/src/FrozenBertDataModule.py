@@ -4,7 +4,7 @@ import pandas as pd
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
-from GAN.Utils import Utils as GAN_utils
+from GAN.Utils.src import Utils as GAN_utils
 from GAN.FrozenBert.src.FrozenBertDataSet import FrozenBertDataSet
 
 """

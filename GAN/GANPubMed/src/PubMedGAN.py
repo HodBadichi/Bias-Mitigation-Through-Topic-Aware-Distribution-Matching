@@ -11,7 +11,7 @@ from datetime import datetime
 from transformers import AutoTokenizer, BertForMaskedLM, DataCollatorForLanguageModeling
 from sklearn.metrics import roc_auc_score, accuracy_score
 
-from GAN.Utils.TextUtils import BreakSentenceBatch
+from GAN.Utils.src.TextUtils import BreakSentenceBatch
 
 """PubMedGAN implementation 
 """

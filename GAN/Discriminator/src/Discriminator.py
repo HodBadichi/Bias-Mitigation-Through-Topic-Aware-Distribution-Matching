@@ -7,7 +7,7 @@ import pytorch_lightning as pl
 from torch import nn
 from transformers import AutoTokenizer, BertForMaskedLM
 
-from GAN.Utils.TextUtils import BreakSentenceBatch
+from GAN.Utils.src.TextUtils import BreakSentenceBatch
 
 """Discriminator Implementation
 This class inherits from 'pl.LightningModule', A basic network with linear layers using RELU between each layer

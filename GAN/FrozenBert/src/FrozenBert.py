@@ -5,7 +5,7 @@ from transformers import AutoTokenizer, BertForMaskedLM
 from transformers import DataCollatorForLanguageModeling
 import pytorch_lightning as pl
 
-from GAN.Utils.TextUtils import BreakSentenceBatch
+from GAN.Utils.src.TextUtils import BreakSentenceBatch
 
 """
 FrozenBert implementation , the created bert model is used as a frozen model for GAN and also as

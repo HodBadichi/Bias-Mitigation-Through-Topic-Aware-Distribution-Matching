@@ -2,7 +2,7 @@ import pandas as pd
 
 from GAN.GANPubMed.src.PubMedDataSet import PubMedDataSet
 from DistributionMatching.Utils.Utils import config
-from GAN.Utils.TextUtils import CleanAbstracts
+from GAN.Utils.src.TextUtils import CleanAbstracts
 
 
 def test_getitem():
