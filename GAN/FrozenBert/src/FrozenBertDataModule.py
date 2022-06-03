@@ -1,5 +1,6 @@
 import os
-
+import sys
+sys.path.append(os.path.join(os.pardir,os.pardir,os.pardir))
 import pandas as pd
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
