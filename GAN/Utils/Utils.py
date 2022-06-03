@@ -1,4 +1,6 @@
 import os
+import sys
+sys.path.append(os.path.join(os.pardir,os.pardir,os.pardir))
 
 import pandas as pd
 from bertopic import BERTopic
