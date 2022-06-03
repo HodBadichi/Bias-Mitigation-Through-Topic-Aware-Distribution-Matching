@@ -1,5 +1,6 @@
 import os
 import sys
+sys.path.append(os.path.join(os.pardir,os.pardir))
 
 from pytorch_lightning.loggers import WandbLogger
 from datetime import datetime
@@ -37,5 +38,5 @@ def RunWorkflow():
 
 
 if __name__ == '__main__':
-    # to run on server sbatch -c 2 --gres=gpu:1 run_on_server.sh* -o run.out
+    # to run on server sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out
     sys.exit(RunWorkflow())
