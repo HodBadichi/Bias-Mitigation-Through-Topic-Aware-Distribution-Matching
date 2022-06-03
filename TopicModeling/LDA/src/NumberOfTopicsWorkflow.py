@@ -23,49 +23,65 @@ Workflow for tuning gensim`s LDA model.
 """
 
 
-def ShowEvaluationGraphs(file_path, dataset_name, smooth=False, poly_deg=None):
+def ShowEvaluationGraphs(
+        train_results_path,
+        test_results_path,
+        smooth=False,
+        poly_deg=None
+):
     """
     Used for 'NumberOfTopicsExperiment' results.
 
     Print on the screen metrics results against number of topics
     :param file_path:CSV file which holds in a single column 'Number of topics' and different measures
-    :param dataset_name: string, `test_dataset` or `train_dataset`
+    :param dataset_name: string, `test` or `train`
     :param smooth: Boolean flag, if True it smooth the results graph
     :param poly_deg: Int, matches a polynomial of degree 'poly_deg'  to the results graph
     :return:None
     """
     figure, axis = plt.subplots(2, 3)
     figure.set_size_inches(18.5, 10.5)
-    train_df = pd.read_csv(file_path)
-    column_names = train_df.columns
-    if len(train_df) < 4:
-        raise ValueError("dataframe in `ShowEvaluationGraphs`  should be larger than 4 samples!")
+    train_evaluation_csv = pd.read_csv(train_results_path)
+    test_evaluation_csv = pd.read_csv(test_results_path)
+    column_names = train_evaluation_csv.columns
+
     for measure, ax in zip(column_names, axis.ravel()):
         if measure == 'Topics':
             continue
-        train_scores = train_df[measure].tolist()
+        train_scores = train_evaluation_csv[measure].tolist()
+        test_scores = test_evaluation_csv[measure].tolist()
 
-        X_Y_Spline = make_interp_spline(train_df.Topics.tolist(), train_scores)
+        train_X_Y_Spline = make_interp_spline(train_evaluation_csv.Topics.tolist(), train_scores)
+        test_X_Y_Spline = make_interp_spline(test_evaluation_csv.Topics.tolist(), test_scores)
+
         # Returns evenly spaced numbers
         # over a specified interval.
-        X_ = np.linspace(train_df.Topics.min(), train_df.Topics.max(), 500)
-        Y_ = X_Y_Spline(X_)
+        train_X_ = np.linspace(train_evaluation_csv.Topics.min(), train_evaluation_csv.Topics.max(), 500)
+        train_Y_ = train_X_Y_Spline(train_X_)
+        test_X_ = np.linspace(test_evaluation_csv.Topics.min(), test_evaluation_csv.Topics.max(), 500)
+        test_Y_ = test_X_Y_Spline(test_X_)
         if poly_deg is not None:
-            coefs = np.polyfit(train_df.Topics.tolist(), train_scores, poly_deg)
-            y_poly = np.polyval(coefs, train_df.Topics.tolist())
-            ax.plot(train_df.Topics.tolist(), train_scores, "o", label="data points")
-            ax.plot(train_df.Topics, y_poly, label=dataset_name, color='red')
+            train_coefs = np.polyfit(train_evaluation_csv.Topics.tolist(), train_scores, poly_deg)
+            train_y_poly = np.polyval(train_coefs, train_evaluation_csv.Topics.tolist())
+            ax.plot(train_evaluation_csv.Topics.tolist(), train_scores, "o", label="data points")
+            ax.plot(train_evaluation_csv.Topics, train_y_poly, label="Train", color='blue')
+
+            test_coefs = np.polyfit(test_evaluation_csv.Topics.tolist(), test_scores, poly_deg)
+            test_y_poly = np.polyval(test_coefs, test_evaluation_csv.Topics.tolist())
+            ax.plot(test_evaluation_csv.Topics.tolist(), test_scores, "o", label="data points")
+            ax.plot(test_evaluation_csv.Topics, test_y_poly, label="Test", color='red')
         elif smooth is False:
-            ax.plot(train_df.Topics, train_scores, label="Validation", color='red')
+            ax.plot(train_evaluation_csv.Topics, train_scores, label="Train", color='blue')
+            ax.plot(test_evaluation_csv.Topics, test_scores, label="Test", color='red')
         else:
-            ax.plot(X_, Y_, label=dataset_name, color='red')
+            ax.plot(train_X_, train_Y_, label="Train", color='blue')
+            ax.plot(test_X_, test_Y_, label="Test", color='red')
+
         ax.set_title(measure + " Measure ")
         ax.set_xlabel("Number of topics")
         ax.set_ylabel("Measure values")
-        ax.legend()
-    plt.savefig(os.path.join(os.pardir, 'results', f'eval_graphs_{getCurrRunTime()}'))
+        plt.savefig(os.path.join(os.pardir, 'results', f'eval_graphs_{getCurrRunTime()}'))
     plt.close()
-
 
 def InitializeLogger(sFileName=None):
     """
@@ -190,8 +206,7 @@ def RunNumberOfTopicsExperiment():
     test_results_path = os.path.join(os.pardir, 'results', fr'test_evaluation_{getCurrRunTime()}.csv', )
     train_results_path = os.path.join(os.pardir, 'results', fr'train_evaluation_{getCurrRunTime()}.csv')
 
-    ShowEvaluationGraphs(train_results_path, "Train", False, None)
-    ShowEvaluationGraphs(test_results_path, "Test", False, None)
+    ShowEvaluationGraphs(train_results_path,test_results_path, True, None)
 
 
 if __name__ == '__main__':

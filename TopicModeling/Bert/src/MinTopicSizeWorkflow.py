@@ -46,20 +46,20 @@ def RunMinTopicSizeWorkflow():
 
     train_set, test_set = PrepareData()
 
-    trained_models_list = RunTuningProcess(
-        train_set=train_set,
-        saved_models_directory=saved_models_directory_path,
-        min_topic_size_range=hparams['min_topic_size_range'],
-        n_gram_range=hparams['n_gram_range'],
-    )
-
+    # trained_models_list = RunTuningProcess(
+    #     train_set=train_set,
+    #     saved_models_directory=saved_models_directory_path,
+    #     min_topic_size_range=hparams['min_topic_size_range'],
+    #     n_gram_range=hparams['n_gram_range'],
+    # )
+    trained_models_list = 'n_gram_1_1_nr_topics_340_03_06_2022_155501'
     BertCoherenceEvaluate(
         train_set=train_set,
         models_dir=saved_models_directory_path,
         models_list=trained_models_list,
         results_dir=results_directory_path,
     )
-
+    exit()
     for model in trained_models_list:
         BertVisualize(
             models_dir=saved_models_directory_path,
