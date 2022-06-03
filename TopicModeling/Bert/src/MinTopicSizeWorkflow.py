@@ -39,8 +39,8 @@ def RunTuningProcess(train_set, saved_models_directory, min_topic_size_range, n_
 
 def RunMinTopicSizeWorkflow():
     np.random.seed(42)
-    saved_models_directory_path = os.path.join(os.pardir, os.pardir, 'saved_models')
-    results_directory_path = os.path.join(os.pardir, os.pardir, 'results')
+    saved_models_directory_path = os.path.join(os.pardir, 'saved_models')
+    results_directory_path = os.path.join(os.pardir, 'results')
     os.makedirs(saved_models_directory_path, exist_ok=True)
     os.makedirs(results_directory_path, exist_ok=True)
 
