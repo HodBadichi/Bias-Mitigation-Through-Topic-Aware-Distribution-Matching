@@ -12,7 +12,7 @@ This project consists with 2 parts, each contains its workflows:
   * GAN Workflow (using the DistributionMatching module - NoahArc)
   
   
-Each workflow has a "run" funcion that will envoke the full workflow,
+Each workflow has a "run" funcion that will invoke the full workflow,
 where each workflow also responsible for getting the relevant data for the workflow and create the projects directory structure.
 
 Each workflow has a "run_on_server.sh" file for running the workflow (the run function) as a batch job on Technion lambda server by running:
