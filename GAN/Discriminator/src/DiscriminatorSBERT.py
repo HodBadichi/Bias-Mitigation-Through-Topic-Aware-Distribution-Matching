@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 
 from sentence_transformers import SentenceTransformer
 
@@ -31,7 +32,20 @@ class DiscriminatorSBert(Discriminator):
 
         aggregated = torch.stack(sample_embedding)
         y_predictions = self.classifier(aggregated).squeeze(1)
-        return y_predictions
+        return
+
+    def _discriminator_get_classifier(self):
+        layers = []
+        hidden_sizes = [self.sentence_embedding_size * 3] + self.hparams[
+            'hidden_sizes'] + [1]
+        for i in range(len(hidden_sizes) - 1):
+            layers.extend(
+                [nn.Linear(hidden_sizes[i],
+                           hidden_sizes[i + 1]),
+                 nn.LeakyReLU(0.2, inplace=True),
+                 nn.Dropout(self.hparams['dropout_rate'])])
+
+        return nn.Sequential(*layers)  # per il flatten
 
     def _discriminator_get_predictions(self, batch, shuffle_vector):
         """
