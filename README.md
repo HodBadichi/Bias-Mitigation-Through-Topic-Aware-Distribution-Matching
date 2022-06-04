@@ -2,8 +2,8 @@
 
 This project consists with 2 parts, each contains its workflows:
 1. Topic modeling part:
-  * BERTtopic workflow (to create, tune hyperparms, visualize and measure coherence)
-  * LDA workflow (to create, tune hyperparms, visualize and measure coherence)
+  * BERTtopic workflow (train the model, tune hyperparms, visualize and measure coherence)
+  * LDA workflow (train the model, tune hyperparms, visualize and measure coherence)
  
  2. GAN
   * Frozen Bert workflow (train pre trained bert model over pubmed data)
