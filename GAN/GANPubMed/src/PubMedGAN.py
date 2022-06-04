@@ -46,6 +46,7 @@ class PubMedGAN(pl.LightningModule):
         :return:
         """
         #   Discriminator Step
+        batch = self._convert_to_list_of_dicts(batch)
         step_ret_dict = {}
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
         if optimizer_idx == 0:
@@ -276,7 +277,7 @@ class PubMedGAN(pl.LightningModule):
 
     def _get_bert_inputs(self, documents_sentences):
         inputs = self.bert_tokenizer.batch_encode_plus(documents_sentences, padding=True, truncation=True,
-                                                       max_length=self.max_len,
+                                                       max_length=self.max_length_bert_input,
                                                        add_special_tokens=True, return_tensors="pt")
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         return inputs

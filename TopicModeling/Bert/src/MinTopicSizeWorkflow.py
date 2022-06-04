@@ -46,32 +46,32 @@ def RunMinTopicSizeWorkflow():
 
     train_set, test_set = PrepareData()
 
-    # trained_models_list = RunTuningProcess(
-    #     train_set=train_set,
-    #     saved_models_directory=saved_models_directory_path,
-    #     min_topic_size_range=hparams['min_topic_size_range'],
-    #     n_gram_range=hparams['n_gram_range'],
-    # )
-    #
+    trained_models_list = RunTuningProcess(
+        train_set=train_set,
+        saved_models_directory=saved_models_directory_path,
+        min_topic_size_range=hparams['min_topic_size_range'],
+        n_gram_range=hparams['n_gram_range'],
+    )
 
-    # BertCoherenceEvaluate(
-    #     train_set=train_set,
-    #     models_dir=saved_models_directory_path,
-    #     models_list=trained_models_list,
-    #     results_dir=results_directory_path,
-    # )
 
-    # for model in trained_models_list:
-    #     BertVisualize(
-    #         models_dir=saved_models_directory_path,
-    #         result_dir=results_directory_path,
-    #         model_name=model,
-    #         top_n_topics=20,
-    #         n_words_per_topic=15,
-    #     )
+    BertCoherenceEvaluate(
+        train_set=train_set,
+        models_dir=saved_models_directory_path,
+        models_list=trained_models_list,
+        results_dir=results_directory_path,
+    )
+
+    for model in trained_models_list:
+        BertVisualize(
+            models_dir=saved_models_directory_path,
+            result_dir=results_directory_path,
+            model_name=model,
+            top_n_topics=20,
+            n_words_per_topic=15,
+        )
 
     BertCoherenceGraph(
-        evaluation_file_name=f'evaluate_04_06_2022_192829.csv',
+        evaluation_file_name=f'evaluate_{getCurrRunTime()}.csv',
         result_dir=results_directory_path,
     )
 
