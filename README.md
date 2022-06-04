@@ -5,7 +5,7 @@ This project consists with 2 parts, each contains its workflows:
   * BERTtopic workflow (train the model, tune hyperparms, visualize and measure coherence)
   * LDA workflow (train the model, tune hyperparms, visualize and measure coherence)
  
- 2. GAN
+ 2. GAN part:
   * Frozen Bert workflow (train pre trained bert model over pubmed data)
   * Discriminator Workflow with Bert as embedder (using the DistributionMatching module - NoahArc)
   * Discriminator Workflow with Sentence bert as embedder (using the DistributionMatching module - NoahArc)
