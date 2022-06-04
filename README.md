@@ -29,4 +29,7 @@ For example - running the BertTopic workflow:
 4. on TopicModeling\Bert\saved_models will be our trained topic models
 5. on TopicModeling\Bert\results will be the visualization of each topic model, coherence csv file for all models and a coherence graph visualization
 
+
+Note - the project has a requirements file, run: 'pip install -r requirements.txt' before running the workflows.
+
 Enjoy :)
