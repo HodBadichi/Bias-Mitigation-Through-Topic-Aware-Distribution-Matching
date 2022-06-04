@@ -53,27 +53,31 @@ def RunMinTopicSizeWorkflow():
     #     n_gram_range=hparams['n_gram_range'],
     # )
     #
-    # BertCoherenceEvaluate(
-    #     train_set=train_set,
-    #     models_dir=saved_models_directory_path,
-    #     models_list=trained_models_list,
-    #     results_dir=results_directory_path,
-    # )
-    trained_models_list = ['n_gram_1_1_nr_topics_50_04_06_2022_025352']
-    for model in trained_models_list:
-        BertVisualize(
-            models_dir=saved_models_directory_path,
-            result_dir=results_directory_path,
-            model_name=model,
-            top_n_topics=20,
-            n_words_per_topic=15,
-        )
 
-    # BertCoherenceGraph(
-    #     evaluation_file_name=f'evaluate_{getCurrRunTime()}.csv',
-    #     result_dir=results_directory_path,
-    # )
+    trained_models_list = ['BERTopicModel']
+
+    BertCoherenceEvaluate(
+        train_set=train_set,
+        models_dir=saved_models_directory_path,
+        models_list=trained_models_list,
+        results_dir=results_directory_path,
+    )
+
+    # for model in trained_models_list:
+    #     BertVisualize(
+    #         models_dir=saved_models_directory_path,
+    #         result_dir=results_directory_path,
+    #         model_name=model,
+    #         top_n_topics=20,
+    #         n_words_per_topic=15,
+    #     )
+
+    BertCoherenceGraph(
+        evaluation_file_name=f'evaluate_{getCurrRunTime()}.csv',
+        result_dir=results_directory_path,
+    )
 
 
 if __name__ == '__main__':
+    # to run on Technion lambda server use: sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out
     RunMinTopicSizeWorkflow()

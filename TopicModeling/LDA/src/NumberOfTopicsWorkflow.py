@@ -210,4 +210,5 @@ def RunNumberOfTopicsExperiment():
 
 
 if __name__ == '__main__':
+    # to run on Technion lambda server use: sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out
     RunNumberOfTopicsExperiment()
