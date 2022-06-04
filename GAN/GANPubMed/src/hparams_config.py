@@ -14,11 +14,9 @@ hparams = {'learning_rate': 2e-5,
            'batch_size': 16,
            'test_size': 0.3,
            'bert_pretrained_over_pubMed_path': os.path.join(
-               os.pardir,
-               'Models',
-               'bert_pretrain',
-               'bert_tiny_uncased_abstract_2005_2020_gender_and_topic_epochs',
-               'bert_tiny_uncased_abstract_2005_2020_gender_and_topic_39_'
+               os.pardir, os.pardir, "FrozenBert",
+               'models',
+               'bert_tiny_uncased_39_'
            ),
            'bert_tokenizer': os.path.join('google', 'bert_uncased_L-2_H-128_A-2'),
            'similarity_metric': 'cross_entropy',
