@@ -24,8 +24,9 @@ Each workflow has a workflow_config file with the relevant Hyperparams for it
 
 For example - running the BertTopic workflow:
 1. cd TopicModeling\Bert\src
-2. We will define the Hyperparams for bertopic training on hparams_config.py (add relevent min_topic_size_range, and n_gram_range)
+2. We will define the Hyperparams for bertopic training in hparams_config.py (add relevent min_topic_size_range, and n_gram_range)
 3. In this dir, will run sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out
+Results :
 4. on TopicModeling\Bert\saved_models will be our trained topic models
 5. on TopicModeling\Bert\results will be the visualization of each topic model, coherence csv file for all models and a coherence graph visualization
 
