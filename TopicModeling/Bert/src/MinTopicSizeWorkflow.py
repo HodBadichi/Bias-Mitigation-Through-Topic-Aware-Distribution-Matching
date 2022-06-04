@@ -71,7 +71,7 @@ def RunMinTopicSizeWorkflow():
     #     )
 
     BertCoherenceGraph(
-        evaluation_file_name=f'evaluate_{getCurrRunTime()}.csv',
+        evaluation_file_name=f'evaluate_04_06_2022_192829.csv',
         result_dir=results_directory_path,
     )
 

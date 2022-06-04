@@ -43,7 +43,7 @@ def BertCoherenceGraph(evaluation_file_name, result_dir):
     :return:
     """
     evaluation_path = os.path.join(result_dir, evaluation_file_name)
-    figure, axis = plt.subplots(2, 3)
+    figure, axis = plt.subplots(2, 2)
     figure.set_size_inches(18.5, 10.5)
     train_df = pd.read_csv(evaluation_path)
     column_names = train_df.columns
@@ -59,7 +59,7 @@ def BertCoherenceGraph(evaluation_file_name, result_dir):
         ax.set_xlabel("Number of topics")
         ax.set_ylabel("Measure values")
         ax.legend()
-    plt.savefig(rf'{result_dir}\coherence_graphs_{getCurrRunTime()}.pdf')
+    plt.savefig(os.path.join(result_dir, rf'coherence_graphs_{getCurrRunTime()}.pdf'))
     plt.close()
 
 

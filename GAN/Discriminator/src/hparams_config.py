@@ -21,7 +21,7 @@ hparams = {'learning_rate': 2e-5,
            ),
            'bert_pretrained_over_pubMed_path': os.path.join(
                os.pardir, os.pardir, "FrozenBert",
-               'Models',
+               'models',
                'bert_tiny_uncased_39_'
            ),
            'bert_tokenizer': os.path.join('google', 'bert_uncased_L-2_H-128_A-2'),
