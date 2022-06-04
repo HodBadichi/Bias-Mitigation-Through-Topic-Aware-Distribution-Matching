@@ -20,7 +20,7 @@ def LoadAbstractPubMedData():
     #   Load full dataframe
     if not os.path.exists(full_data_path):
         print("Downloading dataframe ...")
-        url = 'https://drive.google.com/u/0/uc?id=14hyTlZaDTq1CdiJ20frENIOhzKo7eJ6h'
+        url = 'https://drive.google.com/u/0/uc?id=1bd7mcDnnXcXHKSHHqAUWHxJX-QREQJ_O'
         gdown.download(url, full_data_path, quiet=False)
     else:
         print("Dataframe already exists...")
@@ -36,7 +36,7 @@ def LoadTopicModel():
     #   Load full dataframe
     if not os.path.exists(full_model_path):
         print("Downloading model ...")
-        url = 'https://drive.google.com/uc?id=1K7_L-ijpb9hR43_Z0rxYcCtjBRw2x8eR'
+        url = 'https://drive.google.com/u/0/uc?id=1mxdyCfzqNgBj0l6VtgQsFlCGtND_-TGk'
         gdown.download(url, full_model_path, quiet=False)
     else:
         print("Model already exists...")
