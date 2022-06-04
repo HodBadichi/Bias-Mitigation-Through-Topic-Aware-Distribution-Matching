@@ -54,7 +54,7 @@ class FrozenBert(pl.LightningModule):
         return loss
 
     def validation_step(self, batch: dict, batch_idx: int):
-        path = os.path.join('models', rf"{self.model_desc}_{self.current_epoch}_")
+        path = os.path.join(f'{os.pardir}, models', rf"{self.model_desc}_{self.current_epoch}_")
         if self.current_epoch > 0 and not os.path.exists(path):
             self.bert_model.save_pretrained(path)
         loss = self.step(batch, name='val_dataset')

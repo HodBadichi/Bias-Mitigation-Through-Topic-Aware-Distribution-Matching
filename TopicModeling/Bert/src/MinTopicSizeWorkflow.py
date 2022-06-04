@@ -54,14 +54,12 @@ def RunMinTopicSizeWorkflow():
     # )
     #
 
-    trained_models_list = ['BERTopicModel']
-
-    BertCoherenceEvaluate(
-        train_set=train_set,
-        models_dir=saved_models_directory_path,
-        models_list=trained_models_list,
-        results_dir=results_directory_path,
-    )
+    # BertCoherenceEvaluate(
+    #     train_set=train_set,
+    #     models_dir=saved_models_directory_path,
+    #     models_list=trained_models_list,
+    #     results_dir=results_directory_path,
+    # )
 
     # for model in trained_models_list:
     #     BertVisualize(

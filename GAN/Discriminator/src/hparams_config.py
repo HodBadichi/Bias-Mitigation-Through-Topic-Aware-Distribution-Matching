@@ -20,11 +20,9 @@ hparams = {'learning_rate': 2e-5,
                'abstract_2005_2020_gender_and_topic.csv'
            ),
            'bert_pretrained_over_pubMed_path': os.path.join(
-               os.pardir,
+               os.pardir, os.pardir, "FrozenBert"
                'Models',
-               'bert_pretrain',
-               'bert_tiny_uncased_abstract_2005_2020_gender_and_topic_epochs',
-               'bert_tiny_uncased_abstract_2005_2020_gender_and_topic_39_'
+               'bert_tiny_uncased_39_'
            ),
            'bert_tokenizer': os.path.join('google', 'bert_uncased_L-2_H-128_A-2'),
            'cosine_similarity_clean_method': '',
