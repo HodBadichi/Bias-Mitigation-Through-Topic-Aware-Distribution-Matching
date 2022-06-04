@@ -124,7 +124,7 @@ def PrepareData():
     #   Load full dataframe
     if not os.path.exists(full_data_path):
         print("Downloading dataframe ...")
-        url = 'https://drive.google.com/uc?id=1xmifhCZ4IljgjUEY73QLVPnk99Y-A04A'
+        url = 'https://drive.google.com/u/0/uc?id=14hyTlZaDTq1CdiJ20frENIOhzKo7eJ6h'
         gdown.download(url, full_data_path, quiet=False)
     else:
         print("Dataframe already exists...")

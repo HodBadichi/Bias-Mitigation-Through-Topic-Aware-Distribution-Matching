@@ -20,7 +20,7 @@ def LoadAbstractPubMedData():
     #   Load full dataframe
     if not os.path.exists(full_data_path):
         print("Downloading dataframe ...")
-        url = 'https://drive.google.com/uc?id=1xmifhCZ4IljgjUEY73QLVPnk99Y-A04A'
+        url = 'https://drive.google.com/u/0/uc?id=14hyTlZaDTq1CdiJ20frENIOhzKo7eJ6h'
         gdown.download(url, full_data_path, quiet=False)
     else:
         print("Dataframe already exists...")
@@ -35,11 +35,11 @@ def LoadTopicModel():
 
     #   Load full dataframe
     if not os.path.exists(full_model_path):
-        print("Downloading dataframe ...")
+        print("Downloading model ...")
         url = 'https://drive.google.com/uc?id=1K7_L-ijpb9hR43_Z0rxYcCtjBRw2x8eR'
         gdown.download(url, full_model_path, quiet=False)
     else:
-        print("Dataframe already exists...")
+        print("Model already exists...")
     return BERTopic.load(config['topic_model_path'])
 
 
@@ -49,10 +49,12 @@ def GenerateGANdataframe():
     documents_df = documents_df[~documents_df['female'].isnull()]
     documents_df = documents_df[~documents_df['male'].isnull()]
     documents_df['female_rate'] = documents_df['female'] / (documents_df['female'] + documents_df['male'])
-    title_and_abstract_df = documents_df[["title_and_abstract"]]
-    clean_title_and_abstract_df = CleanText(title_and_abstract_df["title_and_abstract"])
-    docs = clean_title_and_abstract_df.clean_title_and_abstract_df.dropna().to_list()
+    clean_title_and_abstract_df = CleanText(documents_df["title_and_abstract"])
+    docs = clean_title_and_abstract_df.dropna().to_list()
     topics, probs = LoadTopicModel().transform(docs)
+    print(type(probs))
+    print(probs[0])
+    print(type(probs[0]))
     col_topics = pd.Series(topics)
     # get topics
     documents_df['topic_with_outlier_topic'] = col_topics
@@ -63,8 +65,9 @@ def GenerateGANdataframe():
     result_series = []
     for prob in probs:
         # add topic -1 prob - since probs sum up to the probability of not being outlier
+        prob = prob.tolist()
         prob.append(1 - sum(prob))
-        result_series.append(str(prob.tolist()))
+        result_series.append(str(prob))
     col_probs = pd.Series(result_series)
     documents_df['probs'] = col_probs
     tu = TextUtils()
@@ -75,11 +78,12 @@ def GenerateGANdataframe():
 
 
 def SplitAndCleanDataFrame(documents_df):
-    train_df = documents_df.loc[documents_df['belongs_to_group'] == 'train_dataset'].reset_index()
-    test_df = documents_df.loc[documents_df['belongs_to_group'] == 'test_dataset'].reset_index()
-    val_df = documents_df.loc[documents_df['belongs_to_group'] == 'val_dataset'].reset_index()
+    train_df = documents_df.loc[documents_df['belongs_to_group'] == 'train'].reset_index()
+    test_df = documents_df.loc[documents_df['belongs_to_group'] == 'test'].reset_index()
+    val_df = documents_df.loc[documents_df['belongs_to_group'] == 'val'].reset_index()
     if "broken_abstracts" not in documents_df.columns:
         train_df = CleanAbstracts(train_df)
         val_df = CleanAbstracts(val_df)
         test_df = CleanAbstracts(test_df)
     return train_df, test_df, val_df
+

@@ -29,7 +29,7 @@ def RunTuningProcess(train_set, saved_models_directory, min_topic_size_range, n_
     # convert` to list
     docs = train_set.title_and_abstract.dropna().to_list()
     for topic_size in min_topic_size_range:
-        model = BERTopic(verbose=True, n_gram_range=n_gram_range, min_topic_size=topic_size)
+        model = BERTopic(verbose=True, n_gram_range=n_gram_range, min_topic_size=topic_size, calculate_probabilities=True)
         _, _ = model.fit_transform(docs)
         current_model_path = rf'n_gram_{n_gram_range[0]}_{n_gram_range[1]}_nr_topics_{topic_size}_{getCurrRunTime()}'
         model.save(os.path.join(saved_models_directory, current_model_path))
@@ -52,14 +52,14 @@ def RunMinTopicSizeWorkflow():
     #     min_topic_size_range=hparams['min_topic_size_range'],
     #     n_gram_range=hparams['n_gram_range'],
     # )
-    trained_models_list = 'n_gram_1_1_nr_topics_340_03_06_2022_155501'
-    BertCoherenceEvaluate(
-        train_set=train_set,
-        models_dir=saved_models_directory_path,
-        models_list=trained_models_list,
-        results_dir=results_directory_path,
-    )
-    exit()
+    #
+    # BertCoherenceEvaluate(
+    #     train_set=train_set,
+    #     models_dir=saved_models_directory_path,
+    #     models_list=trained_models_list,
+    #     results_dir=results_directory_path,
+    # )
+    trained_models_list = ['n_gram_1_1_nr_topics_50_04_06_2022_025352']
     for model in trained_models_list:
         BertVisualize(
             models_dir=saved_models_directory_path,
@@ -69,10 +69,10 @@ def RunMinTopicSizeWorkflow():
             n_words_per_topic=15,
         )
 
-    BertCoherenceGraph(
-        evaluation_file_name=f'evaluate_{getCurrRunTime()}.csv',
-        result_dir=results_directory_path,
-    )
+    # BertCoherenceGraph(
+    #     evaluation_file_name=f'evaluate_{getCurrRunTime()}.csv',
+    #     result_dir=results_directory_path,
+    # )
 
 
 if __name__ == '__main__':
