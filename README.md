@@ -9,7 +9,7 @@ This project consists of 2 parts:
   * FrozenBert workflow, trains pre-trained bert model over pubmed data
   * Discriminator workflow, using Bert as embedder
   * Discriminator workflow with Sentence bert as embedder 
-  * GAN Workflow
+  * GAN Workflow, using Bert as embedder
   
 
 Each workflow is treated as an independent script which generates the data and modify the project structure in case
