@@ -1,6 +1,6 @@
 # Bias Mitigation Through Topic-Aware Distribution Matching - project :
 
-This project consists with 2 parts:
+This project consists of 2 parts:
 1. Topic modeling:
   * BERTopic workflow, trains the model -> tune hyperparams -> visualize and measure coherence
   * LDA workflow, train the model -> tune hyperparams -> visualize and measure coherence
