@@ -2,12 +2,12 @@
 
 This project consists of 2 parts:
 1. Topic modeling
-  * BERTopic workflow, trains the model -> tune hyperparams -> visualize and measure coherence
-  * LDA workflow, train the model -> tune hyperparams -> visualize and measure coherence
+  * BERTopic workflow, trains the model -> tunes hyperparams -> visualize and measure coherence
+  * LDA workflow, trains the model -> tunes hyperparams -> visualize and measure coherence
  
  2. GAN 
-  * FrozenBert workflow, train pre-trained bert model over pubmed data
-  * Discriminator workflow, Using Bert as embedder
+  * FrozenBert workflow, trains pre-trained bert model over pubmed data
+  * Discriminator workflow, using Bert as embedder
   * Discriminator workflow with Sentence bert as embedder 
   * GAN Workflow
   
