@@ -23,8 +23,8 @@ For example - BerTopic workflow:
 2. Configure the Hyperparams for your BerTopic experiment in `TopicModeling\Bert\src\hparams_config.py` 
 3. Run `sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out` inside the lambda server
 * Results :
-4. On `TopicModeling\Bert\saved_models` will consist our trained topic models
-5. On `TopicModeling\Bert\results` will be the visualization of each topic model, coherence csv file for all models and a coherence graph visualization
+4. trained topic models will be saved in `TopicModeling\Bert\saved_models`
+5. visualizations and coherence csv files will be saved in  `TopicModeling\Bert\results`
 
 Note - the project has a requirements file, run: `pip install -r requirements.txt` to create the environment
 
