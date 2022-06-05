@@ -54,6 +54,9 @@ class PubMedGAN(pl.LightningModule):
         #   Generator Step
         if optimizer_idx == 1:
             step_ret_dict = self._discriminator_step(batch, name)
+            if (step_ret_dict == None):
+                # f there are no pairs for _discriminator_step, the output is None, but we still preform generator step
+                step_ret_dict = {}
             step_ret_dict = self._generator_step(batch, step_ret_dict, name)
         return step_ret_dict
 
@@ -131,6 +134,9 @@ class PubMedGAN(pl.LightningModule):
         result_dictionary = {'mlm_loss': 0, 'optimizer_idx': 0}
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
         clean_discriminator_batch = self._discriminator_clean_batch(batch)
+        if len(clean_discriminator_batch) == 0:
+            # if there are no pairs for _discriminator_step, the output is None
+            return None
         discriminator_y_true = torch.as_tensor([float(random.choice([0, 1])) for _ in clean_discriminator_batch])
         result_dictionary['y_true'] = discriminator_y_true
         # discriminator_y_true created in order to shuffle the bias/unbiased order

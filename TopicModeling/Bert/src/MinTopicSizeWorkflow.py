@@ -54,12 +54,12 @@ def RunMinTopicSizeWorkflow():
     )
 
 
-    BertCoherenceEvaluate(
-        train_set=train_set,
-        models_dir=saved_models_directory_path,
-        models_list=trained_models_list,
-        results_dir=results_directory_path,
-    )
+    # BertCoherenceEvaluate(
+    #     train_set=train_set,
+    #     models_dir=saved_models_directory_path,
+    #     models_list=trained_models_list,
+    #     results_dir=results_directory_path,
+    # )
 
     for model in trained_models_list:
         BertVisualize(
@@ -70,10 +70,10 @@ def RunMinTopicSizeWorkflow():
             n_words_per_topic=15,
         )
 
-    BertCoherenceGraph(
-        evaluation_file_name=f'evaluate_{getCurrRunTime()}.csv',
-        result_dir=results_directory_path,
-    )
+    # BertCoherenceGraph(
+    #     evaluation_file_name=f'evaluate_{getCurrRunTime()}.csv',
+    #     result_dir=results_directory_path,
+    # )
 
 
 if __name__ == '__main__':
