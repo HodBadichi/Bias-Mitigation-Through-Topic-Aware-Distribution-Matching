@@ -1,7 +1,8 @@
 import os
 import sys
+
 if os.name != 'nt':
-    sys.path.append(os.path.join(os.pardir,os.pardir,os.pardir))
+    sys.path.append(os.path.join(os.pardir, os.pardir, os.pardir))
 
 import pandas as pd
 from bertopic import BERTopic
@@ -11,6 +12,7 @@ import gdown
 from GAN.Utils.src.GAN_config import config
 from GAN.Utils.src.TextUtils import TextUtils, CleanAbstracts
 from TopicModeling.Bert.src.BertUtils import CleanText
+
 
 def LoadAbstractPubMedData():
     data_directory = os.path.join(os.pardir, os.pardir, os.pardir, 'data')
@@ -29,7 +31,7 @@ def LoadAbstractPubMedData():
 
 
 def LoadTopicModel():
-    models_directory = os.path.join(os.pardir,os.pardir, os.pardir, 'data')
+    models_directory = os.path.join(os.pardir, os.pardir, os.pardir, 'data')
     os.makedirs(models_directory, exist_ok=True)
     full_model_path = config['topic_model_path']
 
@@ -86,4 +88,3 @@ def SplitAndCleanDataFrame(documents_df):
         val_df = CleanAbstracts(val_df)
         test_df = CleanAbstracts(test_df)
     return train_df, test_df, val_df
-

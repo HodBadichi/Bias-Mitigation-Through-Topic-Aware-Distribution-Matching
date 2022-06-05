@@ -1,8 +1,9 @@
 from torch.utils.data import Dataset
 import sys
 import os
+
 if os.name != 'nt':
-    sys.path.append(os.path.join(os.pardir,os.pardir,os.pardir))
+    sys.path.append(os.path.join(os.pardir, os.pardir, os.pardir))
 """
 Data Set implementation.
 A batch consists with cleaned title and abstract for bert (using CleanAbstracts)

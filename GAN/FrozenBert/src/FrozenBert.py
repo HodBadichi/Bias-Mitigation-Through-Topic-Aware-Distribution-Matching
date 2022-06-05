@@ -1,7 +1,9 @@
 import os
 import torch
 import sys
-sys.path.append(os.path.join(os.pardir,os.pardir,os.pardir))
+if os.name != 'nt':
+    sys.path.append(os.path.join(os.pardir, os.pardir, os.pardir))
+
 from transformers import AutoTokenizer, BertForMaskedLM
 from transformers import DataCollatorForLanguageModeling
 import pytorch_lightning as pl

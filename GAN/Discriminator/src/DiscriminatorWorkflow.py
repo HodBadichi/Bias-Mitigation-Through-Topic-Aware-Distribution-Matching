@@ -1,6 +1,7 @@
 import sys
 import os
 import argparse
+
 if os.name != 'nt':
     sys.path.append(os.path.join(os.pardir, os.pardir, os.pardir))
 

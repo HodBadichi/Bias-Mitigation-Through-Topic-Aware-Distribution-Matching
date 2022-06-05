@@ -1,36 +1,32 @@
-# Bias Mitigation Through Topic-Aware Distribution Matching - Final project :
+# Bias Mitigation Through Topic-Aware Distribution Matching - project :
 
-This project consists with 2 parts, each contains its workflows:
-1. Topic modeling part:
-  * BERTtopic workflow (train the model, tune hyperparms, visualize and measure coherence)
-  * LDA workflow (train the model, tune hyperparms, visualize and measure coherence)
+This project consists with 2 parts:
+1. Topic modeling:
+  * BERTopic workflow, trains the model -> tune hyperparams -> visualize and measure coherence
+  * LDA workflow, train the model -> tune hyperparams -> visualize and measure coherence
  
- 2. GAN part:
-  * Frozen Bert workflow (train pre trained bert model over pubmed data)
-  * Discriminator Workflow with Bert as embedder (using the DistributionMatching module - NoahArc)
-  * Discriminator Workflow with Sentence bert as embedder (using the DistributionMatching module - NoahArc)
-  * GAN Workflow (using the DistributionMatching module - NoahArc)
+ 2. GAN :
+  * FrozenBert workflow, train pre-trained bert model over pubmed data
+  * Discriminator workflow, Using Bert as embedder
+  * Discriminator workflow with Sentence bert as embedder 
+  * GAN Workflow
   
-  
-Each workflow has a "run" funcion that will invoke the full workflow,
-where each workflow also responsible for getting the relevant data for the workflow and create the projects directory structure.
 
-Each workflow has a "run_on_server.sh" file for running the workflow (the run function) as a batch job on Technion lambda server by running:
-sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out
+Each workflow is treated as an independent script which generates the data and modify the project structure in case
+it is missing anything, to make use of a workflow you should make use of "Run" function that invokes it.
 
-Each workflow has a workflow_config file with the relevant Hyperparams for it
+In each folder where `run_on_server.sh` file exists  it should be used for running the workflow (the run function) as a batch job on Technion 'lambda' server by using:
+`sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out`
+Also, you can make use of `hparams_config` in each workflow to tune the hyperparams as you desire
 
-
-
-For example - running the BertTopic workflow:
-1. cd TopicModeling\Bert\src
-2. We will define the Hyperparams for bertopic training in hparams_config.py (add relevent min_topic_size_range, and n_gram_range)
-3. In this dir, will run sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out
+For example - BertTopic workflow:
+1. `cd TopicModeling\Bert\src`
+2. We will define the Hyperparams for bertopic training in `hparams_config.py` 
+3. Run `sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out` inside the lambda server
 * Results :
-4. on TopicModeling\Bert\saved_models will be our trained topic models
-5. on TopicModeling\Bert\results will be the visualization of each topic model, coherence csv file for all models and a coherence graph visualization
+4. On `TopicModeling\Bert\saved_models` will consist our trained topic models
+5. On `TopicModeling\Bert\results` will be the visualization of each topic model, coherence csv file for all models and a coherence graph visualization
 
-
-Note - the project has a requirements file, run: 'pip install -r requirements.txt' before running the workflows.
+Note - the project has a requirements file, run: `pip install -r requirements.txt` to create the environment
 
 Enjoy :)

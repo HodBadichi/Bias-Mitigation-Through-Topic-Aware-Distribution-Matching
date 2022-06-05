@@ -128,10 +128,8 @@ class PubMedGAN(pl.LightningModule):
         since not all batch items represent a couple of docs to discriminator (some didn't get match with noahArc matcher)
         we clean (leave) the relevant docs in the batch, shuffle them, get prediction and return loss
         """
-        result_dictionary = {}
+        result_dictionary = {'mlm_loss': 0, 'optimizer_idx': 0}
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
-        result_dictionary['mlm_loss'] = 0
-        result_dictionary['optimizer_idx'] = 0
         clean_discriminator_batch = self._discriminator_clean_batch(batch)
         discriminator_y_true = torch.as_tensor([float(random.choice([0, 1])) for _ in clean_discriminator_batch])
         result_dictionary['y_true'] = discriminator_y_true
