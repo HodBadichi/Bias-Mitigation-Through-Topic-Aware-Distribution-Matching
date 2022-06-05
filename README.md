@@ -19,8 +19,8 @@ In each folder where `run_on_server.sh` file exists  it should be used for runni
 `sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out` command. Use `hparams_config` file in each workflow to tune the hyperparams as desired
 
 For example - BerTopic workflow:
-1. `cd TopicModeling\Bert\src`
-2. We will define the Hyperparams for bertopic training in `hparams_config.py` 
+1. Move to `TopicModeling\Bert\src`
+2. Configure the Hyperparams for your BerTopic experiment in `TopicModeling\Bert\src\hparams_config.py` 
 3. Run `sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out` inside the lambda server
 * Results :
 4. On `TopicModeling\Bert\saved_models` will consist our trained topic models
