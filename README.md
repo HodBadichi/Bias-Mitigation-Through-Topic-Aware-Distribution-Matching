@@ -9,14 +9,14 @@ This project consists of 2 parts:
   * FrozenBert workflow, trains pre-trained bert model over pubmed data
   * Discriminator workflow, using Bert as embedder
   * Discriminator workflow with Sentence bert as embedder 
-  * GAN Workflow
+  * GAN Workflow, using Bert as embedder
   
 
 Each workflow is treated as an independent script which generates the data and modify the project structure in case
 it is missing anything, to start a workflow use "Run" function that invokes it.
 
-In each folder where `run_on_server.sh` file exists  it should be used for running the workflow as a batch job on Technion 'lambda' server by using:
-`sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out` command. Use `hparams_config` file in each workflow to tune the hyperparams as desired
+In each folder a `run_on_server.sh` file exists. It should be used for running the workflow as a batch job on Technion 'lambda' server by using:
+`sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out` command. Use `hparams_config` file in each workflow to tune the hyperparams as desired. WandB logging is used, use: `wandb login` before running the workflows. 
 
 For example - BerTopic workflow:
 1. Move to `TopicModeling\Bert\src`
