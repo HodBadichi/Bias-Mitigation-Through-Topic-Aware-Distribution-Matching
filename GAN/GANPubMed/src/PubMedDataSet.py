@@ -11,7 +11,7 @@ produce samples for the GAN model such that each sample in the batch consists of
 
 
 class PubMedDataSet(Dataset):
-    def __init__(self, documents_dataframe, hparams, df_name, ):
+    def __init__(self, documents_dataframe, hparams, df_name ):
         self.hparams = hparams
         self.documents_dataframe = documents_dataframe
         self.Matcher = self.build_noah_arc(df_name)

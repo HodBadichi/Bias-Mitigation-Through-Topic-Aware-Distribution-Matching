@@ -207,9 +207,7 @@ class Discriminator(pl.LightningModule):
         """
 
         discriminator_batch = self._discriminator_get_batch(batch, shuffle_vector)
-        assert (len(discriminator_batch) > 0)
         begin_end_indexes, documents_sentences, max_len = BreakSentenceBatch(discriminator_batch)
-        assert (len(documents_sentences) > 0)
         bert_inputs = self._get_bert_inputs(documents_sentences)
 
         bert_cls_outputs = self._discriminator_get_cls_bert_outputs(bert_inputs)

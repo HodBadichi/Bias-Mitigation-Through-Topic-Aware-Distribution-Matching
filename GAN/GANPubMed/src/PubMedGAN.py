@@ -238,18 +238,15 @@ class PubMedGAN(pl.LightningModule):
         step_ret_dict = discriminator_step_ret_dict
         step_ret_dict['optimizer_idx'] = 1
         discriminator_loss = discriminator_step_ret_dict['loss']
-        print(5)
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
         generator_batch = self._generator_get_batch(batch)
         begin_end_indexes, documents_sentences, max_len = BreakSentenceBatch(generator_batch)
         bert_inputs = self._get_bert_inputs(documents_sentences)
         mlm_loss = self._generator_get_mlm_loss(bert_inputs)
-        print(6)
         step_ret_dict['mlm_loss'] = mlm_loss
         # TODO diff from frozen and tune the factors (mlm_loss is 2-5, discriminator_loss is ~0.5-1)
         total_loss = self.hparams['mlm_factor'] * mlm_loss - self.hparams['discriminator_factor'] * discriminator_loss
         step_ret_dict['loss'] = total_loss
-        print(7)
         self.log(f'generator/{name}_loss', total_loss, batch_size=self.hparams['batch_size'])
         self.log(f'generator/{name}_mlm_loss', mlm_loss, batch_size=self.hparams['batch_size'])
         self.log(f'generator/{name}_discriminator_loss', discriminator_loss, batch_size=self.hparams['batch_size'])
