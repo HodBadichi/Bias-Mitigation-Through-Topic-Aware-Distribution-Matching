@@ -1,4 +1,4 @@
-# Bias Mitigation Through Topic-Aware Distribution Matching - project :
+# Bias Mitigation Through Topic-Aware Distribution Matching - project:
 
 This project consists of 2 parts:
 1. Topic modeling
