@@ -53,6 +53,8 @@ def RunMinTopicSizeWorkflow():
         n_gram_range=hparams['n_gram_range'],
     )
 
+    # trained_models_list = ['n_gram_1_1_nr_topics_395_05_06_2022_193226', 'n_gram_1_1_nr_topics_400_05_06_2022_193226']
+
 
     BertCoherenceEvaluate(
         train_set=train_set,

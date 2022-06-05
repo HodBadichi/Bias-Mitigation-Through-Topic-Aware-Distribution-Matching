@@ -54,9 +54,6 @@ def GenerateGANdataframe():
     clean_title_and_abstract_df = CleanText(documents_df["title_and_abstract"])
     docs = clean_title_and_abstract_df.dropna().to_list()
     topics, probs = LoadTopicModel().transform(docs)
-    print(type(probs))
-    print(probs[0])
-    print(type(probs[0]))
     col_topics = pd.Series(topics)
     # get topics
     documents_df['topic_with_outlier_topic'] = col_topics

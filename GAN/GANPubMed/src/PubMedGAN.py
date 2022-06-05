@@ -242,8 +242,12 @@ class PubMedGAN(pl.LightningModule):
 
     def _generator_step(self, batch, discriminator_step_ret_dict, name):
         step_ret_dict = discriminator_step_ret_dict
+        if (not step_ret_dict):
+            # if the discriminator dict is empty - the discriminator batch was empty - there were no pairs
+            discriminator_loss = 0
+        else:
+            discriminator_loss = discriminator_step_ret_dict['loss']
         step_ret_dict['optimizer_idx'] = 1
-        discriminator_loss = discriminator_step_ret_dict['loss']
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
         generator_batch = self._generator_get_batch(batch)
         begin_end_indexes, documents_sentences, max_len = BreakSentenceBatch(generator_batch)
