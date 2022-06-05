@@ -1,11 +1,11 @@
 # Bias Mitigation Through Topic-Aware Distribution Matching - project :
 
 This project consists of 2 parts:
-1. Topic modeling:
+1. Topic modeling
   * BERTopic workflow, trains the model -> tune hyperparams -> visualize and measure coherence
   * LDA workflow, train the model -> tune hyperparams -> visualize and measure coherence
  
- 2. GAN :
+ 2. GAN 
   * FrozenBert workflow, train pre-trained bert model over pubmed data
   * Discriminator workflow, Using Bert as embedder
   * Discriminator workflow with Sentence bert as embedder 
