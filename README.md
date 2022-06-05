@@ -13,7 +13,7 @@ This project consists of 2 parts:
   
 
 Each workflow is treated as an independent script which generates the data and modify the project structure in case
-it is missing anything, to make use of a workflow you should make use of "Run" function that invokes it.
+it is missing anything, to make start a workflow use "Run" function that invokes it.
 
 In each folder where `run_on_server.sh` file exists  it should be used for running the workflow (the run function) as a batch job on Technion 'lambda' server by using:
 `sbatch -c 2 --gres=gpu:1 run_on_server.sh -o run.out`
