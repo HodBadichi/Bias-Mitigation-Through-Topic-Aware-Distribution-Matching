@@ -11,7 +11,7 @@ hparams = {'learning_rate': 2e-5,
                'data',
                'abstract_2005_2020_gender_and_topic.csv'
            ),
-           'batch_size': 16,
+           'batch_size': 10,
            'test_size': 0.3,
            'bert_pretrained_over_pubMed_path': os.path.join(
                os.pardir, os.pardir, "FrozenBert",
