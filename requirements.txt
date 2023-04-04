@@ -29,13 +29,13 @@ idna==3.3
 importlib-metadata==4.11.4
 joblib==1.1.0
 kiwisolver==1.4.2
-llvmlite==0.38.1
+llvmlite==0.39.1
 Markdown==3.3.7
 matplotlib==3.5.2
 multidict==6.0.2
 nltk==3.7
-numba==0.55.2
-numpy==1.22.4
+numba==0.56.4
+numpy==1.23.5
 oauthlib==3.2.0
 packaging==21.3
 pandas==1.4.2

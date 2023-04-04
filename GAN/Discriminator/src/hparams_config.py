@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 hparams = {'learning_rate': 2e-5,
            'dropout_rate': 0.1,
@@ -19,11 +20,7 @@ hparams = {'learning_rate': 2e-5,
                'data',
                'abstract_2005_2020_gender_and_topic.csv'
            ),
-           'bert_pretrained_over_pubMed_path': os.path.join(
-               os.pardir, os.pardir, "FrozenBert",
-               'models',
-               'bert_tiny_uncased_39_'
-           ),
+           'bert_pretrained_over_pubMed_path': Path(__file__).resolve().parent.parent.parent / 'models' / 'bert_tiny_uncased_2010_2018_v2020_epoch39',
            'bert_tokenizer': os.path.join('google', 'bert_uncased_L-2_H-128_A-2'),
            'cosine_similarity_clean_method': '',
            'SAVE_PATH': "/home/mor.filo/nlp_project/DistributionMatching/GANPubMed/Models",

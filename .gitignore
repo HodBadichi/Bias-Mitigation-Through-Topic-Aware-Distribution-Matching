@@ -1,0 +1,9 @@
+__pycache__
+TopicModeling/Bert/saved_models
+TopicModeling/Bert/src/slurm*
+data
+Miniconda*
+TopicModeling/Bert/results
+GAN/Discriminator/src/wandb/
+GAN/Discriminator/src/Discriminator_test/
+GAN/models/bert_tiny_uncased_2010_2018_v2020_epoch39/BERTopicModel
