@@ -2,6 +2,7 @@ import os
 import sys
 if os.name != 'nt':
     sys.path.append(os.path.join(os.pardir, os.pardir, os.pardir))
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import numpy as np
 from bertopic import BERTopic
