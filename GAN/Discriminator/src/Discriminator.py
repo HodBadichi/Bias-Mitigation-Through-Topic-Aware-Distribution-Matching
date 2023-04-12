@@ -25,6 +25,7 @@ class Discriminator(pl.LightningModule):
         self.max_sentences_per_abstract = self.hparams['max_sentences_per_abstract']
         self.bert_model = BertForMaskedLM.from_pretrained(self.hparams['bert_pretrained_over_pubMed_path'])
         self.sentence_embedding_size = self.bert_model.get_input_embeddings().embedding_dim
+        self.name = "Discriminator_over_topic_and_gender_70_15_15_v2"
         # The linear layer if from 2 concat abstract (1 is bias and 1 unbiased) to binary label:
         # 1 - the couple of matching docs was [biased,unbiased]
         # 0 - the couple of matching docs was [unbiased,biased]
@@ -112,6 +113,7 @@ class Discriminator(pl.LightningModule):
             # Calc auc only if batch has more than one class.
             self.log(f'discriminator/{name}_auc', roc_auc_score(discriminator_y_true.cpu().detach(), y_proba),
                      batch_size=self.hparams['batch_size'])
+        result_dictionary["accuracy_score"] =accuracy_score(discriminator_y_true.cpu().detach(), y_proba.round())
         self.log(f'discriminator/{name}_accuracy', accuracy_score(discriminator_y_true.cpu().detach(), y_proba.round()),
                  batch_size=self.hparams['batch_size'])
         return result_dictionary
@@ -214,13 +216,13 @@ class Discriminator(pl.LightningModule):
         return self._discriminator_bert_embeddings_to_predictions(bert_cls_outputs, begin_end_indexes)
 
     def test_epoch_end(self, outputs) -> None:
-        pass
+        self._get_mean_accuracy(outputs, "test")
 
     def training_epoch_end(self, outputs):
-        pass
+        self._get_mean_accuracy(outputs, "train")
 
     def validation_epoch_end(self, outputs):
-        pass
+        self._get_mean_accuracy(outputs, "val")
 
     """################# UTILS FUNCTIONS #####################"""
 
@@ -234,6 +236,18 @@ class Discriminator(pl.LightningModule):
             add_special_tokens=True, return_tensors="pt")
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         return inputs
+    
+    def _get_mean_accuracy(self, outputs, name):
+        """
+        :param outputs: list of dictionaries from epoch
+        :param name: name is either "test", "train" or "val"
+        This function will log to wandb the mean $name accuracy of the epoch
+        """
+        accuracy_score_total = 0
+        for output in outputs:
+            accuracy_score_total += output['accuracy_score']
+        avg_accuacry = accuracy_score_total / len(outputs)
+        self.log(f'discriminator/{name}_accuracy_score_per_epoch', avg_accuacry, on_epoch=True, prog_bar=True)
 
     @staticmethod
     def _convert_to_list_of_dicts(batch):

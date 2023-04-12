@@ -26,7 +26,6 @@ def LoadAbstractPubMedData():
         gdown.download(url, full_data_path, quiet=False)
     else:
         print("Dataframe already exists...")
-
     return pd.read_csv(config['PubMedData'], encoding='utf8')
 
 

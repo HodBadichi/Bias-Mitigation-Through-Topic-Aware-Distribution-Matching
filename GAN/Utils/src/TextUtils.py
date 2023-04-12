@@ -27,8 +27,8 @@ class TextUtils:
     @staticmethod
     def DecideOnWord(word):
         w = word.lower().strip(string.punctuation)
-        if TextUtils.RepresentsNumber(w):
-            return "<NUMBER>"
+        # if TextUtils.RepresentsNumber(w):
+        #     return "<NUMBER>"
         return w.lower()
 
     @staticmethod
