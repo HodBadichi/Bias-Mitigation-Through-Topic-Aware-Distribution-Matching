@@ -1,6 +1,7 @@
 __pycache__
 TopicModeling/Bert/saved_models
 TopicModeling/Bert/src/slurm*
+**/slurm*
 data
 Miniconda*
 TopicModeling/Bert/results

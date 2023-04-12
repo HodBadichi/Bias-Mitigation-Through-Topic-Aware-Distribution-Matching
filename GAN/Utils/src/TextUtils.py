@@ -27,8 +27,8 @@ class TextUtils:
     @staticmethod
     def DecideOnWord(word):
         w = word.lower().strip(string.punctuation)
-        if TextUtils.RepresentsNumber(w):
-            return "<NUMBER>"
+        # if TextUtils.RepresentsNumber(w):
+        #     return "<NUMBER>"
         return w.lower()
 
     @staticmethod
@@ -69,7 +69,7 @@ def CleanAbstracts(df, abstract_field='title_and_abstract', output_sentences_fie
 
     def FilterSentencesAndWords(abstract):
         sentences = text_utils.SplitAbstractToSentences(abstract)
-        new_sentences = [sent for sent in sentences if ShouldKeepSentence(sent)]
+        new_sentences = sentences
         d['total'] += len(sentences)
         d['remaining'] += len(new_sentences)
         sent_list_filtered_by_words = [' '.join(text_utils.WordTokenize(sent)) for sent in new_sentences]

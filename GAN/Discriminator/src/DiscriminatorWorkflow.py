@@ -9,8 +9,11 @@ from datetime import datetime
 import pytz
 from pytorch_lightning.loggers import WandbLogger
 import pytorch_lightning as pl
+import torch
+
 
 from GAN.Discriminator.src.Discriminator import Discriminator
+from GAN.Discriminator.src.DiscriminatorBERT import DiscriminatorBioElectra, DiscriminatorSciBert, DiscriminatorTinyBert, DiscriminatorLinkBert
 from GAN.GANPubMed.src.PubMedModule import PubMedModule
 from GAN.Discriminator.src.hparams_config import hparams
 
@@ -57,9 +60,9 @@ def Run():
     new_hparams = PrepareArguments()
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     dm = PubMedModule(new_hparams)
-    model = Discriminator(new_hparams)
+    model = DiscriminatorLinkBert(new_hparams)
     logger = WandbLogger(
-        name='Discriminator_over_topic_and_gender_70_15_15_v2',
+        name=model.name,
         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
         project='Discriminator_test',
         config=new_hparams
