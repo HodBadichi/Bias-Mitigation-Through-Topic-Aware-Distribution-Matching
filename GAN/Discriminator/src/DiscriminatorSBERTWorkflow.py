@@ -7,6 +7,7 @@ if os.name != 'nt':
 from datetime import datetime
 import pytz
 from pytorch_lightning.loggers import WandbLogger
+import wandb 
 import pytorch_lightning as pl
 
 from GAN.Discriminator.src.DiscriminatorSBERT import DiscriminatorSBert
@@ -23,11 +24,12 @@ def Run():
     dm = PubMedModule(new_hparams)
     model = DiscriminatorSBert(new_hparams)
     logger = WandbLogger(
-        name='Discriminator_over_topic_and_gender_70_15_15_SBERT',
+        name=new_hparams['name'],
         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
         project='Discriminator_test',
         config=new_hparams
     )
+    wandb.define_metric("discriminator/val_dataset_loss", summary="mean")
 
     trainer = pl.Trainer(gpus=new_hparams['gpus'],
                          max_epochs=new_hparams['max_epochs'],

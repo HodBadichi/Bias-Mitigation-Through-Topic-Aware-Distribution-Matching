@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, models
 
 from GAN.Discriminator.src.Discriminator import Discriminator
 
@@ -28,6 +28,14 @@ class DiscriminatorSBert(Discriminator):
 
         self.classifier = nn.Sequential(*layers)  # per il flatten
 
+    # def training_step(self, batch: dict, batch_idx: int) -> dict:
+    #     return self.step(batch, 'train_dataset')
+
+    # def configure_optimizers(self):
+    #     # Discriminator step parameters -  classifier.
+    #     optimizer_discriminator = torch.optim.Adam([{'params': self.classifier.parameters(), 'lr':self.hparams['learning_rate']},
+    #                                                 {'params': self.SentenceTransformerModel.parameters(), 'lr':self.hparams['sbert_learning_rate']}])
+    #     return optimizer_discriminator
     def _discriminator_SBERT_embeddings_to_predictions(self, sentence_embeddings):
         sample_embedding = []
 
