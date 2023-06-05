@@ -23,7 +23,7 @@ def Run():
     dm = PubMedModule(hparams)
     model = PubMedGAN(hparams)
     logger = WandbLogger(
-        name=f'GAN_over_topic_and_gender_70_15_15_v2',
+        name=f'GAN_over_topic_and_gender_70_15_15_v2_all-MiniLM-L6-v2',
         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
         project='GAN_test',
         config={'lr': hparams['learning_rate'], 'batch_size': hparams['batch_size']}

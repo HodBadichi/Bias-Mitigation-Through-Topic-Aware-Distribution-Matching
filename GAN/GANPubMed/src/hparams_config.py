@@ -1,6 +1,8 @@
 import os
 
 hparams = {'learning_rate': 2e-5,
+           'dropout_rate': 0.1,
+           'hidden_sizes': [512],
            'discriminator_factor': 0.5,
            'mlm_factor': 0.5,
            'gpus': 1,

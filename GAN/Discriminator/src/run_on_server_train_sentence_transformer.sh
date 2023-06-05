@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python prepare_data.py
+python train_sentence_bert.py

@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 from datetime import datetime
+from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, BertForMaskedLM, DataCollatorForLanguageModeling
 from sklearn.metrics import roc_auc_score, accuracy_score
 
@@ -25,14 +26,31 @@ class PubMedGAN(pl.LightningModule):
         self.data_collator = DataCollatorForLanguageModeling(self.bert_tokenizer)
         self.max_length_bert_input = self.hparams['max_length_bert_input']
         self.max_sentences_per_abstract = self.hparams['max_sentences_per_abstract']
-        self.bert_model = BertForMaskedLM.from_pretrained(self.hparams['bert_pretrained_over_pubMed_path'])
+        # self.bert_model = BertForMaskedLM.from_pretrained(self.hparams['bert_pretrained_over_pubMed_path'])
         # self.frozen_bert_model = BertForMaskedLM.from_pretrained(self.hparams['bert_pretrained_over_pubMed_path'])
-        self.sentence_embedding_size = self.bert_model.get_input_embeddings().embedding_dim
+        # self.bert_model = BertForMaskedLM.from_pretrained(self.hparams['bert_pretrained_over_pubMed_path'])
+        # self.sentence_embedding_size = self.bert_model.get_input_embeddings().embedding_dim
+        self.SentenceTransformerModel = SentenceTransformer('all-MiniLM-L6-v2')
+        self.sentence_embedding_size = 384
         # The linear layer if from 2 concat abstract (1 is bias and 1 unbiased) to binary label:
         # 1 - the couple of matching docs was [biased,unbiased]
         # 0 - the couple of matching docs was [unbiased,biased]
-        self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
+        # self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
         self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
+
+        # self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
+        # TODO NOFAR AND LIEL: check if this is the classifier needed or it should stay linear like the one above
+        layers = []
+        hidden_sizes = [self.sentence_embedding_size * 3] + self.hparams[
+            'hidden_sizes'] + [1]
+        for i in range(len(hidden_sizes) - 1):
+            layers.extend(
+                [nn.Linear(hidden_sizes[i],
+                           hidden_sizes[i + 1]),
+                 nn.LeakyReLU(0.2, inplace=True),
+                 nn.Dropout(self.hparams['dropout_rate'])])
+
+        self.classifier = nn.Sequential(*layers)  # per il flatten
 
     def forward(self):
         # Forward is unneeded , GaN model will not infer in the future
@@ -91,7 +109,7 @@ class PubMedGAN(pl.LightningModule):
         y_proba = torch.cat([output['y_proba'] for output in outputs])
         y_score = torch.cat([output['y_score'] for output in outputs])
 
-        self.log(f'debug/{name}_loss', losses.mean(), batch_size=self.hparams['batch_size'])
+        self.log(f'debug/{name}_loss', losses.mean(), batch_size=self.hparams['batch_size']) #TODO nofar and liel: understand what's the difference between this loss and the loss in the discriminator step - what are the graphs we expect to see?
         self.log(f'debug/{name}_accuracy', (1. * ((1. * (y_proba >= 0.5)) == y_true)).mean(),
                  batch_size=self.hparams['batch_size'])
         self.log(f'debug/{name}_1_accuracy', (1. * (y_proba[y_true == 1] >= 0.5)).mean(),
@@ -104,7 +122,8 @@ class PubMedGAN(pl.LightningModule):
             if self.hparams['max_epochs'] > 0:
                 dir_path = os.path.join(self.hparams['SAVE_PATH'],
                                         f"bert_GAN_model_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}")
-                self.bert_model.save_pretrained(os.path.join(dir_path, f'epoch{self.hparams["max_epochs"] - 1}'))
+                # self.bert_model.save_pretrained(os.path.join(dir_path, f'epoch{self.hparams["max_epochs"] - 1}'))
+                self.SentenceTransformerModel.save_pretrained(os.path.join(dir_path, f'epoch{self.hparams["max_epochs"] - 1}'))
                 if not os.path.exists(f'{dir_path}/config'):
                     # save the config to all of this GAN workflow, will be saved on first epoch
                     np.save(f'{dir_path}/config', self.hparams)
@@ -114,7 +133,8 @@ class PubMedGAN(pl.LightningModule):
         grouped_parameters_discriminator = [{'params': self.classifier.parameters()}]
         optimizer_discriminator = torch.optim.Adam(grouped_parameters_discriminator, lr=self.hparams['learning_rate'])
         # Generator step parameters - only 'the bert model.
-        grouped_parameters_generator = [{'params': self.bert_model.parameters()}]
+        # grouped_parameters_generator = [{'params': self.bert_model.parameters()}]
+        grouped_parameters_generator = [{'params': self.SentenceTransformerModel.parameters()}]
         optimizer_generator = torch.optim.Adam(grouped_parameters_generator, lr=self.hparams['learning_rate'])
         return [optimizer_discriminator, optimizer_generator]
 
@@ -179,39 +199,55 @@ class PubMedGAN(pl.LightningModule):
                 result_batch.append(biased_text)
         return result_batch
 
-    def _discriminator_get_cls_bert_outputs(self, bert_inputs):
-        all_outputs = self.bert_model(**bert_inputs, output_hidden_states=True).hidden_states[-1]
-        cls_outputs = all_outputs[:, 0]
-        return cls_outputs
+    # def _discriminator_get_cls_bert_outputs(self, bert_inputs):
+    #     all_outputs = self.bert_model(**bert_inputs, output_hidden_states=True).hidden_states[-1]
+    #     cls_outputs = all_outputs[:, 0]
+    #     return cls_outputs
 
-    def _discriminator_bert_embeddings_to_predictions(self, bert_cls_outputs, begin_end_indexes):
+    # def _discriminator_bert_embeddings_to_predictions(self, bert_cls_outputs, begin_end_indexes):
+    #     sample_embedding = []
+
+    #     def fix_sentences_size(sent_embeddings):
+    #         """
+    #         Fix embedding size in case it requires padding or truncating
+
+    #         :param sent_embeddings:
+    #         :return:
+    #         """
+    #         if len(sent_embeddings) > self.max_sentences_per_abstract:  #
+    #             # Too many sentences 
+    #             truncated_embeddings = sent_embeddings[:self.max_sentences_per_abstract]
+    #             return torch.flatten(truncated_embeddings)
+    #         else:
+    #             padding = torch.zeros(self.max_sentences_per_abstract - len(sent_embeddings),
+    #                                   self.sentence_embedding_size,
+    #                                   device=self.device)
+    #             return torch.flatten(torch.cat([sent_embeddings, padding], dim=0))
+
+    #     for i in range(0, len(begin_end_indexes), 2):
+    #         start_index_first_document, end_index_first_document = begin_end_indexes[i]
+    #         start_index_second_document, end_index_second_document = begin_end_indexes[i + 1]
+    #         first_document_embeddings = fix_sentences_size(
+    #             bert_cls_outputs[start_index_first_document: end_index_first_document])
+    #         second_document_embeddings = fix_sentences_size(
+    #             bert_cls_outputs[start_index_second_document: end_index_second_document])
+    #         curr_concat_embeddings = torch.cat((first_document_embeddings, second_document_embeddings))
+    #         sample_embedding.append(curr_concat_embeddings)
+
+    #     aggregated = torch.stack(sample_embedding)
+    #     y_predictions = self.classifier(aggregated).squeeze(1)
+    #     return y_predictions
+    def _discriminator_SBERT_embeddings_to_predictions(self, sentence_embeddings):
         sample_embedding = []
 
-        def fix_sentences_size(sent_embeddings):
-            """
-            Fix embedding size in case it requires padding or truncating
-
-            :param sent_embeddings:
-            :return:
-            """
-            if len(sent_embeddings) > self.max_sentences_per_abstract:  #
-                # Too many sentences 
-                truncated_embeddings = sent_embeddings[:self.max_sentences_per_abstract]
-                return torch.flatten(truncated_embeddings)
-            else:
-                padding = torch.zeros(self.max_sentences_per_abstract - len(sent_embeddings),
-                                      self.sentence_embedding_size,
-                                      device=self.device)
-                return torch.flatten(torch.cat([sent_embeddings, padding], dim=0))
-
-        for i in range(0, len(begin_end_indexes), 2):
-            start_index_first_document, end_index_first_document = begin_end_indexes[i]
-            start_index_second_document, end_index_second_document = begin_end_indexes[i + 1]
-            first_document_embeddings = fix_sentences_size(
-                bert_cls_outputs[start_index_first_document: end_index_first_document])
-            second_document_embeddings = fix_sentences_size(
-                bert_cls_outputs[start_index_second_document: end_index_second_document])
-            curr_concat_embeddings = torch.cat((first_document_embeddings, second_document_embeddings))
+        for i in range(0, len(sentence_embeddings), 2):
+            first_document_embeddings = sentence_embeddings[i]
+            second_document_embeddings = sentence_embeddings[i + 1]
+            curr_concat_embeddings = torch.cat((
+                first_document_embeddings,
+                second_document_embeddings,
+                abs(first_document_embeddings - second_document_embeddings))
+            )
             sample_embedding.append(curr_concat_embeddings)
 
         aggregated = torch.stack(sample_embedding)
@@ -231,12 +267,13 @@ class PubMedGAN(pl.LightningModule):
 
         discriminator_batch = self._discriminator_get_batch(batch, shuffle_vector)
 
-        begin_end_indexes, documents_sentences, max_len = BreakSentenceBatch(discriminator_batch)
+        # begin_end_indexes, documents_sentences, max_len = BreakSentenceBatch(discriminator_batch)
 
-        bert_inputs = self._get_bert_inputs(documents_sentences)
+        # bert_inputs = self._get_bert_inputs(documents_sentences)
 
-        bert_cls_outputs = self._discriminator_get_cls_bert_outputs(bert_inputs)
-        return self._discriminator_bert_embeddings_to_predictions(bert_cls_outputs, begin_end_indexes)
+        # bert_cls_outputs = self._discriminator_get_cls_bert_outputs(bert_inputs)
+        sentence_embeddings = self.SentenceTransformerModel.encode(discriminator_batch, convert_to_tensor=True)
+        return self._discriminator_SBERT_embeddings_to_predictions(sentence_embeddings)
 
     """################# GENERATOR FUNCTIONS #####################"""
 
@@ -264,12 +301,14 @@ class PubMedGAN(pl.LightningModule):
 
     def _generator_get_mlm_loss(self, inputs):
         """returns MLM loss"""
+        assert False, f"inputs are {inputs}"
         collated_inputs = self.data_collator(inputs['input_ids'].tolist())
         collated_inputs = {k: v.to(self.device) for k, v in collated_inputs.items()}
 
         inputs['input_ids'] = collated_inputs['input_ids']
         inputs['labels'] = collated_inputs['labels']
-        loss = self.bert_model(**inputs).loss
+        # loss = self.bert_model(**inputs).loss
+        loss = self.SentenceTransformerModel(**inputs).loss
         return loss
 
     def _generator_get_batch(self, batch):
@@ -292,3 +331,5 @@ class PubMedGAN(pl.LightningModule):
         batch_df = pd.DataFrame.from_dict(batch)
         batch = batch_df.T.to_dict().values()
         return batch
+
+
