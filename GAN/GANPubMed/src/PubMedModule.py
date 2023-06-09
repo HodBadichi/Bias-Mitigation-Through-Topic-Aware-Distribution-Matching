@@ -28,10 +28,20 @@ class PubMedModule(pl.LightningDataModule):
         """
         # Note - transform (bert topic inference) will take ~30 minutes, check if the df already exists
         try:
-            self.documents_df = pd.read_csv(self.hparams["gender_and_topic_path"], encoding='utf8')
+            self.documents_df = pd.read_csv(self.hparams["gender_and_topic_path"]+".csv", encoding='utf8')
+            self.train_df = pd.read_csv(self.hparams["gender_and_topic_path"]+"_train.csv", encoding='utf8')
+            self.val_df = pd.read_csv(self.hparams["gender_and_topic_path"]+"_val.csv", encoding='utf8')
+            self.test_df = pd.read_csv(self.hparams["gender_and_topic_path"]+"_test.csv", encoding='utf8')
+            
         except FileNotFoundError:
-            self.documents_df = GAN_utils.GenerateGANdataframe()
+            print("are we here?")
+            self.documents_df,self.train_df, self.val_df, self.test_df = GAN_utils.GenerateGANdataframe()
+            self.documents_df.to_csv(self.hparams["gender_and_topic_path"]+".csv", encoding='utf8')
+            self.train_df.to_csv(self.hparams["gender_and_topic_path"]+"_train.csv", encoding='utf8')
+            self.val_df.to_csv(self.hparams["gender_and_topic_path"]+"_val.csv", encoding='utf8')
+            self.test_df.to_csv(self.hparams["gender_and_topic_path"]+"_test.csv", encoding='utf8')
 
+            
         # train_test_split was done once and in order to make sure we keep the same groups
         # we will use the "belong to group" column
         self.train_df, self.test_df, self.val_df = GAN_utils.SplitAndCleanDataFrame(self.documents_df)

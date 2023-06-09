@@ -10,6 +10,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
 from GAN.GANPubMed.src.PubMedGAN import PubMedGAN
+from GAN.GANPubMed.src.PubMedGanSBert import PubMedGANSBert
 from GAN.GANPubMed.src.PubMedModule import PubMedModule
 from GAN.GANPubMed.src.hparams_config import hparams
 

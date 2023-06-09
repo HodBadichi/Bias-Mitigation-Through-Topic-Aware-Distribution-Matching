@@ -38,7 +38,7 @@ class DiscriminatorSBert(Discriminator):
     #     return optimizer_discriminator
     def _discriminator_SBERT_embeddings_to_predictions(self, sentence_embeddings):
         sample_embedding = []
-
+        assert False, sample_embedding
         for i in range(0, len(sentence_embeddings), 2):
             first_document_embeddings = sentence_embeddings[i]
             second_document_embeddings = sentence_embeddings[i + 1]

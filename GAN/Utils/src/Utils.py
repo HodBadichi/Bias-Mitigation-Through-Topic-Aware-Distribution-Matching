@@ -71,16 +71,19 @@ def GenerateGANdataframe():
     tu = TextUtils()
     documents_df['sentences'] = documents_df['title_and_abstract'].apply(tu.SplitAbstractToSentences)
     dataframe_path = os.path.join(os.pardir, os.pardir, os.pardir, 'data', 'abstract_2005_2020_gender_and_topic.csv')
-    documents_df.to_csv(dataframe_path, index=False)
-    return documents_df
+    if "broken_abstracts" not in documents_df.columns:
+        documents_df = CleanAbstracts(documents_df)
+    train_df = documents_df.loc[documents_df['belongs_to_group'] == 'train'].reset_index()
+    test_df = documents_df.loc[documents_df['belongs_to_group'] == 'test'].reset_index()
+    val_df = documents_df.loc[documents_df['belongs_to_group'] == 'val'].reset_index()
+
+    # documents_df.to_csv(dataframe_path, index=False)
+
+    return documents_df,train_df,val_df,test_df
 
 
 def SplitAndCleanDataFrame(documents_df):
     train_df = documents_df.loc[documents_df['belongs_to_group'] == 'train'].reset_index()
     test_df = documents_df.loc[documents_df['belongs_to_group'] == 'test'].reset_index()
     val_df = documents_df.loc[documents_df['belongs_to_group'] == 'val'].reset_index()
-    if "broken_abstracts" not in documents_df.columns:
-        train_df = CleanAbstracts(train_df)
-        val_df = CleanAbstracts(val_df)
-        test_df = CleanAbstracts(test_df)
     return train_df, test_df, val_df
