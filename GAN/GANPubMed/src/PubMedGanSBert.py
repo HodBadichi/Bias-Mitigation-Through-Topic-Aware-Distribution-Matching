@@ -18,21 +18,27 @@ from GAN.Utils.src.TextUtils import BreakSentenceBatch
 """PubMedGAN implementation 
 """
 
+GENERATOR_OPTIMIZER_INDEX = 1
+
 
 class PubMedGANSBert(pl.LightningModule):
     def __init__(self, hparams):
         super(PubMedGANSBert, self).__init__()
         MODEL = 'all-MiniLM-L6-v2'
         self.hparams.update(hparams)
-        self.bert_tokenizer = AutoTokenizer.from_pretrained(self.hparams['bert_tokenizer'])
-        self.data_collator = DataCollatorForLanguageModeling(self.bert_tokenizer)
+        self.bert_tokenizer = AutoTokenizer.from_pretrained(
+            self.hparams['bert_tokenizer'])
+        self.data_collator = DataCollatorForLanguageModeling(
+            self.bert_tokenizer)
         # self.max_length_bert_input = self.hparams['max_length_bert_input']
         # self.max_sentences_per_abstract = self.hparams['max_sentences_per_abstract']
         self.SentenceTransformerModel = SentenceTransformer(MODEL)
         self.sentence_embedding_size = 384
         self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
-        self.classifier = nn.Linear(self.sentence_embedding_size * 3, 1) # *3 because of the number of inputs in the batch
-        self.save_model_path = os.path.join(self.hparams['SAVE_PATH'], f"Sbert_{MODEL}_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}") 
+        # *3 because of the number of inputs in the batch
+        self.classifier = nn.Linear(self.sentence_embedding_size * 3, 1)
+        self.save_model_path = os.path.join(
+            self.hparams['SAVE_PATH'], f"Sbert_{MODEL}_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}")
         self.name = f"sbert_{MODEL}"
         os.makedirs(self.save_model_path, exist_ok=True)
 
@@ -65,12 +71,16 @@ class PubMedGANSBert(pl.LightningModule):
             step_ret_dict["step"] = "generator"
 
         return step_ret_dict
-    
+
     def training_step(self, batch: dict, batch_idx: int, optimizer_idx: int = None) -> dict:
+        if self.hparams["disable_discriminator"]:
+            return self.step(batch, GENERATOR_OPTIMIZER_INDEX, 'train_dataset')
         return self.step(batch, optimizer_idx, 'train_dataset')
 
     def validation_step(self, batch: dict, batch_idx: int, optimizer_idx: int = None) -> dict:
         outs = []
+        if self.hparams["disable_discriminator"]:
+            return self.step(batch, GENERATOR_OPTIMIZER_INDEX, 'train_dataset')
         for i in range(len(self.optimizers())):
             outs.append(self.step(batch, i, 'val_dataset'))
         # return value doesn't meter, its only pl requirement, the logging is with wandb
@@ -91,42 +101,51 @@ class PubMedGANSBert(pl.LightningModule):
     def on_end(self, outputs, name):
         # outputs is a list (len=number of batches) of dicts (as returned from the step methods).
         if name == 'train_dataset':
-            outputs = outputs[0]  # TODO: WHY? only generator outputs. TODO: really?
+            # TODO: WHY? only generator outputs. TODO: really?
+            outputs = outputs[0]
         self._get_mean_from_outputs(outputs, name)
         losses = [output['losses'] for output in outputs if 'losses' in output]
-        y_true  =[output['y_true'] for output in outputs if 'y_true' in output]
-        y_proba =[output['y_proba'] for output in outputs if 'y_proba' in output]
-        y_score =[output['y_score'] for output in outputs if 'y_score' in output]
+        y_true = [output['y_true'] for output in outputs if 'y_true' in output]
+        y_proba = [output['y_proba']
+                   for output in outputs if 'y_proba' in output]
+        y_score = [output['y_score']
+                   for output in outputs if 'y_score' in output]
         if losses:
             losses = torch.cat(losses)
-            self.log(f'debug/{name}_loss', losses.mean(), batch_size=self.hparams['batch_size']) #TODO nofar and liel: understand what's the difference between this loss and the loss in the discriminator step - what are the graphs we expect to see?
+            # TODO nofar and liel: understand what's the difference between this loss and the loss in the discriminator step - what are the graphs we expect to see?
+            self.log(f'debug/{name}_loss', losses.mean(),
+                     batch_size=self.hparams['batch_size'])
         if y_true and y_proba:
             y_true = torch.cat(y_true)
             y_proba = torch.cat(y_proba)
-            self.log(f'debug/{name}_accuracy', (1. * ((1. * (y_proba >= 0.5)) == y_true)).mean(),batch_size=self.hparams['batch_size'])
+            self.log(f'debug/{name}_accuracy', (1. * ((1. * (y_proba >= 0.5))
+                     == y_true)).mean(), batch_size=self.hparams['batch_size'])
             self.log(f'debug/{name}_1_accuracy', (1. * (y_proba[y_true == 1] >= 0.5)).mean(),
-                    batch_size=self.hparams['batch_size'])
+                     batch_size=self.hparams['batch_size'])
             self.log(f'debug/{name}_0_accuracy', (1. * (y_proba[y_true == 0] < 0.5)).mean(),
-                 batch_size=self.hparams['batch_size'])
+                     batch_size=self.hparams['batch_size'])
         if name == 'val_dataset':
-            path = os.path.join(self.save_model_path, f"epoch_{self.current_epoch}")
-            if self.current_epoch > 0  and not os.path.exists(path):
+            path = os.path.join(self.save_model_path,
+                                f"epoch_{self.current_epoch}")
+            if self.current_epoch > 0 and not os.path.exists(path):
                 os.makedirs(path)
                 self.SentenceTransformerModel.save(path)
                 if not os.path.exists(f'{path}/config'):
                     np.save(f'{path}/config', self.hparams)
 
-
     def configure_optimizers(self):
         # Discriminator step paramteres -  classifier.
-        grouped_parameters_discriminator = [{'params': self.classifier.parameters()}]
-        optimizer_discriminator = torch.optim.Adam(grouped_parameters_discriminator, lr=self.hparams['learning_rate'])
+        grouped_parameters_discriminator = [
+            {'params': self.classifier.parameters()}]
+        optimizer_discriminator = torch.optim.Adam(
+            grouped_parameters_discriminator, lr=self.hparams['learning_rate'])
         # Generator step parameters - only 'the bert model.
         # grouped_parameters_generator = [{'params': self.bert_model.parameters()}]
-        grouped_parameters_generator = [{'params': self.SentenceTransformerModel.parameters()}]
-        optimizer_generator = torch.optim.Adam(grouped_parameters_generator, lr=self.hparams['learning_rate'])
+        grouped_parameters_generator = [
+            {'params': self.SentenceTransformerModel.parameters()}]
+        optimizer_generator = torch.optim.Adam(
+            grouped_parameters_generator, lr=self.hparams['learning_rate'])
         return [optimizer_discriminator, optimizer_generator]
-
 
     """################# DISCRIMINATOR FUNCTIONS #####################"""
 
@@ -147,27 +166,35 @@ class PubMedGANSBert(pl.LightningModule):
         if len(clean_discriminator_batch) == 0:
             # if there are no pairs for _discriminator_step, the output is None
             return None
-        discriminator_y_true = torch.as_tensor([float(random.choice([0, 1])) for _ in clean_discriminator_batch])
+        discriminator_y_true = torch.as_tensor(
+            [float(random.choice([0, 1])) for _ in clean_discriminator_batch])
         result_dictionary['y_true'] = discriminator_y_true
         # discriminator_y_true created in order to shuffle the bias/unbiased order
-        discriminator_predictions = self._discriminator_get_predictions(clean_discriminator_batch, discriminator_y_true) 
-        all_samples_losses = self.loss_func(discriminator_predictions, discriminator_y_true.to(self.device))
+        discriminator_predictions = self._discriminator_get_predictions(
+            clean_discriminator_batch, discriminator_y_true)
+        all_samples_losses = self.loss_func(
+            discriminator_predictions, discriminator_y_true.to(self.device))
         discriminator_loss = all_samples_losses.mean()
         result_dictionary['loss'] = discriminator_loss
         result_dictionary['losses'] = all_samples_losses
-        self.log(f'discriminator/{name}_loss', discriminator_loss, batch_size=self.hparams['batch_size'])
-        y_proba = self._y_pred_to_probabilities(discriminator_predictions).cpu().detach()
+        self.log(f'discriminator/{name}_loss', discriminator_loss,
+                 batch_size=self.hparams['batch_size'])
+        y_proba = self._y_pred_to_probabilities(
+            discriminator_predictions).cpu().detach()
         result_dictionary['y_proba'] = y_proba
         result_dictionary['y_score'] = discriminator_y_true.cpu().detach() * y_proba + (
-                1 - discriminator_y_true.cpu().detach()) * (1 - y_proba) 
+            1 - discriminator_y_true.cpu().detach()) * (1 - y_proba)
         if not all(discriminator_y_true) and any(discriminator_y_true):
             # Calc auc only if batch has more than one class.
             auc = roc_auc_score(discriminator_y_true.cpu().detach(), y_proba)
             result_dictionary['auc'] = auc
-            self.log(f'discriminator/{name}_auc', auc, batch_size=self.hparams['batch_size'])
-        accuracy = accuracy_score(discriminator_y_true.cpu().detach(), y_proba.round())
+            self.log(f'discriminator/{name}_auc', auc,
+                     batch_size=self.hparams['batch_size'])
+        accuracy = accuracy_score(
+            discriminator_y_true.cpu().detach(), y_proba.round())
         result_dictionary['accuracy'] = accuracy
-        self.log(f'discriminator/{name}_accuracy', accuracy, batch_size=self.hparams['batch_size'])
+        self.log(f'discriminator/{name}_accuracy',
+                 accuracy, batch_size=self.hparams['batch_size'])
 
         return result_dictionary
 
@@ -191,7 +218,7 @@ class PubMedGANSBert(pl.LightningModule):
                 result_batch.append(unbiased_text)
                 result_batch.append(biased_text)
         return result_batch
-    
+
     def _discriminator_SBERT_embeddings_to_predictions(self, sentence_embeddings):
         sample_embedding = []
 
@@ -221,8 +248,10 @@ class PubMedGANSBert(pl.LightningModule):
         0 - the couple of matching docs was [unbiased,biased]
         """
 
-        discriminator_batch = self._discriminator_get_batch(batch, shuffle_vector)
-        sentence_embeddings = self.SentenceTransformerModel.encode(discriminator_batch, convert_to_tensor=True)
+        discriminator_batch = self._discriminator_get_batch(
+            batch, shuffle_vector)
+        sentence_embeddings = self.SentenceTransformerModel.encode(
+            discriminator_batch, convert_to_tensor=True)
         # print(f"embeddings lengths is {len(sentence_embeddings[0])}")
         return self._discriminator_SBERT_embeddings_to_predictions(sentence_embeddings)
 
@@ -237,14 +266,21 @@ class PubMedGANSBert(pl.LightningModule):
             discriminator_loss = discriminator_step_ret_dict['loss']
         step_ret_dict['optimizer_idx'] = 1
         # {'loss': , 'losses': , 'nsp_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
-        nsp_loss = generate_nsp_loss_from_batch(batch, self.SentenceTransformerModel)
-        step_ret_dict['nsp_loss'] = nsp_loss
-        # TODO diff from frozen and tune the factors (mlm_loss is 2-5, discriminator_loss is ~0.5-1)
-        total_loss = self.hparams['nsp_factor'] * nsp_loss - self.hparams['discriminator_factor'] * discriminator_loss
+        if not self.hparams["disable_nsp_loss"]:
+            nsp_loss = generate_nsp_loss_from_batch(
+                batch, self.SentenceTransformerModel)
+            step_ret_dict['nsp_loss'] = nsp_loss
+            self.log(f'generator/{name}_nsp_loss', nsp_loss,
+                     batch_size=self.hparams['batch_size'])
+            total_loss = self.hparams['nsp_factor'] * nsp_loss - \
+                self.hparams['discriminator_factor'] * discriminator_loss
+        else:
+            total_loss = - discriminator_loss
         step_ret_dict['loss'] = total_loss
-        self.log(f'generator/{name}_loss', total_loss, batch_size=self.hparams['batch_size'])
-        self.log(f'generator/{name}_nsp_loss', nsp_loss, batch_size=self.hparams['batch_size'])
-        self.log(f'generator/{name}_discriminator_loss', discriminator_loss, batch_size=self.hparams['batch_size'])
+        self.log(f'generator/{name}_loss', total_loss,
+                 batch_size=self.hparams['batch_size'])
+        self.log(f'generator/{name}_discriminator_loss',
+                 discriminator_loss, batch_size=self.hparams['batch_size'])
         return step_ret_dict
 
     def _generator_get_batch(self, batch):
@@ -263,22 +299,24 @@ class PubMedGANSBert(pl.LightningModule):
         """
         accuracy_and_auc_results = {}
         try:
-            accuracy_and_auc_results['accuracy'] = [output['accuracy'] for output in outputs]
-            accuracy_and_auc_results['auc'] = [output['auc'] for output in outputs if 'auc' in output]
+            accuracy_and_auc_results['accuracy'] = [
+                output['accuracy'] for output in outputs]
+            accuracy_and_auc_results['auc'] = [output['auc']
+                                               for output in outputs if 'auc' in output]
         except:
             print(f"\n name is {name} and outputs is {outputs}\n")
             return
         # print(f"\nname is {name} auc is {accuracy_and_auc_results['auc']} and accuracy is {accuracy_and_auc_results['accuracy']}\n")
         accuracy_mean = np.mean(accuracy_and_auc_results['accuracy'])
-        self.log(f'discriminator/{name}_accuracy_score_per_epoch', accuracy_mean, on_epoch=True, prog_bar=True)    
-        if accuracy_and_auc_results['auc']:    
+        self.log(f'discriminator/{name}_accuracy_score_per_epoch',
+                 accuracy_mean, on_epoch=True, prog_bar=True)
+        if accuracy_and_auc_results['auc']:
             auc_mean = np.mean(accuracy_and_auc_results['auc'])
-            self.log(f'discriminator/{name}_auc_score_per_epoch', auc_mean, on_epoch=True, prog_bar=True)
+            self.log(f'discriminator/{name}_auc_score_per_epoch',
+                     auc_mean, on_epoch=True, prog_bar=True)
 
     def _convert_to_list_of_dicts(self, batch):
         # to make it a shape of {'origin':int,'biased':string,'unbiased':string}
         batch_df = pd.DataFrame.from_dict(batch)
         batch = batch_df.T.to_dict().values()
         return batch
-
-
