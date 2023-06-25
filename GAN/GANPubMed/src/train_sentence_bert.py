@@ -1,11 +1,13 @@
 import os
 import pandas as pd
 from itertools import combinations
+from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sentence_transformers import SentenceTransformer, InputExample, losses, evaluation, LoggingHandler
 from torch.utils.data import DataLoader
 from datetime import datetime
 from pytorch_lightning.loggers import WandbLogger
+import wandb 
 import pytz
 import torch
 
@@ -18,7 +20,12 @@ We used the following as guides to write this module:
 2. https://github.com/UKPLab/sentence-transformers/blob/master/examples/training/quora_duplicate_questions/training_OnlineContrastiveLoss.py
 """
 
-EPOCHS = 10
+EPOCHS = 20
+MODEL = 'all-MiniLM-L6-v2'
+SAVE_PATH = Path(__file__).resolve().parents[4] / 'saved_models' /'sentence_bert_training' 
+SAVE_PATH.mkdir(parents=True, exist_ok=True)
+
+
 
 def create_labeld_dataset_from_abstract(sentences_list):
     """assigns the label 1 to adjacent sentences and 0 to non-adjacent sentences
@@ -114,7 +121,7 @@ def get_loss(loss_model, train_objectives, model):
             losses.append(loss_value)
     return torch.mean(torch.stack(losses))    
 
-def get_nsp_loss(dataset, model=SentenceTransformer('all-MiniLM-L6-v2')):
+def get_nsp_loss(dataset, model=SentenceTransformer(MODEL)):
     """Return loss from sentence transformer model using the OnlineContrastiveLoss with 
     distance metric and margin as used in sbert tutorial for duplicate questions (binary labels)
 
@@ -131,8 +138,24 @@ def get_nsp_loss(dataset, model=SentenceTransformer('all-MiniLM-L6-v2')):
         model=model, distance_metric=distance_metric, margin=margin)
     return get_loss(train_loss, train_objectives=[(train_dataloader, train_loss)], model=model)
 
+def wandb_callback(score, loss_value, epoch, steps):
+    wandb.log({'epoch': epoch, 'max_average_precision': score, 'loss': loss_value})
 
-def train_sentence_transformer(train_dataset, test_dataset, logging_handler, model=SentenceTransformer('all-MiniLM-L6-v2')):
+def log_eval_results(model_save_path):
+    eval_csv = model_save_path / 'eval/binary_classification_evaluation_results.csv'
+    eval_df = pd.read_csv(eval_csv)
+    eval_table = wandb.Table(dataframe=eval_df)
+    eval_table_artifact = wandb.Artifact(
+    "eval_artifact", 
+    type="dataset"
+    )
+    eval_table_artifact.add(eval_table, "eval_table")
+    eval_table_artifact.add_file(eval_csv)
+    wandb.log({"eval": eval_table})
+    wandb.log_artifact(eval_table_artifact)
+
+
+def train_sentence_transformer(train_dataset, test_dataset, model=SentenceTransformer('all-MiniLM-L6-v2')):
     """Train a sentence transformer model using the OnlineContrastiveLoss with 
     distance metric and margin as used in sbert tutorial for duplicate questions (binary labels)
 
@@ -140,18 +163,23 @@ def train_sentence_transformer(train_dataset, test_dataset, logging_handler, mod
         train_dataset (Pandas DataFrame): A dataframe with the columns sentence_1, sentence_2 and label
         test_dataset (Pandas DataFrame): A dataframe with the columns sentence_1, sentence_2 and label
     """
-    model.add_logging_handler(logging_handler)
     train_examples = train_dataset_to_input_examples(train_dataset)
     train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
     distance_metric = losses.SiameseDistanceMetric.COSINE_DISTANCE
     margin = 0.5
     train_loss = losses.OnlineContrastiveLoss(
         model=model, distance_metric=distance_metric, margin=margin)
-    model_save_path = f'best_model/output/training_OnlineConstrativeLoss{EPOCHS}Epochs-' + \
+    relative_model_path = f'OnlineConstrativeLoss_{EPOCHS}Epochs-' + \
         datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    os.makedirs(model_save_path, exist_ok=True)
+    best_model_save_path = SAVE_PATH / relative_model_path
+    checkpoint_path  = best_model_save_path / 'checkpoints'
+    best_model_save_path.mkdir(parents=True, exist_ok=True)
+    checkpoint_path.mkdir(parents=True, exist_ok=True)
+    steps_per_epoch = len(train_dataloader) #default one in sbert
     model.fit(train_objectives=[(train_dataloader, train_loss)], evaluator=test_dataset_to_evaluator(
-        test_dataset), output_path=model_save_path, save_best_model=True, epochs=EPOCHS, warmup_steps=100, show_progress_bar=True)
+        test_dataset), output_path=str(best_model_save_path), save_best_model=True, epochs=EPOCHS, warmup_steps=100, show_progress_bar=True, callback=wandb_callback, checkpoint_path = str(checkpoint_path), checkpoint_save_steps=steps_per_epoch)
+    log_eval_results(best_model_save_path)
+    wandb.finish()
 
 def prepare_batch_from_gan(batch):
     """
@@ -203,14 +231,9 @@ def generate_nsp_loss_from_batch(batch, model):
 
 
 def run():
-    logger = WandbLogger(
-        name=f'Sentence_bert_training_on_nsp_{EPOCHS}_epochs',
-        version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
-        project='train_sbert_test'
-    )
-    logging_handler = LoggingHandler(logger)
+    wandb.init(project='train_sbert', name=f'training_{MODEL}_on_NSP_onlineContrastiveLoss_{EPOCHS}_epochs')
     train_data, test_data = prepare_data()
-    train_sentence_transformer(train_data, test_data, logging_handler)
+    train_sentence_transformer(train_data, test_data)
     # batch = [{'origin_text': 'occipital nerve block for the short-term preventive treatment of migraine a randomized double-blinded placebo-controlled study.occipital nerve on injections with corticosteroids and/or local anesthetics have been employed for the acute and preventive treatment of migraine for decades<BREAK>however to date there is no randomized placebo-controlled evidence to support the use of occipital nerve block onb for the prevention of migraine<BREAK>the objective of this article is to determine the efficacy of onb with local anesthetic and corticosteroid for the preventive treatment of migraine<BREAK>patients between <NUMBER> and <NUMBER> years old with ichd-ii-defined episodic <NUMBER> attack per week or chronic migraine modified ichd-ii as patients with <NUMBER> days with consumption of acute medications were permitted into the study were randomized to receive either <NUMBER> ml <NUMBER> bupivacaine plus <NUMBER> ml <NUMBER> mg methylprednisolone over the ipsilateral unilateral headache or bilateral bilateral headache on or <NUMBER> ml normal saline plus <NUMBER> ml <NUMBER> lidocaine without epinephrine placebo<BREAK>patients completed a one-month headache diary prior to and after the double-blind injection<BREAK>the primary outcome measure was defined as a <NUMBER> or greater reduction in the frequency of days with moderate or severe migraine headache in the four-week post-injection compared to the four-week pre-injection baseline period<BREAK>thirty-four patients received active and <NUMBER> patients received placebo treatment<BREAK>because of missing data the full analysis of <NUMBER> patients in the active and <NUMBER> patients in the placebo group was analyzed for efficacy<BREAK>in the active and placebo groups respectively the mean frequency of at least moderate mean <NUMBER> versus <NUMBER> and severe <NUMBER> versus <NUMBER> migraine days and acute medication days <NUMBER> versus <NUMBER> were not substantially different at baseline<BREAK>the percentage of patients with at least a <NUMBER> reduction in the frequency of moderate or severe headache days was <NUMBER> for both groups 10/30 vs nine of <NUMBER> δ <NUMBER> <NUMBER> ci <NUMBER> to <NUMBER>', 'biased': "lack of drug interaction between the migraine drug map0004 orally inhaled dihydroergotamine and a cyp3a4 inhibitor in humans.dihydroergotamine dhe a proven migraine treatment currently has product labeling warning against concomitant use of cyp3a4 inhibitors because of potential drug interactions<BREAK>however no reported studies of such interactions with dhe administered by any route are available<BREAK>the pharmacokinetics pk of map0004 an investigative inhaled dhe formulation were assessed in human subjects with and without cyp3a4 inhibition by ketoconazole to evaluate the potential for drug interaction elevation of dhe levels and increased adverse effects<BREAK>after map0004 alone vs map0004 plus ketoconazole the dhe maximum concentrations c max and area-under-the-curve auc 0-48 and auc 0-∞ were not statistically significantly different nor was the c max of the primary metabolite 8'-oh-dhe<BREAK>a difference in 8'-oh-dhe aucs was observed between map0004 with and without ketoconazole however the concentrations were very low<BREAK>map0004 was well tolerated after both treatments<BREAK>this study demonstrated that cyp3a4 inhibition had little to no effect on dhe pk after map0004 administration apparently because of its high systemic and low gastrointestinal bioavailability<BREAK>cyp3a4 inhibition slowed elimination of the metabolite 8'-oh-dhe but concentrations were too low to be pharmacologically relevant", 'unbiased': 'occipital nerve block for the short-term preventive treatment of migraine a randomized double-blinded placebo-controlled study.occipital nerve on injections with corticosteroids and/or local anesthetics have been employed for the acute and preventive treatment of migraine for decades<BREAK>however to date there is no randomized placebo-controlled evidence to support the use of occipital nerve block onb for the prevention of migraine<BREAK>the objective of this article is to determine the efficacy of onb with local anesthetic and corticosteroid for the preventive treatment of migraine<BREAK>patients between <NUMBER> and <NUMBER> years old with ichd-ii-defined episodic <NUMBER> attack per week or chronic migraine modified ichd-ii as patients with <NUMBER> days with consumption of acute medications were permitted into the study were randomized to receive either <NUMBER> ml <NUMBER> bupivacaine plus <NUMBER> ml <NUMBER> mg methylprednisolone over the ipsilateral unilateral headache or bilateral bilateral headache on or <NUMBER> ml normal saline plus <NUMBER> ml <NUMBER> lidocaine without epinephrine placebo<BREAK>patients completed a one-month headache diary prior to and after the double-blind injection<BREAK>the primary outcome measure was defined as a <NUMBER> or greater reduction in the frequency of days with moderate or severe migraine headache in the four-week post-injection compared to the four-week pre-injection baseline period<BREAK>thirty-four patients received active and <NUMBER> patients received placebo treatment<BREAK>because of missing data the full analysis of <NUMBER> patients in the active and <NUMBER> patients in the placebo group was analyzed for efficacy<BREAK>in the active and placebo groups respectively the mean frequency of at least moderate mean <NUMBER> versus <NUMBER> and severe <NUMBER> versus <NUMBER> migraine days and acute medication days <NUMBER> versus <NUMBER> were not substantially different at baseline<BREAK>the percentage of patients with at least a <NUMBER> reduction in the frequency of moderate or severe headache days was <NUMBER> for both groups 10/30 vs nine of <NUMBER> δ <NUMBER> <NUMBER> ci <NUMBER> to <NUMBER>'}]
     # train_data, test_data = prepare_batch_from_gan(batch)
     # train_sentence_transformer(train_data, test_data)

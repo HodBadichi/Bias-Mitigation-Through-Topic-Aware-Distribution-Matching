@@ -39,7 +39,7 @@ class PubMedGANSBert(pl.LightningModule):
         self.classifier = nn.Linear(self.sentence_embedding_size * 3, 1)
         self.save_model_path = os.path.join(
             self.hparams['SAVE_PATH'], f"Sbert_{MODEL}_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}")
-        self.name = f"sbert_{MODEL}"
+        self.name = f"sbert_{MODEL}_disable_nsp={self.hparams['disable_nsp_loss']}"
         os.makedirs(self.save_model_path, exist_ok=True)
 
     def forward(self):
@@ -266,16 +266,16 @@ class PubMedGANSBert(pl.LightningModule):
             discriminator_loss = discriminator_step_ret_dict['loss']
         step_ret_dict['optimizer_idx'] = 1
         # {'loss': , 'losses': , 'nsp_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
-        if not self.hparams["disable_nsp_loss"]:
-            nsp_loss = generate_nsp_loss_from_batch(
-                batch, self.SentenceTransformerModel)
-            step_ret_dict['nsp_loss'] = nsp_loss
-            self.log(f'generator/{name}_nsp_loss', nsp_loss,
-                     batch_size=self.hparams['batch_size'])
-            total_loss = self.hparams['nsp_factor'] * nsp_loss - \
-                self.hparams['discriminator_factor'] * discriminator_loss
-        else:
-            total_loss = - discriminator_loss
+        if self.hparams["disable_nsp_loss"]:
+            self.hparams['nsp_factor'] = 0
+            self.hparams['discriminator_factor'] = 1
+        nsp_loss = generate_nsp_loss_from_batch(
+            batch, self.SentenceTransformerModel)
+        step_ret_dict['nsp_loss'] = nsp_loss
+        self.log(f'generator/{name}_nsp_loss', nsp_loss,
+                    batch_size=self.hparams['batch_size'])
+        total_loss = self.hparams['nsp_factor'] * nsp_loss - \
+            self.hparams['discriminator_factor'] * discriminator_loss
         step_ret_dict['loss'] = total_loss
         self.log(f'generator/{name}_loss', total_loss,
                  batch_size=self.hparams['batch_size'])
