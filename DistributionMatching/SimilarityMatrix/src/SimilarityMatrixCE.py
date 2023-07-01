@@ -1,6 +1,7 @@
 import json
 import os
 import torch
+from pathlib import Path
 
 from DistributionMatching.SimilarityMatrix.src.SimilarityMatrix import SimilarityMatrix
 
@@ -13,7 +14,7 @@ class SimilarityMatrixCE(SimilarityMatrix):
     def __init__(self, documents_dataframe, df_name, ):
         super().__init__(documents_dataframe, df_name, )
         matrix_file_name = f"CE_sim_matrix_{df_name}"
-        similarity_matrix_path = os.path.join(os.pardir, os.pardir, os.pardir, 'data', matrix_file_name)
+        similarity_matrix_path = str(Path(__file__).resolve().parents[3] / 'data' / matrix_file_name)
         if os.path.isfile(similarity_matrix_path):
             print("Matching similarity matrix already exists, Loading ...")
             self.matrix = torch.load(similarity_matrix_path)

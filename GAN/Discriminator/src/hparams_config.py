@@ -14,12 +14,7 @@ hparams = {'learning_rate': 2e-5,
            'max_sentences_per_abstract': 20,
            'reset_different_topic_entries_flag': 1,
            'similarity_metric': 'cross_entropy',
-           'gender_and_topic_path': os.path.join(
-               os.pardir,
-               os.pardir,
-               'data',
-               'abstract_2005_2020_gender_and_topic'
-           ),
+           'gender_and_topic_path': str(Path(__file__).resolve().parents[2] / 'data' / 'abstract_2005_2020_gender_and_topic'),
            'bert_pretrained_over_pubMed_path': Path(__file__).resolve().parents[4] / 'saved_models' / 'bert_tiny_uncased_2010_2018_v2020_epoch39',
            'bert_tokenizer': os.path.join('google', 'bert_uncased_L-2_H-128_A-2'),
            'cosine_similarity_clean_method': '',

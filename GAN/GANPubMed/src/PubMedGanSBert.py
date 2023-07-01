@@ -10,16 +10,70 @@ import pytorch_lightning as pl
 from datetime import datetime
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, BertForMaskedLM, DataCollatorForLanguageModeling
-from train_sentence_bert import generate_nsp_loss_from_batch
+from train_sentence_bert import *
 from sklearn.metrics import roc_auc_score, accuracy_score
-
+# import train_sentence_bert
 from GAN.Utils.src.TextUtils import BreakSentenceBatch
-
+import torch.nn.functional as F
 """PubMedGAN implementation 
 """
 
 GENERATOR_OPTIMIZER_INDEX = 1
 
+# from typing import Iterable, Dict
+# import torch.nn.functional as F
+# from torch import nn, Tensor
+# from .ContrastiveLoss import SiameseDistanceMetric
+# from sentence_transformers.SentenceTransformer import SentenceTransformer
+
+
+class OnlineContrastiveLoss(nn.Module):
+    """
+    Online Contrastive loss. Similar to ConstrativeLoss, but it selects hard positive (positives that are far apart)
+    and hard negative pairs (negatives that are close) and computes the loss only for these pairs. Often yields
+    better performances than  ConstrativeLoss.
+
+    :param model: SentenceTransformer model
+    :param distance_metric: Function that returns a distance between two emeddings. The class SiameseDistanceMetric contains pre-defined metrices that can be used
+    :param margin: Negative samples (label == 0) should have a distance of at least the margin value.
+    :param size_average: Average by the size of the mini-batch.
+
+    Example::
+
+        from sentence_transformers import SentenceTransformer, LoggingHandler, losses, InputExample
+        from torch.utils.data import DataLoader
+
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        train_examples = [
+            InputExample(texts=['This is a positive pair', 'Where the distance will be minimized'], label=1),
+            InputExample(texts=['This is a negative pair', 'Their distance will be increased'], label=0)]
+
+        train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=2)
+        train_loss = losses.OnlineContrastiveLoss(model=model)
+
+        model.fit([(train_dataloader, train_loss)], show_progress_bar=True)
+    """
+
+    def __init__(self,  distance_metric, margin: float = 0.5):
+        super(OnlineContrastiveLoss, self).__init__()
+        self.margin = margin
+        self.distance_metric = distance_metric
+
+    def forward(self, sentence_embeddings, labels, size_average=False):
+        embeddings = [sentence_feature['sentence_embedding'] for sentence_feature in sentence_embeddings]
+
+        distance_matrix = self.distance_metric(embeddings[0], embeddings[1])
+        negs = distance_matrix[labels == 0]
+        poss = distance_matrix[labels == 1]
+
+        # select hard positive and hard negative pairs
+        negative_pairs = negs[negs < (poss.max() if len(poss) > 1 else negs.mean())]
+        positive_pairs = poss[poss > (negs.min() if len(negs) > 1 else poss.mean())]
+
+        positive_loss = positive_pairs.pow(2).sum()
+        negative_loss = F.relu(self.margin - negative_pairs).pow(2).sum()
+        loss = positive_loss + negative_loss
+        return loss
 
 class PubMedGANSBert(pl.LightningModule):
     def __init__(self, hparams):
@@ -35,6 +89,7 @@ class PubMedGANSBert(pl.LightningModule):
         self.SentenceTransformerModel = SentenceTransformer(MODEL)
         self.sentence_embedding_size = 384
         self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
+        self.sbert_loss = OnlineContrastiveLoss(losses.SiameseDistanceMetric.COSINE_DISTANCE,0.5)
         # *3 because of the number of inputs in the batch
         self.classifier = nn.Linear(self.sentence_embedding_size * 3, 1)
         self.save_model_path = os.path.join(
@@ -64,11 +119,11 @@ class PubMedGANSBert(pl.LightningModule):
         #   Generator Step
         if optimizer_idx == 1:
             if self.hparams["disable_discriminator"]:
-                step_ret_dict = None 
+                step_ret_dict['loss'] = 0
             else: 
                 step_ret_dict = self._discriminator_step(batch, name)
             if (step_ret_dict == None):
-                # f there are no pairs for _discriminator_step, the output is None, but we still preform generator step
+                # if there are no pairs for _discriminator_step, the output is None, but we still preform generator step
                 step_ret_dict = {}
             step_ret_dict = self._generator_step(batch, step_ret_dict, name)
             step_ret_dict["step"] = "generator"
@@ -138,6 +193,9 @@ class PubMedGANSBert(pl.LightningModule):
 
     def configure_optimizers(self):
         # Discriminator step paramteres -  classifier.
+        for p in self.SentenceTransformerModel.parameters():
+            p.requires_grad = True
+
         grouped_parameters_discriminator = [
             {'params': self.classifier.parameters()}]
         optimizer_discriminator = torch.optim.Adam(
@@ -163,6 +221,9 @@ class PubMedGANSBert(pl.LightningModule):
         since not all batch items represent a couple of docs to discriminator (some didn't get match with noahArc matcher)
         we clean (leave) the relevant docs in the batch, shuffle them, get prediction and return loss
         """
+        for p in self.SentenceTransformerModel.parameters():
+            p.requires_grad = True
+
         result_dictionary = {'nsp_loss': 0, 'optimizer_idx': 0}
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
         clean_discriminator_batch = self._discriminator_clean_batch(batch)
@@ -259,8 +320,48 @@ class PubMedGANSBert(pl.LightningModule):
         return self._discriminator_SBERT_embeddings_to_predictions(sentence_embeddings)
 
     """################# GENERATOR FUNCTIONS #####################"""
+    def smart_batching_collate(self,model, batch):
+        """
+        Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
+        Here, batch is a list of tuples: [(tokens, label), ...]
 
+        :param batch:
+            a batch from a SmartBatchingDataset
+        :return:
+            a batch of tensors for the model
+        """
+        num_texts = len(batch[0].texts)
+        texts = [[] for _ in range(num_texts)]
+        labels = []
+
+        for example in batch:
+            for idx, text in enumerate(example.texts):
+                texts[idx].append(text)
+
+            labels.append(example.label)
+
+        labels = torch.tensor(labels)
+
+        sentence_features = []
+        for idx in range(num_texts):
+            tokenized = model.tokenize(texts[idx])
+            for key in tokenized.keys():
+                tokenized[key] = tokenized[key].to("cuda")
+            sentence_features.append(tokenized)
+
+        return sentence_features, labels
+    
     def _generator_step(self, batch, discriminator_step_ret_dict, name):
+
+        # distance_metric = losses.SiameseDistanceMetric.COSINE_DISTANCE
+        # margin = 0.5
+        self.SentenceTransformerModel = self.SentenceTransformerModel.to(device="cuda")
+        # self.SentenceTransformerModel.tokenizer = self.SentenceTransformerModel.tokenizer.to(device="cuda")
+        for p in self.SentenceTransformerModel.parameters():
+            p.requires_grad = True
+        # train_loss = losses.OnlineContrastiveLoss(
+            # model=self.SentenceTransformerModel, distance_metric=distance_metric, margin=margin)
+# 
         step_ret_dict = discriminator_step_ret_dict
         if (not step_ret_dict):
             # if the discriminator dict is empty - the discriminator batch was empty - there were no pairs
@@ -272,8 +373,19 @@ class PubMedGANSBert(pl.LightningModule):
         if self.hparams["disable_nsp_loss"]:
             self.hparams['nsp_factor'] = 0
             self.hparams['discriminator_factor'] = 1
-        nsp_loss = generate_nsp_loss_from_batch(
-            batch, self.SentenceTransformerModel)
+        if self.hparams['disable_discriminator']:
+            self.hparams['nsp_factor'] = 1
+            self.hparams['discriminator_factor'] = 0
+        prepared_batch = prepare_batch_from_gan(batch)
+        train_examples = train_dataset_to_input_examples(prepared_batch)
+        feat,labels = self.smart_batching_collate(self.SentenceTransformerModel,train_examples) # tokenizes the training_examples into two columns of features, one per "side", and the labels
+        sentence1_embeddings = self.SentenceTransformerModel(feat[0]) # encodes the embedding of the "left" side with forward
+        sentence2_embeddings = self.SentenceTransformerModel(feat[1]) # encodes the embedding of the "right" side with forward
+        
+        nsp_loss = self.sbert_loss([sentence1_embeddings,sentence2_embeddings],labels) # calculates the contrastive divergence loss using cosine similarity
+        # nsp_loss = train_loss(feat,labels)
+        # nsp_loss = generate_nsp_loss_frotrm_batch(
+            # batch, self.SentenceTransformerModel)
         step_ret_dict['nsp_loss'] = nsp_loss
         self.log(f'generator/{name}_nsp_loss', nsp_loss,
                     batch_size=self.hparams['batch_size'])

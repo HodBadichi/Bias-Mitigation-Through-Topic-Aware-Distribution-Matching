@@ -34,7 +34,6 @@ class PubMedModule(pl.LightningDataModule):
             self.test_df = pd.read_csv(self.hparams["gender_and_topic_path"]+"_test.csv", encoding='utf8')
             
         except FileNotFoundError:
-            print("are we here?")
             self.documents_df,self.train_df, self.val_df, self.test_df = GAN_utils.GenerateGANdataframe()
             self.documents_df.to_csv(self.hparams["gender_and_topic_path"]+".csv", encoding='utf8')
             self.train_df.to_csv(self.hparams["gender_and_topic_path"]+"_train.csv", encoding='utf8')

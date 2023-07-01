@@ -8,6 +8,7 @@ import pandas as pd
 from bertopic import BERTopic
 import numpy as np
 import gdown
+import pathlib
 
 from GAN.Utils.src.GAN_config import config
 from GAN.Utils.src.TextUtils import TextUtils, CleanAbstracts
@@ -15,7 +16,7 @@ from TopicModeling.Bert.src.BertUtils import CleanText
 
 
 def LoadAbstractPubMedData():
-    data_directory = os.path.join(os.pardir, os.pardir, os.pardir, 'data')
+    data_directory = pathlib.Path(__file__).parent.resolve().parents[2] / 'data'
     os.makedirs(data_directory, exist_ok=True)
     full_data_path = config['PubMedData']
 
@@ -30,7 +31,7 @@ def LoadAbstractPubMedData():
 
 
 def LoadTopicModel():
-    models_directory = os.path.join(os.pardir, os.pardir, os.pardir, 'data')
+    models_directory = pathlib.Path(__file__).parent.resolve().parents[2] / 'data'
     os.makedirs(models_directory, exist_ok=True)
     full_model_path = config['topic_model_path']
 
@@ -70,7 +71,7 @@ def GenerateGANdataframe():
     documents_df['probs'] = col_probs
     tu = TextUtils()
     documents_df['sentences'] = documents_df['title_and_abstract'].apply(tu.SplitAbstractToSentences)
-    dataframe_path = os.path.join(os.pardir, os.pardir, os.pardir, 'data', 'abstract_2005_2020_gender_and_topic.csv')
+    dataframe_path =  pathlib.Path(__file__).parent.resolve().parents[2] / 'data'/ 'abstract_2005_2020_gender_and_topic.csv'
     if "broken_abstracts" not in documents_df.columns:
         documents_df = CleanAbstracts(documents_df)
     train_df = documents_df.loc[documents_df['belongs_to_group'] == 'train'].reset_index()
