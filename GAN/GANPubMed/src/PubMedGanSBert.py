@@ -39,7 +39,7 @@ class PubMedGANSBert(pl.LightningModule):
         self.classifier = nn.Linear(self.sentence_embedding_size * 3, 1)
         self.save_model_path = os.path.join(
             self.hparams['SAVE_PATH'], f"Sbert_{MODEL}_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}")
-        self.name = f"sbert_{MODEL}_disable_nsp={self.hparams['disable_nsp_loss']}"
+        self.name = f"sbert_{MODEL}_disable_nsp={self.hparams['disable_nsp_loss']}_disable_disc={self.hparams['disable_discriminator']}"
         os.makedirs(self.save_model_path, exist_ok=True)
 
     def forward(self):
@@ -63,7 +63,10 @@ class PubMedGANSBert(pl.LightningModule):
                 step_ret_dict["step"] = "discriminator"
         #   Generator Step
         if optimizer_idx == 1:
-            step_ret_dict = self._discriminator_step(batch, name)
+            if self.hparams["disable_discriminator"]:
+                step_ret_dict = None 
+            else: 
+                step_ret_dict = self._discriminator_step(batch, name)
             if (step_ret_dict == None):
                 # f there are no pairs for _discriminator_step, the output is None, but we still preform generator step
                 step_ret_dict = {}
