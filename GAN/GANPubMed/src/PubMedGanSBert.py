@@ -60,7 +60,7 @@ class OnlineContrastiveLoss(nn.Module):
         self.distance_metric = distance_metric
 
     def forward(self, sentence_embeddings, labels, size_average=False):
-        embeddings = [sentence_feature['sentence_embedding'] for sentence_feature in sentence_embeddings]
+        embeddings = [sentence_feature for sentence_feature in sentence_embeddings]
 
         distance_matrix = self.distance_metric(embeddings[0], embeddings[1])
         negs = distance_matrix[labels == 0]
@@ -87,6 +87,7 @@ class PubMedGANSBert(pl.LightningModule):
         # self.max_length_bert_input = self.hparams['max_length_bert_input']
         # self.max_sentences_per_abstract = self.hparams['max_sentences_per_abstract']
         self.SentenceTransformerModel = SentenceTransformer(MODEL)
+        self.SentenceTransformerModel.max_seq_length = 128
         self.sentence_embedding_size = 384
         self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
         self.sbert_loss = OnlineContrastiveLoss(losses.SiameseDistanceMetric.COSINE_DISTANCE,0.5)
@@ -94,7 +95,7 @@ class PubMedGANSBert(pl.LightningModule):
         self.classifier = nn.Linear(self.sentence_embedding_size * 3, 1)
         self.save_model_path = os.path.join(
             self.hparams['SAVE_PATH'], f"Sbert_{MODEL}_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}")
-        self.name = f"sbert_{MODEL}_disable_nsp={self.hparams['disable_nsp_loss']}_disable_disc={self.hparams['disable_discriminator']}"
+        self.name = f"sbert_disable_nsp={self.hparams['disable_nsp_loss']}_disable_disc={self.hparams['disable_discriminator']}_{MODEL}"
         os.makedirs(self.save_model_path, exist_ok=True)
 
     def forward(self):
@@ -138,7 +139,7 @@ class PubMedGANSBert(pl.LightningModule):
     def validation_step(self, batch: dict, batch_idx: int, optimizer_idx: int = None) -> dict:
         outs = []
         if self.hparams["disable_discriminator"]:
-            return self.step(batch, GENERATOR_OPTIMIZER_INDEX, 'train_dataset')
+            return self.step(batch, GENERATOR_OPTIMIZER_INDEX, 'val_dataset')
         for i in range(len(self.optimizers())):
             outs.append(self.step(batch, i, 'val_dataset'))
         # return value doesn't meter, its only pl requirement, the logging is with wandb
@@ -350,7 +351,42 @@ class PubMedGANSBert(pl.LightningModule):
             sentence_features.append(tokenized)
 
         return sentence_features, labels
-    
+
+    def smart_batching_collate_ours(self,model, batch):
+        """
+        Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
+        Here, batch is a list of tuples: [(tokens, label), ...]
+
+        :param batch:
+            a batch from a SmartBatchingDataset
+        :return:
+            a batch of tensors for the model
+        """
+        tokenized = model.tokenize(list(batch))
+        for key in tokenized.keys():
+            tokenized[key] = tokenized[key].to("cuda")
+        return tokenized
+
+    def _create_set_from_prepared_batch(self, prepared_batch):
+        sentences_1 = list(prepared_batch["sentence_1"].values)
+        sentences_2 = list(prepared_batch["sentence_2"].values)
+        sentences_1.extend(sentences_2)
+        return set(sentences_1)
+
+    def _match_embedding_to_sentence(self, prepared_batch, sentence_embeddings, unique_sentences_set):
+        sentence1_embeddings = []
+        sentence2_embeddings = []
+        labels = []
+        unique_sentences_set = list(unique_sentences_set)
+        for index, row in prepared_batch.iterrows():
+            sentence1 = row['sentence_1']
+            sentence2 = row['sentence_2']
+            if sentence1 in unique_sentences_set and sentence2 in unique_sentences_set:
+                sentence1_embeddings.append(sentence_embeddings[unique_sentences_set.index(sentence1)])
+                sentence2_embeddings.append(sentence_embeddings[unique_sentences_set.index(sentence2)])
+                labels.append(row['label'])        
+        return torch.stack(sentence1_embeddings),torch.stack(sentence2_embeddings), torch.tensor(labels)
+
     def _generator_step(self, batch, discriminator_step_ret_dict, name):
 
         # distance_metric = losses.SiameseDistanceMetric.COSINE_DISTANCE
@@ -377,22 +413,30 @@ class PubMedGANSBert(pl.LightningModule):
             self.hparams['nsp_factor'] = 1
             self.hparams['discriminator_factor'] = 0
         prepared_batch = prepare_batch_from_gan(batch)
+        unique_sentences_set = self._create_set_from_prepared_batch(prepared_batch)
+        # prepared_batch = prepare_varied_batch_from_gan(batch)
         train_examples = train_dataset_to_input_examples(prepared_batch)
         feat,labels = self.smart_batching_collate(self.SentenceTransformerModel,train_examples) # tokenizes the training_examples into two columns of features, one per "side", and the labels
-        sentence1_embeddings = self.SentenceTransformerModel(feat[0]) # encodes the embedding of the "left" side with forward
-        sentence2_embeddings = self.SentenceTransformerModel(feat[1]) # encodes the embedding of the "right" side with forward
+        # sentence1_embeddings = self.SentenceTransformerModel(feat[0]) # encodes the embedding of the "left" side with forward
+        # sentence2_embeddings = self.SentenceTransformerModel(feat[1]) # encodes the embedding of the "right" side with forward
+
+        unique_sentences_set_collated = self.smart_batching_collate_ours(self.SentenceTransformerModel, unique_sentences_set)
+        sentence_embeddings = self.SentenceTransformerModel(unique_sentences_set_collated)
         
+        sentence1_embeddings,sentence2_embeddings, labels = self._match_embedding_to_sentence(prepared_batch, sentence_embeddings["sentence_embedding"], unique_sentences_set)
+
         nsp_loss = self.sbert_loss([sentence1_embeddings,sentence2_embeddings],labels) # calculates the contrastive divergence loss using cosine similarity
         # nsp_loss = train_loss(feat,labels)
         # nsp_loss = generate_nsp_loss_frotrm_batch(
             # batch, self.SentenceTransformerModel)
+        
         step_ret_dict['nsp_loss'] = nsp_loss
-        self.log(f'generator/{name}_nsp_loss', nsp_loss,
+        self.log(f'generator/{name}_nsp_loss', nsp_loss.item(),
                     batch_size=self.hparams['batch_size'])
         total_loss = self.hparams['nsp_factor'] * nsp_loss - \
             self.hparams['discriminator_factor'] * discriminator_loss
         step_ret_dict['loss'] = total_loss
-        self.log(f'generator/{name}_loss', total_loss,
+        self.log(f'generator/{name}_loss', total_loss.item(),
                  batch_size=self.hparams['batch_size'])
         self.log(f'generator/{name}_discriminator_loss',
                  discriminator_loss, batch_size=self.hparams['batch_size'])

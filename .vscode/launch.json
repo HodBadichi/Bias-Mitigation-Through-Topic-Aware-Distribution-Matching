@@ -11,7 +11,7 @@
             "program": "GAN/GANPubMed/src/PubMedGANworkflow.py",
             "console": "integratedTerminal",
             "python": "/home/liel-blu/miniconda3/envs/venv/bin/python",
-            "justMyCode": true,
+            "justMyCode": false,
         }
     ]
 }

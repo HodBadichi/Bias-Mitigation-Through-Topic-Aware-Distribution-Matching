@@ -47,6 +47,14 @@ def create_labeld_dataset_from_abstract(sentences_list):
             dataset_dict[pair] = 0
     return dataset_dict
 
+def create_adjacent_pairs_from_abstract(sentences_list):
+    dataset_dict = {}
+    adjacent_sentences_pairs = list(
+        zip(sentences_list[:-1], sentences_list[1:]))
+    for pair in adjacent_sentences_pairs:
+        dataset_dict[pair] = 1
+    return dataset_dict
+
 
 def balance_dataset(dataset_df):
     """Balances the dataset by having the same number of 0 and 1 labels
@@ -60,8 +68,14 @@ def balance_dataset(dataset_df):
     """
     dataset_df_0 = dataset_df[dataset_df['label'] == 0]
     dataset_df_1 = dataset_df[dataset_df['label'] == 1]
-    dataset_df_0 = dataset_df_0.sample(
-        n=dataset_df_1.shape[0], random_state=42)
+    try:
+        if dataset_df_0.shape[0] > dataset_df_1.shape[0]:
+            dataset_df_0 = dataset_df_0.sample(
+            n=dataset_df_1.shape[0], random_state=42)
+    except:
+        print("HOW CAN THERE BE MORE 1 LABELS THAN 0 LABELS?")
+        print(dataset_df_0, dataset_df_1)
+        raise
     dataset_df = pd.concat([dataset_df_0, dataset_df_1])
     dataset_df = dataset_df.sample(frac=1, random_state=42).reset_index(
         drop=True)  # shuffle the rows
@@ -188,8 +202,7 @@ def prepare_batch_from_gan(batch):
     abstracts_list = []
     # assert False, f"batch is of type {type(batch)}) and it looks like {batch}"
     for entry in batch:
-        abstracts_list.append(entry['biased'])
-        abstracts_list.append(entry['unbiased'])
+        abstracts_list.append(entry['origin_text'])
     d = {}
     for i, row in enumerate(abstracts_list):
         sentences_list = row.split('<BREAK>')
@@ -199,6 +212,35 @@ def prepare_batch_from_gan(batch):
     dataset_df = pd.DataFrame(dataset_dict)
     dataset_df = balance_dataset(dataset_df)
     return dataset_df
+
+def prepare_varied_batch_from_gan(batch):
+    """
+    :param batch:{'origin_text':string,'biased':string,'unbiased':string}
+    """
+    abstracts_list = []
+    # assert False, f"batch is of type {type(batch)}) and it looks like {batch}"
+    for entry in batch:
+        abstracts_list.append(entry['biased'])
+        abstracts_list.append(entry['unbiased'])
+    d = {}
+    all_sentences = []
+    for i, row in enumerate(abstracts_list):
+        sentences_list = row.split('<BREAK>')
+        all_sentences.extend(sentences_list[::2])
+        d.update(create_adjacent_pairs_from_abstract(sentences_list))
+    d.update(create_negative_pairs(all_sentences))
+    dataset_dict = {'sentence_1': [k[0] for k in d.keys()], 'sentence_2': [
+        k[1] for k in d.keys()], 'label': list(d.values())}
+    dataset_df = pd.DataFrame(dataset_dict)
+    dataset_df = balance_dataset(dataset_df)
+    return dataset_df
+
+def create_negative_pairs(sentences_list):
+    dataset_dict = {}
+    all_pairs_of_sentences = combinations(sentences_list, 2)
+    for pair in all_pairs_of_sentences:
+        dataset_dict[pair] = 0
+    return dataset_dict
 
 
 def prepare_data():

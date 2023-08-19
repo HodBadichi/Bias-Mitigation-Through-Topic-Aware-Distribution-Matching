@@ -22,6 +22,7 @@ workflow for running 'PubMedGAN'
 def Run():
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     dm = PubMedModule(hparams)
+    # hparams['gpus']=2
     model = PubMedGANSBert(hparams)
     # model = PubMedGAN(hparams)
     logger = WandbLogger(
