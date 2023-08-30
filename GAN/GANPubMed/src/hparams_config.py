@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-hparams = {'learning_rate': 2e-5,
+hparams = {'learning_rate': 3e-5,
            'dropout_rate': 0.1,
            'hidden_sizes': [512],
            'discriminator_factor': 0.5,
@@ -12,7 +12,11 @@ hparams = {'learning_rate': 2e-5,
            'gender_and_topic_path': str(Path(__file__).resolve().parents[2] / 'data' / 'abstract_2005_2020_gender_and_topic'),
            'disable_nsp_loss': False,
            'disable_discriminator': False,
-           'batch_size': 2,
+           'varied_pairs' : False,
+           'sts_pairs': True,
+           'loss' : 'SoftmaxLoss',
+           'sbert_loss_margin': 0.5,
+           'batch_size': 8,
            'test_size': 0.3,
            'bert_pretrained_over_pubMed_path': Path(__file__).resolve().parents[4] / 'saved_models' / 'bert_tiny_uncased_2010_2018_v2020_epoch39',
            'bert_tokenizer': os.path.join('google', 'bert_uncased_L-2_H-128_A-2'),

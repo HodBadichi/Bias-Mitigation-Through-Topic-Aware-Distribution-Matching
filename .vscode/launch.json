@@ -11,7 +11,17 @@
             "program": "GAN/GANPubMed/src/PubMedGANworkflow.py",
             "console": "integratedTerminal",
             "python": "/home/liel-blu/miniconda3/envs/venv/bin/python",
-            "justMyCode": false,
+            "justMyCode": true,
+        }
+    ,
+    {
+            "name": "mednli",
+            "type": "python",
+            "request": "launch",
+            "program": "GAN/GANPubMed/src/mednli_sbert_softmax_loss.py",
+            "console": "integratedTerminal",
+            "python": "/home/liel-blu/miniconda3/envs/venv/bin/python",
+            "justMyCode": true,
         }
     ]
 }

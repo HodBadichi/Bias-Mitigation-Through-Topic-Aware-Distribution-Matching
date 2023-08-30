@@ -55,6 +55,13 @@ def create_adjacent_pairs_from_abstract(sentences_list):
         dataset_dict[pair] = 1
     return dataset_dict
 
+def create_same_abstract_pairs(sentences_list):
+    dataset_dict = {}
+    all_pairs_of_sentences = combinations(sentences_list, 2)
+    for pair in all_pairs_of_sentences:
+        dataset_dict[pair] = 1
+    return dataset_dict
+
 
 def balance_dataset(dataset_df):
     """Balances the dataset by having the same number of 0 and 1 labels
@@ -220,8 +227,7 @@ def prepare_varied_batch_from_gan(batch):
     abstracts_list = []
     # assert False, f"batch is of type {type(batch)}) and it looks like {batch}"
     for entry in batch:
-        abstracts_list.append(entry['biased'])
-        abstracts_list.append(entry['unbiased'])
+        abstracts_list.append(entry['origin_text'])
     d = {}
     all_sentences = []
     for i, row in enumerate(abstracts_list):
@@ -235,6 +241,27 @@ def prepare_varied_batch_from_gan(batch):
     dataset_df = balance_dataset(dataset_df)
     return dataset_df
 
+def prepare_sts_batch_from_gan(batch):
+    """
+    :param batch:{'origin_text':string,'biased':string,'unbiased':string}
+    """
+    abstracts_list = []
+    # assert False, f"batch is of type {type(batch)}) and it looks like {batch}"
+    for entry in batch:
+        abstracts_list.append(entry['origin_text'])
+    d = {}
+    all_sentences = []
+    for i, row in enumerate(abstracts_list):
+        sentences_list = row.split('<BREAK>')
+        all_sentences.extend(sentences_list[::2])
+        d.update(create_same_abstract_pairs(sentences_list))
+    d.update(create_different_abstract_pairs(all_sentences, d))
+    dataset_dict = {'sentence_1': [k[0] for k in d.keys()], 'sentence_2': [
+        k[1] for k in d.keys()], 'label': list(d.values())}
+    dataset_df = pd.DataFrame(dataset_dict)
+    dataset_df = balance_dataset(dataset_df)
+    return dataset_df
+
 def create_negative_pairs(sentences_list):
     dataset_dict = {}
     all_pairs_of_sentences = combinations(sentences_list, 2)
@@ -242,6 +269,13 @@ def create_negative_pairs(sentences_list):
         dataset_dict[pair] = 0
     return dataset_dict
 
+def create_different_abstract_pairs(sentences_list, same_abstract_pairs_dict):
+    dataset_dict = {}
+    all_pairs_of_sentences = combinations(sentences_list, 2)
+    for pair in all_pairs_of_sentences:
+        if pair not in same_abstract_pairs_dict:
+            dataset_dict[pair] = 0
+    return dataset_dict
 
 def prepare_data():
     """Uses the abstracts dataset to create a dataset with sentence pairs and labels.

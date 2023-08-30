@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python train_sentence_bert.py
+python mednli_sbert_softmax_loss.py
