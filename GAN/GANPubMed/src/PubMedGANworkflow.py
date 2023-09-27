@@ -12,6 +12,7 @@ from pytorch_lightning.loggers import WandbLogger
 from GAN.GANPubMed.src.PubMedGAN import PubMedGAN
 from GAN.GANPubMed.src.PubMedGanSBert import PubMedGANSBert
 from GAN.GANPubMed.src.PubMedModule import PubMedModule
+from GAN.GANPubMed.src.PubMedGanGPT import PubMedGANGPT
 from GAN.GANPubMed.src.hparams_config import hparams
 
 """
@@ -23,7 +24,8 @@ def Run():
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     dm = PubMedModule(hparams)
     # hparams['gpus']=2
-    model = PubMedGANSBert(hparams)
+    model = PubMedGANGPT(hparams)
+    # model = PubMedGANSBert(hparams)
     # model = PubMedGAN(hparams)
     logger = WandbLogger(
         name=f'{model.name}_GAN_over_topic_and_gender_70_15_15_v2_all-MiniLM-L6-v2',

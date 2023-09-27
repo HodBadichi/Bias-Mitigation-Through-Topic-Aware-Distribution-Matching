@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 from sentence_transformers import SentenceTransformer, models
-
+from transformers import GPT2Tokenizer
 from GAN.Discriminator.src.Discriminator import Discriminator
 
 """DiscriminatorSBert Implementation
@@ -66,3 +66,46 @@ class DiscriminatorSBert(Discriminator):
         discriminator_batch = Discriminator._discriminator_get_batch(batch, shuffle_vector)
         sentence_embeddings = self.SentenceTransformerModel.encode(discriminator_batch, convert_to_tensor=True)
         return self._discriminator_SBERT_embeddings_to_predictions(sentence_embeddings)
+
+
+class DiscriminatorSBertBioGPT(DiscriminatorSBert):
+    def __init__(self, hparams):
+        Discriminator.__init__(self, hparams)
+        word_embedding_model = models.Transformer('microsoft/biogpt', max_seq_length=128)
+        pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode='mean')
+        self.SentenceTransformerModel = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+        self.sentence_embedding_size = word_embedding_model.get_word_embedding_dimension()
+        layers = []
+        hidden_sizes = [self.sentence_embedding_size * 3] + self.hparams[
+            'hidden_sizes'] + [1]
+        for i in range(len(hidden_sizes) - 1):
+            layers.extend(
+                [nn.Linear(hidden_sizes[i],
+                           hidden_sizes[i + 1]),
+                 nn.LeakyReLU(0.2, inplace=True),
+                 nn.Dropout(self.hparams['dropout_rate'])])
+
+        self.classifier = nn.Sequential(*layers)  # per il flatten
+        self.name = "SBertBioGPT"
+
+class DiscriminatorSbertGPT2(DiscriminatorSBert):
+    def __init__(self, hparams):
+        Discriminator.__init__(self, hparams)
+        word_embedding_model = models.Transformer('gpt2-medium', max_seq_length=128)
+        if word_embedding_model.tokenizer.pad_token is None:
+            word_embedding_model.tokenizer.pad_token = word_embedding_model.tokenizer.eos_token
+        pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode='mean')
+        self.SentenceTransformerModel = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+        self.sentence_embedding_size = word_embedding_model.get_word_embedding_dimension()
+        layers = []
+        hidden_sizes = [self.sentence_embedding_size * 3] + self.hparams[
+            'hidden_sizes'] + [1]
+        for i in range(len(hidden_sizes) - 1):
+            layers.extend(
+                [nn.Linear(hidden_sizes[i],
+                           hidden_sizes[i + 1]),
+                 nn.LeakyReLU(0.2, inplace=True),
+                 nn.Dropout(self.hparams['dropout_rate'])])
+
+        self.classifier = nn.Sequential(*layers)  # per il flatten
+        self.name = "SBertGPT2"

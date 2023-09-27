@@ -8,7 +8,8 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 from datetime import datetime
-from sentence_transformers import SentenceTransformer, losses
+from sentence_transformers import SentenceTransformer,  models
+from sentence_transformers.losses import SoftmaxLoss
 from transformers import AutoTokenizer, BertForMaskedLM, DataCollatorForLanguageModeling
 from train_sentence_bert import *
 from sklearn.metrics import roc_auc_score, accuracy_score
@@ -26,13 +27,9 @@ GENERATOR_OPTIMIZER_INDEX = 1
 # from .ContrastiveLoss import SiameseDistanceMetric
 # from sentence_transformers.SentenceTransformer import SentenceTransformer
 
-class SoftMaxLoss(losses.SoftMaxLoss):
+class SoftMaxLoss(SoftmaxLoss):
     def forward(self, sentence_embeddings, labels, size_average=False):
         embeddings = [sentence_feature for sentence_feature in sentence_embeddings]
-
-        distance_matrix = self.distance_metric(embeddings[0], embeddings[1])
-        negs = distance_matrix[labels == 0]
-        poss = distance_matrix[labels == 1]
 
         vectors_concat = []
         vectors_concat.append(embeddings[0])
@@ -120,21 +117,27 @@ class ContrastiveLoss(nn.Module):
 class PubMedGANSBert(pl.LightningModule):
     def __init__(self, hparams):
         super(PubMedGANSBert, self).__init__()
-        MODEL = 'all-MiniLM-L6-v2'
         self.hparams.update(hparams)
         self.bert_tokenizer = AutoTokenizer.from_pretrained(
             self.hparams['bert_tokenizer'])
         self.data_collator = DataCollatorForLanguageModeling(
             self.bert_tokenizer)
-        # self.max_length_bert_input = self.hparams['max_length_bert_input']
-        # self.max_sentences_per_abstract = self.hparams['max_sentences_per_abstract']
-        self.SentenceTransformerModel = SentenceTransformer(MODEL)
+        if self.hparams['base_model'] == 'all-MiniLM-L6-v2':
+            self.SentenceTransformerModel = SentenceTransformer(self.hparams['base_model'])
+        elif self.hparams['base_model'] == 'microsoft/biogpt':
+            # based on answer from: https://github.com/UKPLab/sentence-transformers/issues/1824
+            word_embedding_model = models.Transformer(self.hparams['base_model'], max_seq_length=128)
+            pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode='mean')
+            self.SentenceTransformerModel = SentenceTransformer(modules=[word_embedding_model, pooling_model])
         self.SentenceTransformerModel.max_seq_length = 128
+        self.sentence_embedding_size = word_embedding_model.get_word_embedding_dimension()
+        
+        self.downsampler = nn.Linear(self.sentence_embedding_size,384)
         self.sentence_embedding_size = 384
         self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
-        if self.hparams['loss'] == 'SoftmaxLoss':
-            self.sbert_loss = losses.SoftmaxLoss()
-        if self.hparams['loss'] == 'OnlineContrastiveLoss':
+        if self.hparams['loss'] == 'SoftMaxLoss':
+            self.sbert_loss = SoftMaxLoss(self.SentenceTransformerModel, self.SentenceTransformerModel.get_sentence_embedding_dimension(), num_labels=2)
+        elif self.hparams['loss'] == 'OnlineContrastiveLoss':
             self.sbert_loss = OnlineContrastiveLoss(losses.SiameseDistanceMetric.COSINE_DISTANCE, self.hparams['sbert_loss_margin'])
         else:
             self.sbert_loss = ContrastiveLoss(losses.SiameseDistanceMetric.COSINE_DISTANCE, self.hparams['sbert_loss_margin'])
@@ -142,7 +145,7 @@ class PubMedGANSBert(pl.LightningModule):
         self.classifier = nn.Linear(self.sentence_embedding_size * 3, 1)
         self.save_model_path = os.path.join(
             self.hparams['SAVE_PATH'], f"Sbert_{MODEL}_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}")
-        self.name = f"sbert_normalized_disable_nsp_={self.hparams['disable_nsp_loss']}_disable_disc={self.hparams['disable_discriminator']}_varied={self.hparams['varied_pairs']}_sts_{self.hparams['sts_pairs']}_online_contrastive_loss={self.hparams['online_loss']}"
+        self.name = f"sbert_{self.hparams['base_model']}_normalized_disable_nsp_={self.hparams['disable_nsp_loss']}_disable_disc={self.hparams['disable_discriminator']}_varied={self.hparams['varied_pairs']}_sts_{self.hparams['sts_pairs']}_loss={self.hparams['loss']}"
         os.makedirs(self.save_model_path, exist_ok=True)
 
     def forward(self):
@@ -368,7 +371,8 @@ class PubMedGANSBert(pl.LightningModule):
             batch, shuffle_vector)
         sentences_list_collated = self.smart_batching_collate(self.SentenceTransformerModel, discriminator_batch)
         sentence_embeddings =  self.SentenceTransformerModel(sentences_list_collated)["sentence_embedding"]
-        return self._discriminator_SBERT_embeddings_to_predictions(sentence_embeddings)
+        sentence_embeddings_downsampled = self.downsampler(sentence_embeddings)
+        return self._discriminator_SBERT_embeddings_to_predictions(sentence_embeddings_downsampled)
 
     """################# GENERATOR FUNCTIONS #####################"""
     def smart_batching_collate_og(self,model, batch):
@@ -483,7 +487,7 @@ class PubMedGANSBert(pl.LightningModule):
         unique_sentences_list, sentence1_indices, sentence2_indices = self._create_unique_set_and_indices(prepared_batch)
         unique_sentences_list_collated = self.smart_batching_collate(self.SentenceTransformerModel, unique_sentences_list)
         sentence_embeddings = self.SentenceTransformerModel(unique_sentences_list_collated)
-        
+        sentence_embeddings['sentence_embeddings'] = self.downsampler(sentence_embeddings['sentence_embedding'])
         sentence1_embeddings, sentence2_embeddings = self._match_embedding_to_sentence(sentence_embeddings["sentence_embedding"], sentence1_indices, sentence2_indices)
         labels =  torch.tensor(prepared_batch["label"].values).to(device="cuda")
         return self.sbert_loss([sentence1_embeddings,sentence2_embeddings],labels) # calculates the contrastive divergence loss using cosine similarity

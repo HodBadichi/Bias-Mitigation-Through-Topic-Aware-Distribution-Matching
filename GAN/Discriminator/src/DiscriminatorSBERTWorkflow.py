@@ -10,7 +10,7 @@ from pytorch_lightning.loggers import WandbLogger
 import wandb 
 import pytorch_lightning as pl
 
-from GAN.Discriminator.src.DiscriminatorSBERT import DiscriminatorSBert
+from GAN.Discriminator.src.DiscriminatorSBERT import DiscriminatorSBert, DiscriminatorSBertBioGPT, DiscriminatorSbertGPT2
 from GAN.GANPubMed.src.PubMedModule import PubMedModule
 from GAN.Discriminator.src.DiscriminatorWorkflow import PrepareArguments
 
@@ -22,13 +22,14 @@ def Run():
     new_hparams = PrepareArguments()
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     dm = PubMedModule(new_hparams)
-    model = DiscriminatorSBert(new_hparams)
+    model = DiscriminatorSbertGPT2(new_hparams)
     logger = WandbLogger(
-        name=new_hparams['name'],
+        name=model.name,
         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
         project='Discriminator_test',
         config=new_hparams
     )
+    print(model)
     wandb.define_metric("discriminator/val_dataset_loss", summary="mean")
 
     trainer = pl.Trainer(gpus=new_hparams['gpus'],

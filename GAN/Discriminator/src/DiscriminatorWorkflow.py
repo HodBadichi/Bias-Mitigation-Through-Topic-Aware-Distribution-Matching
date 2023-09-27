@@ -13,6 +13,7 @@ import torch
 
 
 from GAN.Discriminator.src.Discriminator import Discriminator
+from GAN.Discriminator.src.DiscriminatorGPT import DiscriminatorGPT
 from GAN.Discriminator.src.DiscriminatorBERT import DiscriminatorBioElectra, DiscriminatorSciBert, DiscriminatorTinyBert, DiscriminatorLinkBert
 from GAN.GANPubMed.src.PubMedModule import PubMedModule
 from GAN.Discriminator.src.hparams_config import hparams
@@ -61,14 +62,14 @@ def Run():
     new_hparams = PrepareArguments()
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     dm = PubMedModule(new_hparams)
-    model = Discriminator(new_hparams)
+    model = DiscriminatorGPT(new_hparams)
     logger = WandbLogger(
-        name=new_hparams["name"],
+        name=model.name,
         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
         project='Discriminator_test',
         config=new_hparams
     )
-
+    print(model)
     trainer = pl.Trainer(
         gpus=new_hparams['gpus'],
         max_epochs=new_hparams['max_epochs'],

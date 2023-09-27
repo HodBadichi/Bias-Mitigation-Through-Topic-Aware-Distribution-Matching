@@ -11,7 +11,25 @@
             "program": "GAN/GANPubMed/src/PubMedGANworkflow.py",
             "console": "integratedTerminal",
             "python": "/home/liel-blu/miniconda3/envs/venv/bin/python",
-            "justMyCode": true,
+            "justMyCode": false,
+        },
+        {
+            "name": "DiscriminatorWorkFlow",
+            "type": "python",
+            "request": "launch",
+            "program": "GAN/Discriminator/src/DiscriminatorWorkflow.py",
+            "console": "integratedTerminal",
+            "python": "/home/liel-blu/miniconda3/envs/venv/bin/python",
+            "justMyCode": false,
+        },
+        {
+            "name": "SbertDiscriminatorWorkflow",
+            "type": "python",
+            "request": "launch",
+            "program": "GAN/Discriminator/src/DiscriminatorSBERTWorkflow.py",
+            "console": "integratedTerminal",
+            "python": "/home/liel-blu/miniconda3/envs/venv/bin/python",
+            "justMyCode": false,
         }
     ,
     {
@@ -21,7 +39,16 @@
             "program": "GAN/GANPubMed/src/mednli_sbert_softmax_loss.py",
             "console": "integratedTerminal",
             "python": "/home/liel-blu/miniconda3/envs/venv/bin/python",
-            "justMyCode": true,
-        }
+            "justMyCode": false,
+        },
+        {
+            "name": "mednli_negative_ranking",
+            "type": "python",
+            "request": "launch",
+            "program": "GAN/GANPubMed/src/mednli_multiple_negatives_ranking_loss.py",
+            "console": "integratedTerminal",
+            "python": "/home/liel-blu/miniconda3/envs/venv/bin/python",
+            "justMyCode": false,
+        },
     ]
 }
