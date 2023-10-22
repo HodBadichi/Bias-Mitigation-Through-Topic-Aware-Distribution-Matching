@@ -19,7 +19,7 @@ class PubMedDataSet(Dataset):
     def __len__(self):
         # defines len of epoch
         return len(self.documents_dataframe)
-        # return 100
+        # return 50
 
     def __getitem__(self, index):
         batch_entry = {}
