@@ -1,5 +1,7 @@
 import pytorch_lightning as pl
 import pandas as pd
+import os 
+
 from torch.utils.data import DataLoader
 
 from GAN.GANPubMed.src.PubMedDataSet import PubMedDataSet
@@ -27,8 +29,11 @@ class PubMedModule(pl.LightningDataModule):
         transform the model on the remaining docs and creates "topic"
         """
         # Note - transform (bert topic inference) will take ~30 minutes, check if the df already exists
+        if not os.path.exists(self.hparams['splitted_PubMedData']):
+            GAN_utils.generateSplittDataFrame(self.hparams['splitted_PubMedData'])
         try:
             self.documents_df = pd.read_csv(self.hparams["gender_and_topic_path"]+".csv", encoding='utf8')
+            print(f'loaded df from file {self.hparams["gender_and_topic_path"]+".csv"}')
             self.train_df = pd.read_csv(self.hparams["gender_and_topic_path"]+"_train.csv", encoding='utf8')
             self.val_df = pd.read_csv(self.hparams["gender_and_topic_path"]+"_val.csv", encoding='utf8')
             self.test_df = pd.read_csv(self.hparams["gender_and_topic_path"]+"_test.csv", encoding='utf8')
@@ -41,8 +46,6 @@ class PubMedModule(pl.LightningDataModule):
             self.test_df.to_csv(self.hparams["gender_and_topic_path"]+"_test.csv", encoding='utf8')
 
             
-        # train_test_split was done once and in order to make sure we keep the same groups
-        # we will use the "belong to group" column
         self.train_df, self.test_df, self.val_df = GAN_utils.SplitAndCleanDataFrame(self.documents_df)
 
     def setup(self, stage=None):

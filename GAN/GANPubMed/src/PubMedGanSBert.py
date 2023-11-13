@@ -7,6 +7,7 @@ import os
 import pytz
 import torch
 from torch import nn
+import json
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
@@ -34,11 +35,13 @@ class PubMedGANSBert(pl.LightningModule):
     def __init__(self, hparams):
         super(PubMedGANSBert, self).__init__()
         self.hparams.update(hparams)
+        self.max_input_length = self.hparams['max_length_bert_input']
+        self.name = "" if not self.hparams['only_classifier_params'] else "only_classifier_params_"
         #sentence bert impl 
         if self.hparams['base_model'] == 'all-MiniLM-L6-v2':
             self.SentenceTransformerModel = SentenceTransformer(self.hparams['base_model'])
             self.sentence_embedding_size = 384
-            self.name = f"sbert_{self.hparams['base_model']}_normalized_disable_nsp_={self.hparams['disable_nsp_loss']}_disable_disc={self.hparams['disable_discriminator']}_varied={self.hparams['varied_pairs']}_sts_{self.hparams['sts_pairs']}_loss={self.hparams['loss']}"
+            self.name += f"sbert_{self.hparams['base_model']}_normalized_disable_nsp_={self.hparams['disable_nsp_loss']}_disable_disc={self.hparams['disable_discriminator']}_varied={self.hparams['varied_pairs']}_sts_{self.hparams['sts_pairs']}_loss={self.hparams['loss']}"
             if self.hparams['loss'] == 'SoftMaxLoss':
                 self.lm_loss = SoftMaxLoss(self.SentenceTransformerModel, self.SentenceTransformerModel.get_sentence_embedding_dimension(), num_labels=2)
             elif self.hparams['loss'] == 'OnlineContrastiveLoss':
@@ -51,15 +54,14 @@ class PubMedGANSBert(pl.LightningModule):
             word_embedding_model = GPT_TRANSFORMERS[self.hparams['base_model']](max_seq_length=128)
             pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode='mean')
             self.SentenceTransformerModel = SentenceTransformer(modules=[word_embedding_model, pooling_model])
-            self.max_length_gpt_input = self.hparams['max_length_bert_input']
             self.data_collator = DataCollatorForLanguageModeling(self.SentenceTransformerModel.tokenizer, mlm=False)
             self.SentenceTransformerModel.max_seq_length = 128
             self.sentence_embedding_size = word_embedding_model.get_word_embedding_dimension()
-            self.name = f"{self.hparams['base_model']}_sentence_transformer_on_clm_disable_disc={self.hparams['disable_discriminator']}"
+            self.name += f"{self.hparams['base_model']}_on_clm_disable_disc={self.hparams['disable_discriminator']}"
             self.lm_loss = CLMLoss(self.SentenceTransformerModel)
         self.model_name = self.hparams['base_model'].replace("/", "_")
         self.discriminator_loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
-        # *3 because of the number of inputs in the batch
+        # *3 because we contatenate the 2 sentences and the abs diff
         self.classifier = nn.Linear(self.sentence_embedding_size * 3, 1)
         self.save_model_path = os.path.join(
             self.hparams['SAVE_PATH'], f"{self.model_name}_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}")
@@ -143,7 +145,6 @@ class PubMedGANSBert(pl.LightningModule):
                    for output in outputs if 'y_score' in output]
         if losses:
             losses = torch.cat(losses)
-            # TODO nofar and liel: understand what's the difference between this loss and the loss in the discriminator step - what are the graphs we expect to see?
             self.log(f'debug/{name}_loss', losses.mean(),
                      batch_size=self.hparams['batch_size'])
         if y_true and y_proba:
@@ -163,6 +164,15 @@ class PubMedGANSBert(pl.LightningModule):
                 self.SentenceTransformerModel.save(path)
                 if not os.path.exists(f'{path}/config'):
                     np.save(f'{path}/config', self.hparams)
+                # overwrite the type field in modules.json because some transformers are custom
+                # but running the downstream task requires the original trasnformers
+                with open(f'{path}/modules.json', 'r+') as file:
+                    data = json.load(file)
+                    data[0]['type'] = 'sentence_transformers.models.Transformer'
+                    file.seek(0)
+                    json.dump(data, file, indent=4)
+
+
 
     def configure_optimizers(self):
         # Discriminator step paramteres -  classifier.
@@ -171,8 +181,8 @@ class PubMedGANSBert(pl.LightningModule):
 
         grouped_parameters_discriminator = [
             {'params': self.classifier.parameters()}]
-        grouped_parameters_discriminator += [
-            {'params': self.SentenceTransformerModel.parameters()}]
+        if not self.hparams['only_classifier_params']:
+            grouped_parameters_discriminator += [{'params': self.SentenceTransformerModel.parameters()}]
         optimizer_discriminator = torch.optim.Adam(
             grouped_parameters_discriminator, lr=self.hparams['learning_rate'])
         # Generator step parameters - only 'the bert model.
@@ -417,7 +427,7 @@ class PubMedGANSBert(pl.LightningModule):
 
     def _get_gpt_inputs(self, documents_sentences):
         inputs = self.SentenceTransformerModel.tokenizer.batch_encode_plus(documents_sentences, padding=True, truncation=True,
-                                                       max_length=self.max_length_gpt_input,
+                                                       max_length=self.max_input_length,
                                                        add_special_tokens=True, return_tensors="pt")
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         collated_inputs = self.data_collator(inputs['input_ids'].tolist())

@@ -34,6 +34,7 @@ def Run():
         config={'lr': hparams['learning_rate'], 'batch_size': hparams['batch_size']}
     )
     print(model)
+    print(f'saved model at: {model.save_model_path}')
     trainer = pl.Trainer(
         gpus=hparams['gpus'],
         max_epochs=hparams['max_epochs'],

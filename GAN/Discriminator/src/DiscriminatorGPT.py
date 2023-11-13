@@ -21,14 +21,14 @@ class DiscriminatorGPT(pl.LightningModule):
         super(DiscriminatorGPT, self).__init__()
         self.hparams.update(hparams)
         if self.hparams["gpt_model"] == "gpt2-medium":
-            self.name = f"freezed-gpt2-medium"
+            self.name = f"gpt2-medium"
             self.gpt_model = GPT2Model.from_pretrained(self.name)
             self.gpt_tokenizer = GPT2Tokenizer.from_pretrained(self.name)
             if self.gpt_tokenizer.pad_token is None:
                 self.gpt_tokenizer.pad_token = self.gpt_tokenizer.eos_token
         elif self.hparams["gpt_model"] == "biogpt":
-            self.name = f"freezed-microsoft/biogpt"
-            self.gpt_model = BioGptForCausalLM.from_pretrained(self.name)
+            self.name = f"microsoft/biogpt"
+        self.gpt_model = BioGptForCausalLM.from_pretrained(self.name)
             self.gpt_tokenizer =  BioGptTokenizer.from_pretrained(self.name)
         self.max_length_gpt_input = self.hparams['max_length_bert_input']
         self.sentence_embedding_size = self.gpt_model.config.hidden_size
@@ -36,7 +36,7 @@ class DiscriminatorGPT(pl.LightningModule):
         # The linear layer if from 2 concat abstract (1 is bias and 1 unbiased) to binary label:
         # 1 - the couple of matching docs was [biased,unbiased]
         # 0 - the couple of matching docs was [unbiased,biased]
-        self._freeze_model_parameters()
+        # self._freeze_model_parameters()
         self.input_dropout = nn.Dropout(p=self.hparams['dropout_rate'])
         self.classifier = nn.Sequential(*self._calculate_layers())  # per il flatten
         self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
@@ -73,16 +73,16 @@ class DiscriminatorGPT(pl.LightningModule):
         optimizer_discriminator = torch.optim.Adam(grouped_parameters_discriminator, lr=self.hparams['learning_rate'])
         return [optimizer_discriminator]
 
-    def _freeze_model_parameters(self):
-        # freeze all layers
-        for param in self.gpt_model.parameters():
-            param.requires_grad = False
-        # unfreeze last layer
-        for param in self.gpt_model.biogpt.layers[-1].parameters():
-            param.requires_grad = True
-        # if clm loss is enabled we have to unfreeze the output_projection layer
-        for param in self.gpt_model.output_projection.parameters():
-            param.requires_grad = True
+    # def _freeze_model_parameters(self):
+    #     # freeze all layers
+    #     for param in self.gpt_model.parameters():
+    #         param.requires_grad = False
+    #     # unfreeze last layer
+    #     for param in self.gpt_model.biogpt.layers[-1].parameters():
+    #         param.requires_grad = True
+    #     # if clm loss is enabled we have to unfreeze the output_projection layer
+    #     for param in self.gpt_model.output_projection.parameters():
+    #         param.requires_grad = True
 
     """################# DISCRIMINATOR FUNCTIONS #####################"""
 
@@ -179,7 +179,7 @@ class DiscriminatorGPT(pl.LightningModule):
         :param bert_inputs: bert input
         """
         all_outputs = self.gpt_model(**gpt_inputs, output_hidden_states=True)
-        cls_outputs = all_outputs.hidden_states[-1][:, 0]
+        cls_outputs = all_outputs.hidden_states[-1][:, -1]
         return cls_outputs
 
     def _discriminator_gpt_embeddings_to_predictions(self, gpt_cls_outputs, begin_end_indexes):

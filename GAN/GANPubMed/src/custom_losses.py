@@ -1,6 +1,7 @@
 from sentence_transformers import SentenceTransformer,  models, losses
 from sentence_transformers.losses import SoftmaxLoss
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 class SoftMaxLoss(SoftmaxLoss):
