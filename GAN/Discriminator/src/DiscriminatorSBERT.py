@@ -71,7 +71,8 @@ class DiscriminatorSBert(Discriminator):
 class DiscriminatorSBertBioGPT(DiscriminatorSBert):
     def __init__(self, hparams):
         Discriminator.__init__(self, hparams)
-        word_embedding_model = models.Transformer('microsoft/biogpt', max_seq_length=128)
+        self.max_seq_length = self.hparams['max_seq_length']
+        word_embedding_model = models.Transformer('microsoft/biogpt', self.max_seq_length )
         pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode='mean')
         self.SentenceTransformerModel = SentenceTransformer(modules=[word_embedding_model, pooling_model])
         self.sentence_embedding_size = word_embedding_model.get_word_embedding_dimension()
@@ -91,7 +92,8 @@ class DiscriminatorSBertBioGPT(DiscriminatorSBert):
 class DiscriminatorSbertGPT2(DiscriminatorSBert):
     def __init__(self, hparams):
         Discriminator.__init__(self, hparams)
-        word_embedding_model = models.Transformer('gpt2-medium', max_seq_length=128)
+        self.max_seq_length = self.hparams['max_seq_length']
+        word_embedding_model = models.Transformer('gpt2-medium')
         if word_embedding_model.tokenizer.pad_token is None:
             word_embedding_model.tokenizer.pad_token = word_embedding_model.tokenizer.eos_token
         pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode='mean')

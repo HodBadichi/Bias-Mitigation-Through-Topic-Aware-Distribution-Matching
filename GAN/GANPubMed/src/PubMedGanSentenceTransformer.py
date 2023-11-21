@@ -13,6 +13,7 @@ import pandas as pd
 import pytorch_lightning as pl
 from datetime import datetime
 from sentence_transformers import SentenceTransformer,  models, losses
+import re
 from transformers import AutoTokenizer, DataCollatorForLanguageModeling
 from train_sentence_bert import *
 from sklearn.metrics import roc_auc_score, accuracy_score
@@ -23,21 +24,20 @@ import torch.nn.functional as F
 """
 GENERATOR_OPTIMIZER_INDEX = 1
 
-# from typing import Iterable, Dict
-# import torch.nn.functional as F
-# from torch import nn, Tensor
-# from .ContrastiveLoss import SiameseDistanceMetric
-# from sentence_transformers.SentenceTransformer import SentenceTransformer
+"""
+This class implements the GAN model using SentenceTransformer as the embedding model.
+"""
 
 GPT_TRANSFORMERS = {'gpt2-medium': GPT2MediumTransformer, 'microsoft/biogpt': BioGPTTransformer}
 
-class PubMedGANSBert(pl.LightningModule):
+class PubMedGanSentenceTransformer(pl.LightningModule):
     def __init__(self, hparams):
-        super(PubMedGANSBert, self).__init__()
+        super(PubMedGanSentenceTransformer, self).__init__()
         self.hparams.update(hparams)
-        self.max_input_length = self.hparams['max_length_bert_input']
+        self.max_seq_length = self.hparams['max_seq_length']
         self.name = "" if not self.hparams['only_classifier_params'] else "only_classifier_params_"
-        #sentence bert impl 
+
+        #sentence transformer based BERT impl 
         if self.hparams['base_model'] == 'all-MiniLM-L6-v2':
             self.SentenceTransformerModel = SentenceTransformer(self.hparams['base_model'])
             self.sentence_embedding_size = 384
@@ -48,20 +48,39 @@ class PubMedGANSBert(pl.LightningModule):
                 self.lm_loss = OnlineContrastiveLoss(losses.SiameseDistanceMetric.COSINE_DISTANCE, self.hparams['sbert_loss_margin'])
             else:
                 self.lm_loss = ContrastiveLoss(losses.SiameseDistanceMetric.COSINE_DISTANCE, self.hparams['sbert_loss_margin'])
+
         #sentence gpt impl
         elif self.hparams['base_model'] in GPT_TRANSFORMERS.keys():
-            # based on answer from: https://github.com/UKPLab/sentence-transformers/issues/1824
-            word_embedding_model = GPT_TRANSFORMERS[self.hparams['base_model']](max_seq_length=128)
-            pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode='mean')
-            self.SentenceTransformerModel = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+            # TODO: this is an infrastructure for loading a GPT sentence transformer model from an existing checkpoint path, it currently is broken because when we load a GPT-base sentence
+            # transformer, it loads GPT without the CLM head (that we use for calculating CLM loss during generator step), need to fix this, for now don't use
+            if self.hparams['checkpoint_path'] is not None:
+                print(f"loading model from checkpoint path: {self.hparams['checkpoint_path']}")
+                self.SentenceTransformerModel =  SentenceTransformer(self.hparams['checkpoint_path'])
+                self.sentence_embedding_size = self.SentenceTransformerModel.get_sentence_embedding_dimension()
+            # the checkpoint path is None only when we train from scratch
+            else:
+                word_embedding_model = GPT_TRANSFORMERS[self.hparams['base_model']](max_seq_length=self.max_seq_length)
+                pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(), pooling_mode='mean')
+                self.SentenceTransformerModel = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+                self.sentence_embedding_size = word_embedding_model.get_word_embedding_dimension()
+
+            self.max_input_length = self.hparams['max_length_bert_input']  # for CLM task, we need to limit the number of tokens per sentence in the input from the batch, unrelated to the max_seq_length of sentence transformers
+             # set the data collator for CLM task (MLM= false because we don't want to mask tokens randomly like in MLM task)
             self.data_collator = DataCollatorForLanguageModeling(self.SentenceTransformerModel.tokenizer, mlm=False)
-            self.SentenceTransformerModel.max_seq_length = 128
-            self.sentence_embedding_size = word_embedding_model.get_word_embedding_dimension()
+
+            self.SentenceTransformerModel.max_seq_length = self.max_seq_length
+            
             self.name += f"{self.hparams['base_model']}_on_clm_disable_disc={self.hparams['disable_discriminator']}"
             self.lm_loss = CLMLoss(self.SentenceTransformerModel)
+        else:
+            raise NotImplementedError(f"base_model {self.hparams['base_model']} not supported!")
+        
+        # common fields for both BERT-based and GPT-based implenetations
+        self.max_epochs = self._set_number_of_epochs()
         self.model_name = self.hparams['base_model'].replace("/", "_")
         self.discriminator_loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
-        # *3 because we contatenate the 2 sentences and the abs diff
+
+        # *3 because we contatenate the 2 sentences and the abs element-wise diff between them (see _discriminator_sentence_transformer_embeddings_to_predictions)
         self.classifier = nn.Linear(self.sentence_embedding_size * 3, 1)
         self.save_model_path = os.path.join(
             self.hparams['SAVE_PATH'], f"{self.model_name}_{datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f')}")
@@ -158,14 +177,14 @@ class PubMedGANSBert(pl.LightningModule):
                      batch_size=self.hparams['batch_size'])
         if name == 'val_dataset':
             path = os.path.join(self.save_model_path,
-                                f"epoch_{self.current_epoch}")
-            if self.current_epoch > 0 and not os.path.exists(path):
+                                f"epoch_{self.current_epoch + self.inital_epoch}")
+            if self.current_epoch % 5 == 0 and not os.path.exists(path):
                 os.makedirs(path)
                 self.SentenceTransformerModel.save(path)
                 if not os.path.exists(f'{path}/config'):
                     np.save(f'{path}/config', self.hparams)
-                # overwrite the type field in modules.json because some transformers are custom
-                # but running the downstream task requires the original trasnformers
+                # overwrite the type field in modules.json because some transformers we use re custom
+                # but running the downstream task requires the original sentence_transformers.models.Transformer file when loading
                 with open(f'{path}/modules.json', 'r+') as file:
                     data = json.load(file)
                     data[0]['type'] = 'sentence_transformers.models.Transformer'
@@ -175,18 +194,19 @@ class PubMedGANSBert(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        # Discriminator step paramteres -  classifier.
+        # we had to  set requires_grad to True due to a 'no_grad' error in the backpropagation
         for p in self.SentenceTransformerModel.parameters():
             p.requires_grad = True
 
         grouped_parameters_discriminator = [
             {'params': self.classifier.parameters()}]
         if not self.hparams['only_classifier_params']:
+            # we let the discriminator update the SentenceTransformerModel weights only if we take this branch
             grouped_parameters_discriminator += [{'params': self.SentenceTransformerModel.parameters()}]
+
         optimizer_discriminator = torch.optim.Adam(
             grouped_parameters_discriminator, lr=self.hparams['learning_rate'])
-        # Generator step parameters - only 'the bert model.
-        # grouped_parameters_generator = [{'params': self.bert_model.parameters()}]
+        # Generator step parameters - only 'the SentenceTransformerModel parameters.
         grouped_parameters_generator = [
             {'params': self.SentenceTransformerModel.parameters()}]
         optimizer_generator = torch.optim.Adam(
@@ -206,8 +226,6 @@ class PubMedGANSBert(pl.LightningModule):
         since not all batch items represent a couple of docs to discriminator (some didn't get match with noahArc matcher)
         we clean (leave) the relevant docs in the batch, shuffle them, get prediction and return loss
         """
-
-
         result_dictionary = {'nsp_loss': 0, 'optimizer_idx': 0}
         # {'loss': , 'losses': , 'mlm_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
         clean_discriminator_batch = self._discriminator_clean_batch(batch)
@@ -267,7 +285,8 @@ class PubMedGANSBert(pl.LightningModule):
                 result_batch.append(biased_text)
         return result_batch
 
-    def _discriminator_SBERT_embeddings_to_predictions(self, sentence_embeddings):
+    def _discriminator_sentence_transformer_embeddings_to_predictions(self, sentence_embeddings):
+        """ for each pair of sentences in the batch, we concat the embeddings of the 2 sentences and the abs element-wise diff between them"""
         sample_embedding = []
 
         for i in range(0, len(sentence_embeddings), 2):
@@ -300,57 +319,20 @@ class PubMedGANSBert(pl.LightningModule):
             batch, shuffle_vector)
         sentences_list_collated = self.smart_batching_collate(self.SentenceTransformerModel, discriminator_batch)
         sentence_embeddings =  self.SentenceTransformerModel(sentences_list_collated)["sentence_embedding"]
-        # sentence_embeddings_downsampled = self.downsampler(sentence_embeddings)
-        return self._discriminator_SBERT_embeddings_to_predictions(sentence_embeddings)
-
-    """################# GENERATOR FUNCTIONS #####################"""
-    def smart_batching_collate_og(self,model, batch):
-        """
-        Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
-        Here, batch is a list of tuples: [(tokens, label), ...]
-
-        :param batch:
-            a batch from a SmartBatchingDataset
-        :return:
-            a batch of tensors for the model
-        """
-        num_texts = len(batch[0].texts)
-        texts = [[] for _ in range(num_texts)]
-        labels = []
-
-        for example in batch:
-            for idx, text in enumerate(example.texts):
-                texts[idx].append(text)
-
-            labels.append(example.label)
-
-        labels = torch.tensor(labels)
-
-        sentence_features = []
-        for idx in range(num_texts):
-            tokenized = model.tokenize(texts[idx])
-            for key in tokenized.keys():
-                tokenized[key] = tokenized[key].to("cuda")
-            sentence_features.append(tokenized)
-
-        return sentence_features, labels
+        return self._discriminator_sentence_transformer_embeddings_to_predictions(sentence_embeddings)
 
     def smart_batching_collate(self,model, batch):
-        """
-        Transforms a batch from a SmartBatchingDataset to a batch of tensors for the model
-        Here, batch is a list of tuples: [(tokens, label), ...]
-
-        :param batch:
-            a batch from a SmartBatchingDataset
-        :return:
-            a batch of tensors for the model
-        """
+        """ Transforms a batch to a batch of tensors for the model using the model's tokenizer"""
         tokenized = model.tokenize(batch)
         for key in tokenized.keys():
             tokenized[key] = tokenized[key].to("cuda")
         return tokenized
 
+
+    """################# GENERATOR FUNCTIONS #####################"""
+
     def _create_unique_set_and_indices(self, prepared_batch):
+        """ creates a unique set of sentences and returns the indices of the sentences in the original batch"""
         sentences_1 = list(prepared_batch["sentence_1"].values)
         sentences_2 = list(prepared_batch["sentence_2"].values)
         all_sentences = sentences_1 + sentences_2
@@ -360,19 +342,24 @@ class PubMedGANSBert(pl.LightningModule):
         return unique_sentences_list, sentence_1_indices, sentences_2_indices
 
     def _match_embedding_to_sentence(self, sentence_embeddings, sentence1_indices, sentence2_indices):
+        """ matches the embeddings to the sentences using the indices"""
         sentence1_embeddings = sentence_embeddings[sentence1_indices]
         sentence2_embeddings = sentence_embeddings[sentence2_indices]
         return sentence1_embeddings, sentence2_embeddings
 
     def _generator_step(self, batch, discriminator_step_ret_dict, name):
+        """ calculates the discriminator loss and subtracts it from one of the three losses (NSP/STS/CLM) of the embedding model)"""
         step_ret_dict = discriminator_step_ret_dict
         if (not step_ret_dict):
             # if the discriminator dict is empty - the discriminator batch was empty - there were no pairs
             discriminator_loss = 0
         else:
             discriminator_loss = discriminator_step_ret_dict['loss']
+
+        # handle the case of CLM loss in a seperate function
         if self.hparams['loss'] == 'CLMLoss':
             return self._generator_step_clm(batch, step_ret_dict, discriminator_loss, name)
+        
         step_ret_dict['optimizer_idx'] = 1
         # {'loss': , 'losses': , 'nsp_loss': , 'y_true': , 'y_proba': , 'y_score': , 'optimizer_idx': }
         if self.hparams['disable_discriminator']:
@@ -404,7 +391,7 @@ class PubMedGANSBert(pl.LightningModule):
             self.hparams['lm_task_factor'] = 1
             self.hparams['discriminator_factor'] = 0
         generator_batch = self._generator_get_batch(batch)
-        begin_end_indexes, documents_sentences, max_len = BreakSentenceBatch(generator_batch)
+        _, documents_sentences, _ = BreakSentenceBatch(generator_batch)
         gpt_inputs = self._get_gpt_inputs(documents_sentences)
         clm_loss = self.lm_loss(gpt_inputs)
         self.log(f'generator/{name}_clm_loss', clm_loss.item(), batch_size=self.hparams['batch_size'])
@@ -426,17 +413,23 @@ class PubMedGANSBert(pl.LightningModule):
     """################# UTILS FUNCTIONS #####################"""
 
     def _get_gpt_inputs(self, documents_sentences):
+        """ used in CLM loss calculation to get the inputs and labels for the GPT model"""
+         # Tokenization: Convert sentences to model-friendly format
         inputs = self.SentenceTransformerModel.tokenizer.batch_encode_plus(documents_sentences, padding=True, truncation=True,
                                                        max_length=self.max_input_length,
                                                        add_special_tokens=True, return_tensors="pt")
+        # Moving the tokenized inputs to the specified device (GPU/CPU)
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         collated_inputs = self.data_collator(inputs['input_ids'].tolist())
+        # Moving the collated inputs to the specified device
         collated_inputs = {k: v.to(self.device) for k, v in collated_inputs.items()}
+        # Updating the input dictionary with collated 'input_ids' and 'labels'
         inputs['input_ids'] = collated_inputs['input_ids']
         inputs['labels'] = collated_inputs['labels']
         return inputs
 
     def _get_nsp_loss(self,batch):
+        """ calculates the nsp loss using the sentence transformer model"""
         if self.hparams['varied_pairs']:
             prepared_batch = prepare_varied_batch_from_gan(batch)
         elif self.hparams['sts_pairs']:
@@ -446,7 +439,6 @@ class PubMedGANSBert(pl.LightningModule):
         unique_sentences_list, sentence1_indices, sentence2_indices = self._create_unique_set_and_indices(prepared_batch)
         unique_sentences_list_collated = self.smart_batching_collate(self.SentenceTransformerModel, unique_sentences_list)
         sentence_embeddings = self.SentenceTransformerModel(unique_sentences_list_collated)
-        # sentence_embeddings['sentence_embeddings'] = self.downsampler(sentence_embeddings['sentence_embedding'])
         sentence1_embeddings, sentence2_embeddings = self._match_embedding_to_sentence(sentence_embeddings["sentence_embedding"], sentence1_indices, sentence2_indices)
         labels =  torch.tensor(prepared_batch["label"].values).to(device="cuda")
         return self.lm_loss([sentence1_embeddings,sentence2_embeddings],labels) # calculates the contrastive divergence loss using cosine similarity
@@ -456,3 +448,17 @@ class PubMedGANSBert(pl.LightningModule):
         batch_df = pd.DataFrame.from_dict(batch)
         batch = batch_df.T.to_dict().values()
         return batch
+
+    def _set_number_of_epochs(self):
+        """ sets the number of epochs to train according to the checkpoint path if exists, otherwise we set it to max_epochs"""
+        if self.hparams['checkpoint_path'] is not None:
+            #set number of epochs when given from checkpoint path to remaining epochs upto max_epochs at hparams
+            epoch_match = re.search(r'epoch_(\d+)', self.hparams['checkpoint_path'])
+            epoch_number = int(epoch_match.group(1))
+            max_epochs = self.hparams['max_epochs'] - epoch_number
+            print("Set number of epochs to: ", max_epochs)
+            self.inital_epoch = epoch_number
+            return max_epochs
+        else:
+            self.inital_epoch = 0
+            return self.hparams['max_epochs']

@@ -29,7 +29,7 @@ class DiscriminatorGPT(pl.LightningModule):
         elif self.hparams["gpt_model"] == "biogpt":
             self.name = f"microsoft/biogpt"
         self.gpt_model = BioGptForCausalLM.from_pretrained(self.name)
-            self.gpt_tokenizer =  BioGptTokenizer.from_pretrained(self.name)
+        self.gpt_tokenizer =  BioGptTokenizer.from_pretrained(self.name)
         self.max_length_gpt_input = self.hparams['max_length_bert_input']
         self.sentence_embedding_size = self.gpt_model.config.hidden_size
         self.max_sentences_per_abstract = self.hparams['max_sentences_per_abstract']

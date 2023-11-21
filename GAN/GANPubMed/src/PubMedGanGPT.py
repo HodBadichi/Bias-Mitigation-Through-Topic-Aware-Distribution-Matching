@@ -14,7 +14,7 @@ from sklearn.metrics import roc_auc_score, accuracy_score
 
 from GAN.Utils.src.TextUtils import BreakSentenceBatch
 
-"""PubMedGANGPT implementation 
+"""PubMedGAN using GPT model as an embedding model (W/O sentence transformers)
 """
 
 
@@ -29,7 +29,6 @@ class PubMedGANGPT(pl.LightningModule):
         self.max_length_gpt_input = self.hparams['max_length_bert_input'] #TODO: should be left as is?
         self.max_sentences_per_abstract = self.hparams['max_sentences_per_abstract']
         self.sentence_embedding_size = self.gpt_model.config.hidden_size
-        # self.downsampler = nn.Linear(self.sentence_embedding_size, 384) #for now we use the same size as the sbert model
         # The linear layer if from 2 concat abstract (1 is bias and 1 unbiased) to binary label:
         # 1 - the couple of matching docs was [biased,unbiased]
         # 0 - the couple of matching docs was [unbiased,biased]
@@ -203,6 +202,7 @@ class PubMedGANGPT(pl.LightningModule):
 
     def _discriminator_get_cls_gpt_outputs(self, gpt_inputs):
         all_outputs = self.gpt_model(**gpt_inputs, output_hidden_states=True)
+        #TODO: CLS token doesn't exist in GPT, we should use the last token in the sentence instead of the first as the sentence embedding
         cls_outputs = all_outputs.hidden_states[-1][:, 0]
         return cls_outputs
 

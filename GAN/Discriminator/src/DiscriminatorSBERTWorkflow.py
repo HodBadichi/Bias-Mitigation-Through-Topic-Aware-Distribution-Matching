@@ -22,7 +22,7 @@ def Run():
     new_hparams = PrepareArguments()
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     dm = PubMedModule(new_hparams)
-    model = DiscriminatorSbertGPT2(new_hparams)
+    model = DiscriminatorSBert(new_hparams)
     logger = WandbLogger(
         name=model.name,
         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),

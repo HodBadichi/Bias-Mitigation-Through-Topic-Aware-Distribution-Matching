@@ -4,6 +4,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+""" These loss functions are used in PubMedGanSentenceTransformer.py and are copied from Sentence Transformers module and modified to fit our needs"""
+
 class SoftMaxLoss(SoftmaxLoss):
     def forward(self, sentence_embeddings, labels, size_average=False):
         embeddings = [sentence_feature for sentence_feature in sentence_embeddings]
@@ -94,8 +96,10 @@ class ContrastiveLoss(nn.Module):
 class CLMLoss(nn.Module):
     def __init__(self, model):
         super(CLMLoss, self).__init__()
-        self.model = list(model._modules.items())[0][1]
+        self.model = list(model._modules.items())[0][1] # get the transformer model from sentence transformer wrapper
 
     def forward(self, inputs):
         outputs = self.model.auto_model(**inputs)
+        # loss is CLM loss because of the CLM head we use when creating the transformer model for sentence transformers to use (GPT2LMHeadModel/BioGptForCausalLM)
+        # TODO: this breaks when we try to load the GPT-based sentence transformer model from a checkpoint because it doesn't have the CLM head - need to fix this
         return outputs.loss
