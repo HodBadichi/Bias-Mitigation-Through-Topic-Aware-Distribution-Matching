@@ -28,11 +28,13 @@ class PubMedGAN(pl.LightningModule):
         self.bert_model = BertForMaskedLM.from_pretrained(self.hparams['bert_pretrained_over_pubMed_path'])
         # self.frozen_bert_model = BertForMaskedLM.from_pretrained(self.hparams['bert_pretrained_over_pubMed_path'])
         self.sentence_embedding_size = self.bert_model.get_input_embeddings().embedding_dim
+        # print("sentence_embedding_size", self.sentence_embedding_size)
         # The linear layer if from 2 concat abstract (1 is bias and 1 unbiased) to binary label:
         # 1 - the couple of matching docs was [biased,unbiased]
         # 0 - the couple of matching docs was [unbiased,biased]
         self.classifier = nn.Linear(self.sentence_embedding_size * self.max_sentences_per_abstract * 2, 1)
         self.loss_func = torch.nn.BCEWithLogitsLoss(reduction='none')
+        self.name = "bert_tiny_uncased_2010_2018_v2020_epoch39"
 
     def forward(self):
         # Forward is unneeded , GaN model will not infer in the future
@@ -84,21 +86,23 @@ class PubMedGAN(pl.LightningModule):
 
     def on_end(self, outputs, name):
         # outputs is a list (len=number of batches) of dicts (as returned from the step methods).
-        if name == 'train_dataset' or name == 'test_dataset':
+        if name == 'train_dataset':
             outputs = outputs[0]  # TODO: WHY? only generator outputs. TODO: really?
-        losses = torch.cat([output['losses'] for output in outputs])
-        y_true = torch.cat([output['y_true'] for output in outputs])
-        y_proba = torch.cat([output['y_proba'] for output in outputs])
-        y_score = torch.cat([output['y_score'] for output in outputs])
-
-        self.log(f'debug/{name}_loss', losses.mean(), batch_size=self.hparams['batch_size'])
-        self.log(f'debug/{name}_accuracy', (1. * ((1. * (y_proba >= 0.5)) == y_true)).mean(),
+        losses = [output['losses'] for output in outputs if 'losses' in output]
+        y_true  =[output['y_true'] for output in outputs if 'y_true' in output]
+        y_proba =[output['y_proba'] for output in outputs if 'y_proba' in output]
+        y_score =[output['y_score'] for output in outputs if 'y_score' in output]
+        if losses:
+            losses = torch.cat(losses)
+            self.log(f'debug/{name}_loss', losses.mean(), batch_size=self.hparams['batch_size']) #TODO nofar and liel: understand what's the difference between this loss and the loss in the discriminator step - what are the graphs we expect to see?
+        if y_true and y_proba:
+            y_true = torch.cat(y_true)
+            y_proba = torch.cat(y_proba)
+            self.log(f'debug/{name}_accuracy', (1. * ((1. * (y_proba >= 0.5)) == y_true)).mean(),batch_size=self.hparams['batch_size'])
+            self.log(f'debug/{name}_1_accuracy', (1. * (y_proba[y_true == 1] >= 0.5)).mean(),
+                    batch_size=self.hparams['batch_size'])
+            self.log(f'debug/{name}_0_accuracy', (1. * (y_proba[y_true == 0] < 0.5)).mean(),
                  batch_size=self.hparams['batch_size'])
-        self.log(f'debug/{name}_1_accuracy', (1. * (y_proba[y_true == 1] >= 0.5)).mean(),
-                 batch_size=self.hparams['batch_size'])
-        self.log(f'debug/{name}_0_accuracy', (1. * (y_proba[y_true == 0] < 0.5)).mean(),
-                 batch_size=self.hparams['batch_size'])
-
         if name == 'val_dataset':
             # save model at the end of val_dataset epoch
             if self.hparams['max_epochs'] > 0:
@@ -253,6 +257,7 @@ class PubMedGAN(pl.LightningModule):
         begin_end_indexes, documents_sentences, max_len = BreakSentenceBatch(generator_batch)
         bert_inputs = self._get_bert_inputs(documents_sentences)
         mlm_loss = self._generator_get_mlm_loss(bert_inputs)
+        # print(f"MLM loss is {mlm_loss}")
         step_ret_dict['mlm_loss'] = mlm_loss
         # TODO diff from frozen and tune the factors (mlm_loss is 2-5, discriminator_loss is ~0.5-1)
         total_loss = self.hparams['mlm_factor'] * mlm_loss - self.hparams['discriminator_factor'] * discriminator_loss
@@ -279,6 +284,7 @@ class PubMedGAN(pl.LightningModule):
         return result_batch
 
     """################# UTILS FUNCTIONS #####################"""
+    
 
     def _get_bert_inputs(self, documents_sentences):
         inputs = self.bert_tokenizer.batch_encode_plus(documents_sentences, padding=True, truncation=True,

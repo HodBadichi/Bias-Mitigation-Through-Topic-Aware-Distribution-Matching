@@ -10,7 +10,9 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
 from GAN.GANPubMed.src.PubMedGAN import PubMedGAN
+from GAN.GANPubMed.src.PubMedGanSentenceTransformer import PubMedGanSentenceTransformer
 from GAN.GANPubMed.src.PubMedModule import PubMedModule
+from GAN.GANPubMed.src.PubMedGanGPT import PubMedGANGPT
 from GAN.GANPubMed.src.hparams_config import hparams
 
 """
@@ -21,16 +23,21 @@ workflow for running 'PubMedGAN'
 def Run():
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     dm = PubMedModule(hparams)
-    model = PubMedGAN(hparams)
+    # hparams['gpus']=2
+    # model = PubMedGANGPT(hparams)
+    model = PubMedGanSentenceTransformer(hparams)
+    # model = PubMedGAN(hparams)
     logger = WandbLogger(
-        name=f'GAN_over_topic_and_gender_70_15_15_v2',
+        name=f'{model.name}_GAN_over_topic_and_gender_70_15_15_v2_all-MiniLM-L6-v2',
         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
         project='GAN_test',
         config={'lr': hparams['learning_rate'], 'batch_size': hparams['batch_size']}
     )
+    print(model)
+    print(f'saved model at: {model.save_model_path}')
     trainer = pl.Trainer(
         gpus=hparams['gpus'],
-        max_epochs=hparams['max_epochs'],
+        max_epochs=  model.max_epochs if hasattr(model, 'max_epochs') else hparams['max_epochs'],
         logger=logger,
         log_every_n_steps=1,
         accumulate_grad_batches=1,

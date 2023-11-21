@@ -13,6 +13,7 @@ import torch
 
 
 from GAN.Discriminator.src.Discriminator import Discriminator
+from GAN.Discriminator.src.DiscriminatorGPT import DiscriminatorGPT
 from GAN.Discriminator.src.DiscriminatorBERT import DiscriminatorBioElectra, DiscriminatorSciBert, DiscriminatorTinyBert, DiscriminatorLinkBert
 from GAN.GANPubMed.src.PubMedModule import PubMedModule
 from GAN.Discriminator.src.hparams_config import hparams
@@ -23,6 +24,7 @@ from GAN.Discriminator.src.hparams_config import hparams
 
 def ParseCLI():
     parser = argparse.ArgumentParser(description='model arguments')
+    parser.add_argument("-n", "--name", type=str, help="name for wandb", default='Discriminator_over_topic_and_gender_70_15_15_SBERT')
     parser.add_argument("--max-epochs", type=int, help="max_epochs", required=False)
     parser.add_argument("--test_dataset-size", type=float, help="test_size", required=False)
     parser.add_argument("--lr", type=float, help="Learning rate", required=False)
@@ -60,14 +62,14 @@ def Run():
     new_hparams = PrepareArguments()
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     dm = PubMedModule(new_hparams)
-    model = DiscriminatorLinkBert(new_hparams)
+    model = DiscriminatorGPT(new_hparams)
     logger = WandbLogger(
         name=model.name,
         version=datetime.now(pytz.timezone('Asia/Jerusalem')).strftime('%y%m%d_%H%M%S.%f'),
         project='Discriminator_test',
         config=new_hparams
     )
-
+    print(model)
     trainer = pl.Trainer(
         gpus=new_hparams['gpus'],
         max_epochs=new_hparams['max_epochs'],

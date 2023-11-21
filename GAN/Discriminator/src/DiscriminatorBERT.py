@@ -45,3 +45,5 @@ class DiscriminatorLinkBert(Discriminator):
         self.sentence_embedding_size = self.bert_model.get_input_embeddings().embedding_dim
         self.name = "LinkBert over pubmed with urls and numbers"
         self.classifier = nn.Sequential(*self._calculate_layers())
+
+

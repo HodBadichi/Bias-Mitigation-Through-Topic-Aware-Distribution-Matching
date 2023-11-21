@@ -1,5 +1,6 @@
 import torch
 import os
+from pathlib import Path
 
 from DistributionMatching.NoahArc.src.NoahArc import NoahArc
 
@@ -30,10 +31,10 @@ class NoahArcCE(NoahArc):
             df_name,
         )
         reset_str = ["no_reset", "reset"]
-        matrix_file_name = f"CE_prob_matrix_{reset_str[reset_different_topic_entries_flag]}_different_topic_entries_flag_{df_name}"
-        probability_matrix_path = os.path.join(os.pardir, os.pardir, os.pardir, 'data', matrix_file_name)
+        matrix_file_name = f"2005-2022_CE_prob_matrix_{reset_str[reset_different_topic_entries_flag]}_different_topic_entries_flag_{df_name}"
+        probability_matrix_path = str(Path(__file__).resolve().parents[3] / 'data' / matrix_file_name)
         if os.path.isfile(probability_matrix_path):
-            print("Matching NoahArc already exists, Loading ...")
+            print(f"Matching NoahArc already exists {probability_matrix_path}, Loading ...")
             self.probability_matrix = torch.load(probability_matrix_path)
         else:
             print("Calculates NoahArc...")
