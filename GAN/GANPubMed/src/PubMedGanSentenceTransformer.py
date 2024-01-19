@@ -25,7 +25,7 @@ import torch.nn.functional as F
 GENERATOR_OPTIMIZER_INDEX = 1
 
 """
-This class implements the GAN model using SentenceTransformer as the embedding model.
+This class implements the GAN model using a SentenceTransformer as the embedding model.
 """
 
 GPT_TRANSFORMERS = {'gpt2-medium': GPT2MediumTransformer, 'microsoft/biogpt': BioGPTTransformer}

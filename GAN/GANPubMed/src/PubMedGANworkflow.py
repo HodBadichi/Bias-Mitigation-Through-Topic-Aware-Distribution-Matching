@@ -16,7 +16,7 @@ from GAN.GANPubMed.src.PubMedGanGPT import PubMedGANGPT
 from GAN.GANPubMed.src.hparams_config import hparams
 
 """
-workflow for running 'PubMedGAN'
+Main entry point for training a GAN model on PubMed dataset.
 """
 
 

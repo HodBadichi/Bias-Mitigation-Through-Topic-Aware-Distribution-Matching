@@ -10,12 +10,8 @@ from transformers import BioGptTokenizer, BioGptForCausalLM, DataCollatorForLang
 from GAN.Utils.src.TextUtils import BreakSentenceBatch
 
 """Discriminator Implementation
-This class inherits from 'pl.LightningModule', A basic network with linear layers using RELU between each layer
-which tries to detect which one of a documents duo given is a biased and an unbiased one based on Bert embeddings
-trained over the whole PUBMED dataset
+This class is similiar to the Discriminator class but uses a GPT model as the embedder (not a sentence transformer)
 """
-
-
 class DiscriminatorGPT(pl.LightningModule):
     def __init__(self, hparams):
         super(DiscriminatorGPT, self).__init__()
@@ -72,18 +68,7 @@ class DiscriminatorGPT(pl.LightningModule):
         grouped_parameters_discriminator = [{'params': self.classifier.parameters()}]
         optimizer_discriminator = torch.optim.Adam(grouped_parameters_discriminator, lr=self.hparams['learning_rate'])
         return [optimizer_discriminator]
-
-    # def _freeze_model_parameters(self):
-    #     # freeze all layers
-    #     for param in self.gpt_model.parameters():
-    #         param.requires_grad = False
-    #     # unfreeze last layer
-    #     for param in self.gpt_model.biogpt.layers[-1].parameters():
-    #         param.requires_grad = True
-    #     # if clm loss is enabled we have to unfreeze the output_projection layer
-    #     for param in self.gpt_model.output_projection.parameters():
-    #         param.requires_grad = True
-
+    
     """################# DISCRIMINATOR FUNCTIONS #####################"""
 
     def _calculate_layers(self):

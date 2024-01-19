@@ -23,9 +23,10 @@ hparams = {'learning_rate': 3e-5,
            'base_model': 'gpt2-medium',
           #  'base_model': 'microsoft/biogpt',
           #  'base_model': 'all-MiniLM-L6-v2',
-           'sts_pairs': True,
            # CLMLoss is only available for GPT-based models!!! 
            'loss' : 'CLMLoss',
+           ##### BERT configuration #####
+           'sts_pairs': True,
            'sbert_loss_margin': 0.5,
            'batch_size': 8,
            'test_size': 0.3,

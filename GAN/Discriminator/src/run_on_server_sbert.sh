@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python DiscriminatorSBERTWorkflow.py $3 $4
+python DiscriminatorSBERTWorkflow.py

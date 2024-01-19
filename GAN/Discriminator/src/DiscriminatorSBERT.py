@@ -5,13 +5,16 @@ from sentence_transformers import SentenceTransformer, models
 from transformers import GPT2Tokenizer
 from GAN.Discriminator.src.Discriminator import Discriminator
 
-"""DiscriminatorSBert Implementation
-This class inherits from Discriminator, A basic network with linear layers using RELU between each layer
-which tries to detect which one of a documents duo given is a biased and an unbiased one based Sentence Bert embeddings
+"""
+A set of classes that inherit from Discriminator base class, A basic network with linear layers using RELU between each layer
+which tries to detect which one of a pair abstracts is biased based on a sentence transformer as the embedding model
 """
 
 
 class DiscriminatorSBert(Discriminator):
+    """
+    A discriminator class that uses a BERT-based sentence transformer model to classify between biased and unbiased abstracts.
+    """
     def __init__(self, hparams):
         super(DiscriminatorSBert, self).__init__(hparams)
         self.SentenceTransformerModel = SentenceTransformer('all-MiniLM-L6-v2')
@@ -28,14 +31,6 @@ class DiscriminatorSBert(Discriminator):
 
         self.classifier = nn.Sequential(*layers)  # per il flatten
 
-    # def training_step(self, batch: dict, batch_idx: int) -> dict:
-    #     return self.step(batch, 'train_dataset')
-
-    # def configure_optimizers(self):
-    #     # Discriminator step parameters -  classifier.
-    #     optimizer_discriminator = torch.optim.Adam([{'params': self.classifier.parameters(), 'lr':self.hparams['learning_rate']},
-    #                                                 {'params': self.SentenceTransformerModel.parameters(), 'lr':self.hparams['sbert_learning_rate']}])
-    #     return optimizer_discriminator
     def _discriminator_SBERT_embeddings_to_predictions(self, sentence_embeddings):
         sample_embedding = []
         for i in range(0, len(sentence_embeddings), 2):
@@ -69,6 +64,9 @@ class DiscriminatorSBert(Discriminator):
 
 
 class DiscriminatorSBertBioGPT(DiscriminatorSBert):
+    """
+    A discriminator class that uses a BioGPT-based sentence transformer model to classify between biased and unbiased abstracts.
+    """
     def __init__(self, hparams):
         Discriminator.__init__(self, hparams)
         self.max_seq_length = self.hparams['max_seq_length']
@@ -90,6 +88,9 @@ class DiscriminatorSBertBioGPT(DiscriminatorSBert):
         self.name = "SBertBioGPT"
 
 class DiscriminatorSbertGPT2(DiscriminatorSBert):
+    """
+    A discriminator class that uses a GPT2-medium-based sentence transformer model to classify between biased and unbiased abstracts.
+    """
     def __init__(self, hparams):
         Discriminator.__init__(self, hparams)
         self.max_seq_length = self.hparams['max_seq_length']
